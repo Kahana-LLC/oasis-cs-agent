@@ -8,7 +8,7 @@ log = logging.getLogger(__name__)
 
 
 def main() -> None:
-    from db.fetch import fetch_users, fetch_sessions, fetch_usage, fetch_daily_usage
+    from db.fetch import fetch_users, fetch_sessions, fetch_usage, fetch_daily_usage, fetch_feedback
 
     users = fetch_users()
     log.info(f"users: {len(users)}")
@@ -21,6 +21,9 @@ def main() -> None:
 
     daily = fetch_daily_usage()
     log.info(f"llm_daily_usage rows: {len(daily)}")
+
+    feedback = fetch_feedback()
+    log.info(f"feedback_events rows: {len(feedback)}")
 
 
 if __name__ == "__main__":

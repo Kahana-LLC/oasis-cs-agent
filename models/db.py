@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 class User(BaseModel):
@@ -41,3 +41,20 @@ class LLMDailyUsage(BaseModel):
     usage_date: date
     request_count: int = 0
     total_tokens: int = 0
+
+
+class FeedbackEvent(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    feedback_id: UUID
+    user_id: UUID
+    negative_rating: bool | None = None
+    reported_at: datetime
+
+    @field_validator("reported_at", mode="before")
+    @classmethod
+    def strip_tz(cls, v: str) -> str:
+        # reported_at is timestamptz — strip offset so datetime() parses it
+        if isinstance(v, str) and ("+" in v or v.endswith("Z")):
+            return v.split("+")[0].rstrip("Z")
+        return v

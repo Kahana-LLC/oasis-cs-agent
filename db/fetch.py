@@ -1,5 +1,5 @@
 from .client import get_client
-from models.db import User, Session, LLMUsage, LLMDailyUsage
+from models.db import User, Session, LLMUsage, LLMDailyUsage, FeedbackEvent
 
 _PAGE_SIZE = 1000
 
@@ -39,3 +39,8 @@ def fetch_usage() -> list[LLMUsage]:
 
 def fetch_daily_usage() -> list[LLMDailyUsage]:
     return [LLMDailyUsage(**row) for row in _paginate("llm_daily_usage")]
+
+
+def fetch_feedback() -> list[FeedbackEvent]:
+    rows = [r for r in _paginate("feedback_events") if r.get("user_id") is not None]
+    return [FeedbackEvent(**row) for row in rows]
