@@ -29,22 +29,34 @@ def main() -> None:
     feedback = fetch_feedback()
     log.info(f"feedback_events rows: {len(feedback)}")
 
-    all_metrics = [
-        compute_metrics(u, sessions, usage, daily, feedback, today)
-        for u in users
-    ]
-    log.info(f"metrics computed: {len(all_metrics)}")
+    from classifier.segment import classify_segment
+    from collections import Counter
 
-    # Sample: log the first 3 users for a sanity check
-    for m in all_metrics[:3]:
-        log.info(
-            f"  user={m.user_id} day={m.lifecycle_day} "
-            f"sessions={m.session_count} gap={m.session_gap}d "
-            f"active_7d={m.active_days_last_7} cmds={m.total_commands} "
-            f"diversity={m.command_diversity} dominant={m.dominant_command_type} "
-            f"tokens={m.total_tokens_used} plan={m.plan_id} "
-            f"company={m.company_domain} neg_fb={m.has_recent_negative_feedback}"
-        )
+    all_metrics = []
+    for u in users:
+        m = compute_metrics(u, sessions, usage, daily, feedback, today)
+        m.segment = classify_segment(m)
+        all_metrics.append(m)
+    log.info(f"metrics + segments computed: {len(all_metrics)}")
+
+    # Segment distribution
+    counts = Counter(str(m.segment.value) if m.segment else "none" for m in all_metrics)
+    for seg, n in sorted(counts.items()):
+        log.info(f"  {seg}: {n}")
+
+    # One representative sample per segment (first match)
+    seen = set()
+    log.info("--- sample per segment ---")
+    for m in all_metrics:
+        key = m.segment.value if m.segment else "none"
+        if key not in seen:
+            seen.add(key)
+            log.info(
+                f"  [{key}] day={m.lifecycle_day} sessions={m.session_count} "
+                f"gap={m.session_gap}d active_7d={m.active_days_last_7} "
+                f"active_total={m.active_days_total} cmds={m.total_commands} "
+                f"company={m.company_domain} neg_fb={m.has_recent_negative_feedback}"
+            )
 
 
 if __name__ == "__main__":
