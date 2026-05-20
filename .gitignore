@@ -8,3 +8,12 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Claude
+.claude/
+
+# Environment Variables
+.env
+
+# MCP config (contains access tokens)
+.mcp.json
