@@ -30,6 +30,7 @@ def main() -> None:
     log.info(f"feedback_events rows: {len(feedback)}")
 
     from classifier.segment import classify_segment
+    from triggers.evaluate import evaluate_triggers
     from collections import Counter
 
     all_metrics = []
@@ -40,23 +41,23 @@ def main() -> None:
     log.info(f"metrics + segments computed: {len(all_metrics)}")
 
     # Segment distribution
-    counts = Counter(str(m.segment.value) if m.segment else "none" for m in all_metrics)
-    for seg, n in sorted(counts.items()):
+    seg_counts = Counter(m.segment.value if m.segment else "none" for m in all_metrics)
+    log.info("--- segment distribution ---")
+    for seg, n in sorted(seg_counts.items()):
         log.info(f"  {seg}: {n}")
 
-    # One representative sample per segment (first match)
-    seen = set()
-    log.info("--- sample per segment ---")
+    # Trigger frequency across all users
+    trigger_counts: Counter = Counter()
+    total_fired = 0
     for m in all_metrics:
-        key = m.segment.value if m.segment else "none"
-        if key not in seen:
-            seen.add(key)
-            log.info(
-                f"  [{key}] day={m.lifecycle_day} sessions={m.session_count} "
-                f"gap={m.session_gap}d active_7d={m.active_days_last_7} "
-                f"active_total={m.active_days_total} cmds={m.total_commands} "
-                f"company={m.company_domain} neg_fb={m.has_recent_negative_feedback}"
-            )
+        results = evaluate_triggers(m)
+        for r in results:
+            trigger_counts[f"{r.trigger_name}/{r.channel}"] += 1
+        total_fired += len(results)
+
+    log.info(f"--- triggers fired: {total_fired} total across {len(all_metrics)} users ---")
+    for key, n in sorted(trigger_counts.items(), key=lambda x: -x[1]):
+        log.info(f"  {key}: {n}")
 
 
 if __name__ == "__main__":
