@@ -1,4 +1,6 @@
+import argparse
 import logging
+import sys
 from datetime import date
 from dotenv import load_dotenv
 
@@ -8,7 +10,19 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger(__name__)
 
 
-def main() -> None:
+def run_baseline(canvas_only: bool = False) -> None:
+    from reporting.run_baseline import run
+
+    run(canvas_only=canvas_only)
+
+
+def run_baseline_view() -> None:
+    from reporting.launch_dashboard import launch
+
+    raise SystemExit(launch())
+
+
+def run_cs_agent() -> None:
     from db.fetch import fetch_users, fetch_sessions, fetch_usage, fetch_daily_usage, fetch_feedback
     from pipeline.metrics import compute_metrics
 
@@ -61,4 +75,35 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Oasis CS agent")
+    parser.add_argument(
+        "--baseline",
+        action="store_true",
+        help="Generate baseline metrics snapshot and canvas report",
+    )
+    parser.add_argument(
+        "--baseline-canvas-only",
+        action="store_true",
+        help="Regenerate canvas from existing reporting/baseline_snapshot.json",
+    )
+    parser.add_argument(
+        "--baseline-view",
+        action="store_true",
+        help="Open Streamlit baseline dashboard in browser (http://localhost:8501)",
+    )
+    args = parser.parse_args()
+
+    if args.baseline_view:
+        try:
+            run_baseline_view()
+        except Exception:
+            log.exception("baseline dashboard failed to start")
+            sys.exit(1)
+    elif args.baseline or args.baseline_canvas_only:
+        try:
+            run_baseline(canvas_only=args.baseline_canvas_only)
+        except Exception:
+            log.exception("baseline report failed")
+            sys.exit(1)
+    else:
+        run_cs_agent()

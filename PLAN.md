@@ -398,8 +398,37 @@ class OutreachLogEntry(BaseModel):
 - [ ] `actions/inapp.py` — write row to `cs_inapp_messages`
 - [ ] `actions/alert.py` — plain-text email to `ALERT_EMAIL` via Brevo
 
-### Phase 6 — Daily Cohort Report (est. 1 hr)
-- [ ] `reporting/cohort_report.py`
+### Phase 6 — Baseline & Cohort Report
+- [x] `reporting/baseline_metrics.py` — activation, retention, monetization, feedback aggregates
+- [x] `reporting/cost_model.py` — Gemini/API cost estimates for net ARPU
+- [x] `reporting/run_baseline.py` — fetch Supabase → `baseline_snapshot.json` + canvas
+- [x] [`reporting/dashboard.py`](reporting/dashboard.py) — Streamlit baseline dashboard (primary viewer)
+- [x] [`canvases/oasis-baseline-report.canvas.tsx`](canvases/oasis-baseline-report.canvas.tsx) — optional Cursor canvas mirror
+
+**Refresh metrics** (requires `.env` with `SUPABASE_URL` + `SUPABASE_KEY`):
+```bash
+.venv/bin/python main.py --baseline
+# or: uv run python main.py --baseline
+```
+
+**View dashboard** (Streamlit in browser at http://localhost:8501):
+```bash
+.venv/bin/python main.py --baseline-view
+```
+
+**Regenerate canvas only** (after snapshot exists):
+```bash
+.venv/bin/python main.py --baseline-canvas-only
+```
+
+**Without `.env`** (refresh SQL export via Supabase MCP, save to `reporting/sql_export.json`, then):
+```bash
+.venv/bin/python -m reporting.build_snapshot
+```
+
+See [`reporting/README.md`](reporting/README.md) for full reporting docs.
+
+- [ ] `reporting/cohort_report.py` — daily CS segment/trigger summary (separate from baseline)
   - Date + total users processed
   - Segment breakdown (count per segment)
   - Triggers fired (count per trigger)

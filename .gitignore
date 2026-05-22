@@ -1,3 +1,5 @@
+.DS_Store
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -14,6 +16,9 @@ wheels/
 
 # Environment Variables
 .env
+
+# Large SQL exports for offline baseline build
+reporting/sql_export.json
 
 # MCP config (contains access tokens)
 .mcp.json

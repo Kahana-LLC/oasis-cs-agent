@@ -10,4 +10,5 @@ dependencies = [
     "pydantic-ai[anthropic]>=1.98.0",
     "python-dotenv>=1.2.2",
     "supabase>=2.30.0",
+    "streamlit>=1.40.0",
 ]
