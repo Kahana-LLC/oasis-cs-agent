@@ -1,0 +1,4 @@
+# Vercel Python runtime installs these for api/snapshot.py (see requirements-vercel.txt).
+pandas>=3.0.3
+python-dotenv>=1.2.2
+supabase>=2.30.0
