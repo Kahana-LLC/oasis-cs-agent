@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .client import get_client
+from .client import paginate_table
 from models.db import (
     User,
     Session,
@@ -13,27 +13,10 @@ from models.db import (
     UserPlan,
 )
 
-_PAGE_SIZE = 1000
-
 
 def _paginate(table: str, filters: dict | None = None) -> list[dict]:
     """Fetch all rows from a table, paginating through PostgREST's 1000-row limit."""
-    client = get_client()
-    rows: list[dict] = []
-    start = 0
-
-    while True:
-        query = client.table(table).select("*").range(start, start + _PAGE_SIZE - 1)
-        if filters:
-            for col, val in filters.items():
-                query = query.eq(col, val)
-        batch = query.execute().data
-        rows.extend(batch)
-        if len(batch) < _PAGE_SIZE:
-            break
-        start += _PAGE_SIZE
-
-    return rows
+    return paginate_table(table, filters)
 
 
 def fetch_users() -> list[User]:

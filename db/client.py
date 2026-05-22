@@ -1,16 +1,74 @@
+"""Supabase PostgREST client (httpx — small bundle for Vercel serverless)."""
+
 from __future__ import annotations
 
 import os
-from supabase import create_client, Client
+from typing import Any
+from urllib.parse import quote
 
-_client: Client | None = None
+import httpx
+
+_PAGE_SIZE = 1000
+_client: httpx.Client | None = None
 
 
-def get_client() -> Client:
+def _base_url() -> str:
+    url = os.environ.get("SUPABASE_URL", "").rstrip("/")
+    if not url:
+        raise RuntimeError("SUPABASE_URL is not set")
+    return f"{url}/rest/v1"
+
+
+def _api_key() -> str:
+    key = os.environ.get("SUPABASE_KEY", "")
+    if not key:
+        raise RuntimeError("SUPABASE_KEY is not set")
+    return key
+
+
+def _headers(range_start: int, range_end: int) -> dict[str, str]:
+    key = _api_key()
+    return {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Range": f"{range_start}-{range_end}",
+        "Prefer": "count=exact",
+    }
+
+
+def get_http_client() -> httpx.Client:
     global _client
     if _client is None:
-        _client = create_client(
-            os.environ["SUPABASE_URL"],
-            os.environ["SUPABASE_KEY"],
-        )
+        _client = httpx.Client(timeout=60.0)
     return _client
+
+
+def paginate_table(table: str, filters: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Fetch all rows from a table via PostgREST range pagination."""
+    client = get_http_client()
+    rows: list[dict[str, Any]] = []
+    start = 0
+    table_path = quote(table, safe="")
+
+    while True:
+        end = start + _PAGE_SIZE - 1
+        params: dict[str, str] = {"select": "*"}
+        if filters:
+            for col, val in filters.items():
+                params[col] = f"eq.{val}"
+
+        resp = client.get(
+            f"{_base_url()}/{table_path}",
+            headers=_headers(start, end),
+            params=params,
+        )
+        resp.raise_for_status()
+        batch = resp.json()
+        if not isinstance(batch, list):
+            raise RuntimeError(f"Unexpected response for {table}: {type(batch)}")
+        rows.extend(batch)
+        if len(batch) < _PAGE_SIZE:
+            break
+        start += _PAGE_SIZE
+
+    return rows

@@ -6,7 +6,8 @@
   "framework": null,
   "functions": {
     "api/**/*.py": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "excludeFiles": "{.venv/**,**/__pycache__/**,reporting/sql_export.json,canvases/**,docs/**,pipeline/**,classifier/**,triggers/**,public/**,*.canvas.tsx,reporting/dashboard.py,reporting/launch_dashboard.py,reporting/run_baseline.py,reporting/build_snapshot.py,uv.lock,pyproject.toml}"
     }
   }
 }

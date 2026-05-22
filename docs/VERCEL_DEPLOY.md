@@ -31,7 +31,7 @@ Streamlit (`main.py --baseline-view`) remains for local interactive use only.
 |---------|--------|
 | **Framework Preset** | Other |
 | **Root Directory** | `./` |
-| **Install Command** | *(empty)* — Vercel bundles deps from root `requirements.txt` for `/api/*` |
+| **Install Command** | *(empty)* — deps from [`api/requirements.txt`](../api/requirements.txt) only (httpx + pandas, no supabase-py) |
 | **Build Command** | `python reporting/build_static_site.py` |
 | **Output Directory** | `public` |
 
