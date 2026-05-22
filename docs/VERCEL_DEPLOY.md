@@ -1,112 +1,102 @@
 # Deploy the baseline dashboard on Vercel
 
-## Important: Streamlit vs Vercel
+## How it works (production)
 
-**You cannot run `streamlit run` on Vercel.** Streamlit needs a long-lived Python server and WebSockets; Vercel uses short-lived serverless functions.
+Reloading [https://oasis-analytics.vercel.app](https://oasis-analytics.vercel.app) fetches **live metrics** from Supabase:
 
-This repo ships two viewers for the same `baseline_snapshot.json`:
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant API as /api/snapshot
+  participant Supabase
 
-| Viewer | Where | Shareable link |
-|--------|--------|----------------|
-| **Streamlit** (local) | `main.py --baseline-view` | Only while your laptop/server is running |
-| **Static site** (Vercel) | `public/index.html` + JSON | Yes — `https://your-project.vercel.app` |
+  Browser->>API: GET (no cache)
+  API->>Supabase: fetch tables
+  API->>API: compute_baseline_snapshot
+  API-->>Browser: JSON
+  Browser->>Browser: render charts
+```
 
-Workflow: refresh metrics locally (or in CI), commit/push, Vercel rebuilds the static dashboard.
+- **Static shell:** `public/index.html` (deployed from `public/`)
+- **Live data:** [`api/snapshot.py`](../api/snapshot.py) serverless function
+- **Fallback:** `./baseline_snapshot.json` when API is unavailable (local `npx serve public`)
+
+Streamlit (`main.py --baseline-view`) remains for local interactive use only.
 
 ---
 
-## Vercel project settings (recommended)
+## Required Vercel settings
 
-Use these in the Vercel UI when importing **AdamKershner/oasis-analytics** (or override with the repo’s `vercel.json`).
+| Setting | Value |
+|---------|--------|
+| **Framework Preset** | Other |
+| **Root Directory** | `./` |
+| **Install Command** | `pip install -r requirements-vercel.txt` |
+| **Build Command** | `python reporting/build_static_site.py` |
+| **Output Directory** | `public` |
 
-| Setting | Value | Why |
-|---------|--------|-----|
-| **Framework Preset** | **Other** | Not a Streamlit/Python server app — static HTML output |
-| **Root Directory** | `./` | Repo root |
-| **Build Command** | `python reporting/build_static_site.py` | Copies `reporting/baseline_snapshot.json` → `public/` |
-| **Output Directory** | `public` | Static files Vercel serves |
-| **Install Command** | *(leave empty)* | No pip install needed for default deploy |
+[`vercel.json`](../vercel.json) sets these plus `maxDuration: 60` for the API.
 
-`vercel.json` in the repo already sets build command and output directory. If the UI conflicts with the file, **prefer `vercel.json`**.
+### Environment variables (required for live dashboard)
 
-Do **not** use Framework Preset **Python** with `pip install -r requirements.txt` unless you enable the optional “refresh on deploy” flow below.
+Add in **Vercel → Project → Settings → Environment Variables** for **Production** (and Preview if desired):
 
----
+| Key | Value |
+|-----|--------|
+| `SUPABASE_URL` | `https://xxxx.supabase.co` |
+| `SUPABASE_KEY` | Supabase **service role** key (server-side only) |
 
-## Environment variables
+Optional:
 
-### Default deploy (snapshot baked into git)
+| Key | Value | Default |
+|-----|--------|---------|
+| `SNAPSHOT_CACHE_SECONDS` | `60` | `0` (every refresh hits Supabase) |
+| `SNAPSHOT_DEBUG` | `true` | off (include stack trace in API errors) |
 
-**No environment variables required.**
-
-The build only copies the committed `reporting/baseline_snapshot.json`. Update metrics locally, commit the JSON, push, redeploy.
-
-### Optional: refresh from Supabase on every deploy
-
-Only if you want production to pull live data during `vercel build`:
-
-| Key | Value | Environments |
-|-----|--------|----------------|
-| `SUPABASE_URL` | `https://xxxx.supabase.co` | Production (and Preview if you want) |
-| `SUPABASE_KEY` | Supabase **service role** key | Production |
-
-**Build Command** (replace default):
-
-```bash
-pip install -r requirements-vercel.txt && python main.py --baseline && python reporting/build_static_site.py
-```
-
-**Install Command:**
-
-```bash
-pip install -r requirements-vercel.txt
-```
-
-Never put secrets in `.env` committed to git. In Vercel: **Project → Settings → Environment Variables**, paste the same names as your local `.env`.
+Redeploy after adding or changing env vars.
 
 ---
 
-## Local `.env` (not used by Vercel static deploy)
+## Verification
 
-Keep secrets only on your machine:
+1. Open `https://oasis-analytics.vercel.app/api/snapshot` — JSON with `generated_at` and metrics.
+2. Open the main URL — header shows **Last updated** and **Source: live (Supabase)**.
+3. Hard-refresh — `generated_at` should reflect a new pull.
+4. If API returns `{"error":"Missing environment variable: ..."}` — add secrets in Vercel and redeploy.
 
-```bash
-# .env (gitignored)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-service-role-key
-```
+---
 
-| Task | Command |
+## Local development
+
+| Mode | Command |
 |------|---------|
-| Refresh snapshot | `.venv/bin/python main.py --baseline` |
-| Interactive Streamlit | `.venv/bin/python main.py --baseline-view` |
-| Build static files for Vercel | `.venv/bin/python reporting/build_static_site.py` |
-| Preview static site locally | `npx serve public` → open the URL shown |
+| Static preview (cached JSON) | `.venv/bin/python reporting/build_static_site.py` then `npx serve public` |
+| Full stack (live API) | `vercel dev` with `.env` containing `SUPABASE_URL` + `SUPABASE_KEY` |
+| Refresh snapshot file | `.venv/bin/python main.py --baseline` |
+| Streamlit | `.venv/bin/python main.py --baseline-view` |
+
+Copy [`.env.example`](../.env.example) to `.env` (gitignored). Same variables as Vercel.
 
 ---
 
-## Deploy steps
+## Troubleshooting
 
-1. Ensure `reporting/baseline_snapshot.json` exists (`main.py --baseline` if needed).
-2. Commit and push to GitHub.
-3. Vercel → **Add New Project** → import **oasis-analytics**.
-4. Confirm build/output settings (table above).
-5. Deploy → share `https://<project>.vercel.app`.
-
----
-
-## Updating the live link
-
-1. Run `.venv/bin/python main.py --baseline` locally (with `.env`).
-2. Commit updated `reporting/baseline_snapshot.json`.
-3. Push → Vercel auto-redeploys.
-
-Or use the optional Supabase env vars and refresh-on-build command.
+| Symptom | Fix |
+|---------|-----|
+| Dashboard shows API error | Set `SUPABASE_URL` / `SUPABASE_KEY` on Vercel; redeploy |
+| API times out | Hobby plan 10s limit — upgrade Pro or optimize fetches; `maxDuration` is 60 in `vercel.json` (Pro) |
+| Slow first load | Cold start + Supabase fetch; normal for ~100+ users |
+| Uses cached file locally | Expected without `vercel dev`; API not running |
 
 ---
 
-## If you need full Streamlit in the cloud
+## Security
 
-Use **[Streamlit Community Cloud](https://streamlit.io/cloud)** (free public apps): point at `reporting/dashboard.py`, add `SUPABASE_*` only if you add live DB calls later (current dashboard is snapshot-only).
+- Service role key never leaves the serverless function.
+- `/api/snapshot` is public (aggregate metrics only). Add Vercel Password Protection or auth later if needed.
 
-Vercel remains the right choice for a **read-only, shareable** metrics link with no server to maintain.
+---
+
+## Optional: commit snapshot to git
+
+`main.py --baseline` still writes `reporting/baseline_snapshot.json` for offline preview and CI. Production does **not** require committing JSON for updates — URL refresh pulls live data.

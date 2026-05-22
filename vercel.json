@@ -1,7 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "pip install -r requirements-vercel.txt",
   "buildCommand": "python reporting/build_static_site.py",
   "outputDirectory": "public",
-  "installCommand": null,
-  "framework": null
+  "framework": null,
+  "functions": {
+    "api/**/*.py": {
+      "maxDuration": 60
+    }
+  }
 }

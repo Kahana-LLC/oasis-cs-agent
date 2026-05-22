@@ -4,8 +4,14 @@
 
 ### Shareable link (Vercel)
 
-Deploy the static viewer in `public/` — see **[../docs/VERCEL_DEPLOY.md](../docs/VERCEL_DEPLOY.md)**.  
-Build locally: `.venv/bin/python reporting/build_static_site.py`
+Production loads live data from **`/api/snapshot`** on each page refresh (see **[../docs/VERCEL_DEPLOY.md](../docs/VERCEL_DEPLOY.md)**).
+
+| File | Purpose |
+|------|---------|
+| `snapshot_service.py` | Fetch + compute (CLI + API) |
+| `../api/snapshot.py` | Vercel serverless endpoint |
+
+Offline static preview: `.venv/bin/python reporting/build_static_site.py`
 
 ### Local Streamlit (interactive)
 
@@ -31,10 +37,11 @@ Writes `baseline_snapshot.json` and updates the optional Cursor canvas. Then rer
 
 | File | Purpose |
 |------|---------|
-| `dashboard.py` | Streamlit app (primary viewer) |
-| `baseline_snapshot.json` | Metric data snapshot |
+| `dashboard.py` | Streamlit app (local viewer) |
+| `baseline_snapshot.json` | Cached snapshot (offline / fallback) |
 | `baseline_metrics.py` | Metric computation |
-| `run_baseline.py` | Fetch + snapshot + canvas |
+| `run_baseline.py` | Fetch + write snapshot + canvas |
+| `snapshot_service.py` | Shared fetch/compute for API + CLI |
 | `build_snapshot.py` | Rebuild from `sql_export.json` (no `.env`) |
 
 ## Optional: Cursor canvas

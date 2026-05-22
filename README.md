@@ -20,10 +20,13 @@ cp .env.example .env
 
 ## Shareable link (Vercel)
 
-Static dashboard from the same JSON snapshot. See **[docs/VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md)** for Framework Preset, build settings, and environment variables.
+**https://oasis-analytics.vercel.app** — reload the page for live Supabase metrics via `/api/snapshot`.
+
+Set `SUPABASE_URL` and `SUPABASE_KEY` in Vercel project env vars (see **[docs/VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md)**).
 
 ```bash
-.venv/bin/python reporting/build_static_site.py   # copies JSON into public/
+vercel dev          # local: live API + static UI
+npx serve public    # local: offline JSON fallback only
 ```
 
 ## Docs

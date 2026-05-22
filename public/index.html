@@ -92,11 +92,17 @@
     th { background: #243044; color: var(--muted); font-weight: 600; }
     .err { color: #f87171; padding: 2rem; text-align: center; }
     footer { color: var(--muted); font-size: 0.8rem; margin-top: 2rem; }
+    .data-source {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: -0.5rem 0 1rem;
+    }
+    .data-source.live { color: #6bcba8; }
   </style>
 </head>
 <body>
   <div class="wrap" id="app">
-    <p class="err">Loading snapshot…</p>
+    <p class="err">Refreshing metrics from Supabase…</p>
   </div>
   <script>
     const RETENTION_DAYS = ["D1", "D3", "D7", "D14", "D30"];
@@ -174,7 +180,7 @@
       return `<div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
     }
 
-    function render(data) {
+    function render(data, sourceLabel) {
       destroyCharts();
       const act = data.activation || {};
       const eng = data.engagement || {};
@@ -193,8 +199,9 @@
       const app = document.getElementById("app");
       app.innerHTML = `
         <h1>Oasis Baseline Report</h1>
-        <p class="caption">Snapshot ${data.snapshot_date || "—"} · generated ${data.generated_at || "—"} · ${data.total_users || 0} users (${data.active_users || 0} active)</p>
-        <div class="banner">Early-stage sample — treat percentages as directional, not statistically stable.</div>
+        <p class="caption">Snapshot ${data.snapshot_date || "—"} · ${data.total_users || 0} users (${data.active_users || 0} active)</p>
+        <p class="data-source ${String(sourceLabel).includes("live") ? "live" : ""}">Last updated: ${data.generated_at || "—"} · Source: ${sourceLabel}</p>
+        <div class="banner">Early-stage sample — treat percentages as directional, not statistically stable. Reload the page for latest Supabase metrics.</div>
         <details>
           <summary>Data limitations</summary>
           <ul class="limitations">${limitations}</ul>
@@ -264,7 +271,7 @@
           ${tableFromRows(fb.review_samples || [], "user_id")}
         </section>
 
-        <footer>Static snapshot dashboard · refresh data locally then redeploy · <a href="https://github.com/AdamKershner/oasis-analytics" style="color:var(--accent)">oasis-analytics</a></footer>
+        <footer>Live metrics via /api/snapshot on refresh · <a href="https://github.com/AdamKershner/oasis-analytics" style="color:var(--accent)">oasis-analytics</a></footer>
       `;
 
       chartId = 0;
@@ -296,15 +303,30 @@
       }
     }
 
+    async function fetchSnapshot() {
+      const apiRes = await fetch("/api/snapshot", { cache: "no-store" });
+      if (apiRes.ok) {
+        const data = await apiRes.json();
+        if (data.error) throw new Error(data.error);
+        return { data, source: "live (Supabase)" };
+      }
+      const staticRes = await fetch("./baseline_snapshot.json", { cache: "no-store" });
+      if (!staticRes.ok) {
+        const errBody = await apiRes.json().catch(() => ({}));
+        throw new Error(errBody.error || `API HTTP ${apiRes.status}`);
+      }
+      return { data: await staticRes.json(), source: "cached file (offline preview)" };
+    }
+
     async function init() {
+      const app = document.getElementById("app");
+      app.innerHTML = `<p class="err">Refreshing metrics from Supabase…</p>`;
       try {
-        const res = await fetch("./baseline_snapshot.json", { cache: "no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        render(data);
+        const { data, source } = await fetchSnapshot();
+        render(data, source);
       } catch (e) {
-        document.getElementById("app").innerHTML =
-          `<p class="err">Failed to load baseline_snapshot.json (${e.message}). Run build_static_site.py before deploy.</p>`;
+        app.innerHTML =
+          `<p class="err">Failed to load metrics (${e.message}). On Vercel, set SUPABASE_URL and SUPABASE_KEY in project env vars.</p>`;
       }
     }
     init();

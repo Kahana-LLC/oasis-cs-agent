@@ -365,53 +365,9 @@ def run(canvas_only: bool = False) -> dict:
         _write_canvas(data)
         log.info("canvas regenerated from existing snapshot")
         return data  # type: ignore[return-value]
-    from db.fetch import (
-        fetch_all_users,
-        fetch_daily_usage,
-        fetch_feedback,
-        fetch_payments,
-        fetch_plan_overrides,
-        fetch_plans,
-        fetch_sessions,
-        fetch_usage,
-        fetch_user_plans,
-    )
-    from reporting.baseline_metrics import compute_baseline_snapshot
+    from reporting.snapshot_service import build_snapshot
 
-    log.info("fetching data...")
-    users = fetch_all_users()
-    sessions = fetch_sessions()
-    usage = fetch_usage()
-    daily = fetch_daily_usage()
-    feedback = fetch_feedback()
-    plans = fetch_plans()
-    overrides = fetch_plan_overrides()
-    payments = fetch_payments()
-    user_plans = fetch_user_plans()
-
-    log.info(
-        "counts: users=%d sessions=%d usage=%d daily=%d feedback=%d payments=%d",
-        len(users),
-        len(sessions),
-        len(usage),
-        len(daily),
-        len(feedback),
-        len(payments),
-    )
-
-    snapshot = compute_baseline_snapshot(
-        users=users,
-        sessions=sessions,
-        usage=usage,
-        daily=daily,
-        feedback=feedback,
-        plans=plans,
-        overrides=overrides,
-        payments=payments,
-        user_plans=user_plans,
-        today=date.today(),
-    )
-
+    snapshot = build_snapshot(today=date.today())
     data = snapshot.to_dict()
     SNAPSHOT_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
     log.info("snapshot written: %s", SNAPSHOT_PATH)
