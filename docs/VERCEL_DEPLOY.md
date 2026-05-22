@@ -84,6 +84,8 @@ Copy [`.env.example`](../.env.example) to `.env` (gitignored). Same variables as
 | Symptom | Fix |
 |---------|-----|
 | Dashboard shows API error | Set `SUPABASE_URL` / `SUPABASE_KEY` on Vercel; redeploy |
+| Bundle size &gt; 500MB | Ensure deploy uses latest `main` with `.vercelignore` (excludes `uv.lock` / `pyproject.toml`) |
+| Build installs `supabase` / `pyiceberg` | Same — Vercel was using full `uv.lock`; ignored on deploy after `.vercelignore` |
 | API times out | Hobby plan 10s limit — upgrade Pro or optimize fetches; `maxDuration` is 60 in `vercel.json` (Pro) |
 | Slow first load | Cold start + Supabase fetch; normal for ~100+ users |
 | Uses cached file locally | Expected without `vercel dev`; API not running |

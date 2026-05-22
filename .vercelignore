@@ -1,0 +1,18 @@
+# Prevent Vercel from using uv.lock / full pyproject deps (526MB+ bundle).
+# API deps come from api/requirements.txt only.
+uv.lock
+pyproject.toml
+.python-version
+.venv
+
+# Not needed for static + API deploy
+canvases/
+docs/
+pipeline/
+classifier/
+triggers/
+reporting/dashboard.py
+reporting/launch_dashboard.py
+reporting/run_baseline.py
+reporting/build_snapshot.py
+.streamlit/

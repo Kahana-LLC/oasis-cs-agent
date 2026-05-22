@@ -4,6 +4,11 @@
   "buildCommand": "python3 reporting/build_static_site.py",
   "outputDirectory": "public",
   "framework": null,
+  "build": {
+    "env": {
+      "PYTHON_VERSION": "3.12"
+    }
+  },
   "functions": {
     "api/**/*.py": {
       "maxDuration": 60,
