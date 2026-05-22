@@ -1,18 +1,21 @@
 # Baseline reporting
 
-## View the dashboard (Streamlit)
+## View the dashboard
+
+### Shareable link (Vercel)
+
+Deploy the static viewer in `public/` — see **[../docs/VERCEL_DEPLOY.md](../docs/VERCEL_DEPLOY.md)**.  
+Build locally: `.venv/bin/python reporting/build_static_site.py`
+
+### Local Streamlit (interactive)
 
 ```bash
 .venv/bin/python main.py --baseline-view
 ```
 
-Opens **http://localhost:8501** in your browser. Press `Ctrl+C` in the terminal to stop the server.
+Opens **http://localhost:8501**. Press `Ctrl+C` to stop. Requires the terminal to stay open.
 
-Or run Streamlit directly:
-
-```bash
-.venv/bin/streamlit run reporting/dashboard.py
-```
+Or: `.venv/bin/streamlit run reporting/dashboard.py`
 
 ## Refresh metrics from Supabase
 

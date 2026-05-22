@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oasis Baseline Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --text: #e7ecf3;
+      --muted: #8b9cb3;
+      --accent: #3d8bfd;
+      --warn: #f0b429;
+      --border: #2a3548;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+    h1 { font-size: 1.75rem; margin: 0 0 0.25rem; }
+    .caption { color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem; }
+    .banner {
+      background: #2a2410;
+      border: 1px solid #5c4a14;
+      color: var(--warn);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+    section {
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+    .section-cap { color: var(--muted); font-size: 0.85rem; margin-bottom: 1rem; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .metric {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+    }
+    .metric label { display: block; font-size: 0.75rem; color: var(--muted); }
+    .metric span { font-size: 1.35rem; font-weight: 600; }
+    .chart-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      max-height: 360px;
+    }
+    .chart-box h3 { margin: 0 0 0.75rem; font-size: 0.95rem; font-weight: 600; }
+    .info {
+      background: #152238;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    details { margin-bottom: 1rem; }
+    details summary { cursor: pointer; color: var(--accent); }
+    ul.limitations { margin: 0.5rem 0 0; padding-left: 1.25rem; color: var(--muted); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      background: var(--card);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+    }
+    th { background: #243044; color: var(--muted); font-weight: 600; }
+    .err { color: #f87171; padding: 2rem; text-align: center; }
+    footer { color: var(--muted); font-size: 0.8rem; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app">
+    <p class="err">Loading snapshot…</p>
+  </div>
+  <script>
+    const RETENTION_DAYS = ["D1", "D3", "D7", "D14", "D30"];
+    const charts = [];
+
+    function pct(v) {
+      return v == null ? "—" : `${v}%`;
+    }
+
+    function metric(label, value) {
+      return `<div class="metric"><label>${label}</label><span>${value ?? "—"}</span></div>`;
+    }
+
+    function destroyCharts() {
+      charts.forEach((c) => c.destroy());
+      charts.length = 0;
+    }
+
+    function barChart(canvasId, labels, values, label) {
+      const el = document.getElementById(canvasId);
+      if (!el) return;
+      charts.push(new Chart(el, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{ label, data: values, backgroundColor: "rgba(61, 139, 253, 0.7)" }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { color: "#8b9cb3" }, grid: { color: "#2a3548" } },
+            x: { ticks: { color: "#8b9cb3", maxRotation: 45 }, grid: { display: false } },
+          },
+        },
+      }));
+    }
+
+    function lineChart(canvasId, labels, values, label) {
+      const el = document.getElementById(canvasId);
+      if (!el) return;
+      charts.push(new Chart(el, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data: values,
+            borderColor: "#3d8bfd",
+            backgroundColor: "rgba(61, 139, 253, 0.15)",
+            fill: true,
+            tension: 0.2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { color: "#8b9cb3" }, grid: { color: "#2a3548" } },
+            x: { ticks: { color: "#8b9cb3" }, grid: { color: "#2a3548" } },
+          },
+        },
+      }));
+    }
+
+    function tableFromRows(rows, indexKey) {
+      if (!rows || !rows.length) return "";
+      const cols = Object.keys(rows[0]).filter((k) => k !== indexKey);
+      const head = `<tr><th>${indexKey}</th>${cols.map((c) => `<th>${c}</th>`).join("")}</tr>`;
+      const body = rows.map((r) =>
+        `<tr><td>${r[indexKey] ?? ""}</td>${cols.map((c) => `<td>${r[c] ?? "—"}</td>`).join("")}</tr>`
+      ).join("");
+      return `<div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    function render(data) {
+      destroyCharts();
+      const act = data.activation || {};
+      const eng = data.engagement || {};
+      const ret = data.retention || {};
+      const mon = data.monetization || {};
+      const fb = data.feedback || {};
+      const ttf = act.time_to_first_hours || {};
+      const rates = act.activation_rate_pct || {};
+      const overall = ret.overall_retention_pct || {};
+      const churn = ret.churn_pct || {};
+      const limitations = (data.limitations || []).map((n) => `<li>${n}</li>`).join("");
+
+      let chartId = 0;
+      const nextId = () => `chart-${chartId++}`;
+
+      const app = document.getElementById("app");
+      app.innerHTML = `
+        <h1>Oasis Baseline Report</h1>
+        <p class="caption">Snapshot ${data.snapshot_date || "—"} · generated ${data.generated_at || "—"} · ${data.total_users || 0} users (${data.active_users || 0} active)</p>
+        <div class="banner">Early-stage sample — treat percentages as directional, not statistically stable.</div>
+        <details>
+          <summary>Data limitations</summary>
+          <ul class="limitations">${limitations}</ul>
+        </details>
+
+        <section>
+          <h2>Activation</h2>
+          <p class="section-cap">Source: users.created_at + first llm_usage row</p>
+          <div class="metrics">
+            ${metric("Median time to first prompt", `${ttf.median ?? "—"} h`)}
+            ${metric("Mean time to first prompt", `${ttf.mean ?? "—"} h`)}
+            ${metric("Users with ≥1 prompt", act.users_with_first_prompt)}
+          </div>
+          <div class="chart-box"><h3>AI activation rate (%)</h3><canvas id="${nextId()}"></canvas></div>
+        </section>
+
+        <section>
+          <h2>Engagement</h2>
+          <div class="metrics">
+            ${metric("10+ prompts (day 0)", pct(eng.power_users_day0_pct))}
+            ${metric("10+ prompts (week 0)", pct(eng.power_users_week0_pct))}
+            ${metric("Multi-day AI (first 7d)", pct(eng.multi_day_ai_first_7d_pct))}
+          </div>
+          <div class="chart-box"><h3>Avg prompts per active day (last 12 cohorts)</h3><canvas id="${nextId()}"></canvas></div>
+        </section>
+
+        <section>
+          <h2>Retention &amp; churn</h2>
+          <p class="section-cap">Return = session or llm_usage on calendar day signup+N</p>
+          <div class="chart-box"><h3>Overall retention</h3><canvas id="${nextId()}"></canvas></div>
+          <h3 style="font-size:0.95rem">Retention by signup cohort (last 8 weeks)</h3>
+          ${tableFromRows((ret.cohort_retention || []).slice(-8), "cohort")}
+          <div class="chart-box"><h3>Weekly active users (WAU)</h3><canvas id="${nextId()}"></canvas></div>
+          <div class="metrics">
+            ${metric("Churn 7d", pct(churn.churn_7d_pct))}
+            ${metric("Churn 14d", pct(churn.churn_14d_pct))}
+            ${metric("Churn 30d", pct(churn.churn_30d_pct))}
+          </div>
+          <div class="chart-box"><h3>Sessions per active user per week</h3><canvas id="${nextId()}"></canvas></div>
+        </section>
+
+        <section>
+          <h2>Monetization</h2>
+          <div class="metrics">
+            ${metric("Token limit hit rate", pct(mon.token_limit_hit_rate_pct))}
+            ${metric("Premium conversion", pct(mon.premium_conversion_pct))}
+            ${metric("ARPU (gross)", `$${mon.arpu_gross_usd ?? "—"}`)}
+            ${metric("ARPU (net)", `$${mon.arpu_net_usd ?? "—"}`)}
+            ${metric("Revenue", `$${mon.total_revenue_usd ?? "—"}`)}
+            ${metric("Est. API cost", `$${mon.estimated_api_cost_usd ?? "—"}`)}
+            ${metric("LTV proxy (12 mo)", `$${mon.ltv_proxy_usd ?? "—"}`)}
+          </div>
+          <div class="info">${(mon.cac_ltv && mon.cac_ltv.note) || "CAC/LTV ratio unavailable in DB."}</div>
+          <div class="chart-box"><h3>Token limit hits by lifecycle day</h3><canvas id="${nextId()}"></canvas></div>
+        </section>
+
+        <section>
+          <h2>Feedback</h2>
+          <div class="metrics">
+            ${metric("Submission rate", pct(fb.submission_rate_pct))}
+            ${metric("Median hours to first feedback", `${fb.median_hours_to_first ?? "—"} h`)}
+          </div>
+          <div class="chart-box"><h3>Users by feedback submission count</h3><canvas id="${nextId()}"></canvas></div>
+          <h3 style="font-size:0.95rem">Anomaly: feedback within 15 min of signup</h3>
+          ${tableFromRows(fb.anomalies || [], "user_id")}
+          <h3 style="font-size:0.95rem">Manual review samples</h3>
+          ${tableFromRows(fb.review_samples || [], "user_id")}
+        </section>
+
+        <footer>Static snapshot dashboard · refresh data locally then redeploy · <a href="https://github.com/AdamKershner/oasis-analytics" style="color:var(--accent)">oasis-analytics</a></footer>
+      `;
+
+      chartId = 0;
+      if (Object.keys(rates).length) {
+        barChart(nextId(), Object.keys(rates), Object.values(rates), "Activation %");
+      }
+      const cohorts = (eng.prompts_per_active_day_by_cohort || []).slice(-12);
+      if (cohorts.length) {
+        barChart(nextId(), cohorts.map((c) => c.cohort), cohorts.map((c) => c.avg_prompts_per_active_day), "Avg prompts");
+      }
+      if (RETENTION_DAYS.some((d) => overall[d] != null)) {
+        barChart(nextId(), RETENTION_DAYS, RETENTION_DAYS.map((d) => overall[d]), "Retention %");
+      }
+      const wau = ret.wau_by_week || [];
+      if (wau.length) {
+        lineChart(nextId(), wau.map((w) => w.week), wau.map((w) => w.wau), "WAU");
+      }
+      const sess = ret.session_frequency_by_week || [];
+      if (sess.length) {
+        barChart(nextId(), sess.map((s) => s.week), sess.map((s) => s.sessions_per_active_user), "Sessions");
+      }
+      const hits = mon.limit_hits_by_lifecycle_day || [];
+      if (hits.length) {
+        barChart(nextId(), hits.map((h) => String(h.lifecycle_day)), hits.map((h) => h.users), "Users");
+      }
+      const dist = fb.distribution || [];
+      if (dist.length) {
+        barChart(nextId(), dist.map((d) => d.bucket), dist.map((d) => d.users), "Users");
+      }
+    }
+
+    async function init() {
+      try {
+        const res = await fetch("./baseline_snapshot.json", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        render(data);
+      } catch (e) {
+        document.getElementById("app").innerHTML =
+          `<p class="err">Failed to load baseline_snapshot.json (${e.message}). Run build_static_site.py before deploy.</p>`;
+      }
+    }
+    init();
+  </script>
+</body>
+</html>

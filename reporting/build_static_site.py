@@ -1,0 +1,29 @@
+"""Copy snapshot JSON into public/ for Vercel static deployment."""
+
+from __future__ import annotations
+
+import shutil
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "reporting" / "baseline_snapshot.json"
+DST = ROOT / "public" / "baseline_snapshot.json"
+
+
+def build() -> int:
+    if not SRC.exists():
+        print(
+            f"Missing {SRC}\n"
+            "Run locally: .venv/bin/python main.py --baseline",
+            file=sys.stderr,
+        )
+        return 1
+    DST.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(SRC, DST)
+    print(f"Copied snapshot -> {DST}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(build())
