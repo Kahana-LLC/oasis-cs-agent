@@ -20,6 +20,7 @@ from models.db import (
 )
 from reporting.cost_model import total_api_cost_usd
 from reporting.dau_model import compute_dau_model
+from reporting.launch_kpis import compute_launch_kpis
 
 RETENTION_DAYS = (1, 3, 7, 14, 30)
 ACTIVATION_WINDOWS_HOURS = {"1h": 1, "24h": 24, "3d": 72, "7d": 168}
@@ -41,6 +42,7 @@ class BaselineSnapshot:
     monetization: dict[str, Any]
     feedback: dict[str, Any]
     dau_model: dict[str, Any] = field(default_factory=dict)
+    launch_kpis: dict[str, Any] = field(default_factory=dict)
     validation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -483,6 +485,20 @@ def _compute_monetization(
         round(100.0 * len(premium_users) / total_users, 1) if total_users else None
     )
 
+    limit_hitter_premium = limit_hit_users & premium_users
+    limit_hitter_conv_pct = (
+        round(100.0 * len(limit_hitter_premium) / len(limit_hit_users), 1)
+        if limit_hit_users
+        else None
+    )
+
+    median_days_limit = (
+        int(pd.Series(first_limit_days).median()) if first_limit_days else None
+    )
+    median_hours_limit = (
+        round(float(median_days_limit) * 24, 1) if median_days_limit is not None else None
+    )
+
     velocities_hours: list[float] = []
     for uid in premium_users:
         created = users_df.loc[users_df["user_id"] == uid, "created_at"]
@@ -511,11 +527,9 @@ def _compute_monetization(
         "users_hit_limit": len(limit_hit_users),
         "limit_hit_days": limit_hit_days,
         "limit_hits_by_lifecycle_day": lifecycle_buckets,
-        "median_days_to_first_limit": (
-            int(pd.Series(first_limit_days).median())
-            if first_limit_days
-            else None
-        ),
+        "median_days_to_first_limit": median_days_limit,
+        "median_hours_to_first_limit": median_hours_limit,
+        "premium_conversion_among_limit_hitters_pct": limit_hitter_conv_pct,
         "premium_conversion_pct": conversion_pct,
         "premium_users": len(premium_users),
         "conversion_velocity_hours": {
@@ -672,6 +686,17 @@ def compute_baseline_snapshot(
     )
     feedback_metrics = _compute_feedback(users_df, feedback)
     dau_model = compute_dau_model(users_df, activity, today)
+    launch_kpis = compute_launch_kpis(
+        activation=activation,
+        engagement=engagement,
+        retention=retention,
+        monetization=monetization,
+        feedback=feedback_metrics,
+        dau_model=dau_model,
+        usage=usage,
+        today=today,
+        total_users=len(users_df),
+    )
 
     validation = {
         "payments_success_count": len([p for p in payments if p.status == "success"]),
@@ -704,5 +729,6 @@ def compute_baseline_snapshot(
         monetization=monetization,
         feedback=feedback_metrics,
         dau_model=dau_model,
+        launch_kpis=launch_kpis,
         validation=validation,
     )

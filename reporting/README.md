@@ -43,11 +43,16 @@ Writes `baseline_snapshot.json` and updates the optional Cursor canvas. Then rer
 | `run_baseline.py` | Fetch + write snapshot + canvas |
 | `snapshot_service.py` | Shared fetch/compute for API + CLI |
 | `dau_model.py` | DAU bucket sizes + flow rates (User Email Machine model) |
+| `launch_kpis.py` | Product Hunt launch KPI scorecard + usage cost forecast |
 | `build_snapshot.py` | Rebuild from `sql_export.json` (no `.env`) |
 
 ## DAU model section
 
 The Vercel dashboard and snapshot JSON include **`dau_model`**: seven user buckets (New, Current, Reactivated, Resurrected, At-risk WAU/MAU, Dead) and flow rates (NURR, CURR, RURR, etc.) per the [Daily Active Users diagram](../User%20Email%20Machine.txt). Engagement = `sessions` ∪ `llm_usage`.
+
+## Launch KPIs section
+
+The dashboard includes **`launch_kpis`**: a scorecard mapped 1:1 to [`Launch KPIs.txt`](../Launch%20KPIs.txt) (activation, engagement, retention, monetization, feedback, DAU cross-links). The Vercel UI also provides editable **Gemini** and **Supabase** monthly cost inputs (stored in browser `localStorage` as `oasis_gemini_monthly_usd` / `oasis_supabase_monthly_usd`) to recalculate net ARPU and LTV proxy client-side. Server-side **`usage_cost_forecast`** extrapolates 7-day prompt volume and model-based API cost to a projected monthly figure.
 
 ## Optional: Cursor canvas
 

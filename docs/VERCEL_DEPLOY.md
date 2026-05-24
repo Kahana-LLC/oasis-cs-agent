@@ -55,6 +55,8 @@ Optional:
 
 Redeploy after adding or changing env vars.
 
+**Gemini cost input:** The live dashboard lets viewers enter actual monthly Gemini spend from AI Studio. Values persist in the browser only (`localStorage` keys `oasis_gemini_monthly_usd`, `oasis_supabase_monthly_usd`); they are not stored in Supabase. Optional future: persist to a config table for shared defaults.
+
 ---
 
 ## Verification

@@ -105,6 +105,28 @@
     .metric.bucket-at_risk_wau { border-left: 4px solid #f0b429; }
     .metric.bucket-at_risk_mau { border-left: 4px solid #a78bfa; }
     .metric.bucket-dead { border-left: 4px solid #f87171; }
+    .status-live { color: #6bcba8; font-size: 0.75rem; }
+    .status-partial { color: #f0b429; font-size: 0.75rem; }
+    .status-manual { color: #8b9cb3; font-size: 0.75rem; }
+    .cost-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    .cost-panel label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .cost-panel input {
+      width: 100%;
+      max-width: 200px;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #0f1419;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+    .kpi-table-wrap { max-height: 420px; overflow-y: auto; margin: 1rem 0; }
   </style>
 </head>
 <body>
@@ -207,7 +229,60 @@
       return `<div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
     }
 
+    function kpiTableRows(rows) {
+      if (!rows || !rows.length) return "<p class='section-cap'>No launch KPI data.</p>";
+      const body = rows.map((r) => {
+        const cls = r.status === "live" ? "status-live" : r.status === "partial" ? "status-partial" : "status-manual";
+        return `<tr><td>${r.category}</td><td>${r.metric}</td><td>${r.value}</td><td class="${cls}">${r.status}</td></tr>`;
+      }).join("");
+      return `<div class="kpi-table-wrap"><table><thead><tr><th>Category</th><th>Metric</th><th>Value</th><th>Status</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    let snapshotData = null;
+
+    function loadCostDefaults(mon, launch) {
+      const est = mon.estimated_api_cost_usd ?? 0;
+      const forecast = (launch && launch.usage_cost_forecast) || {};
+      const storedGemini = localStorage.getItem("oasis_gemini_monthly_usd");
+      const storedSupabase = localStorage.getItem("oasis_supabase_monthly_usd");
+      const geminiDefault = storedGemini !== null ? parseFloat(storedGemini) : (forecast.projected_monthly_cost_usd ?? est);
+      const supabaseDefault = storedSupabase !== null ? parseFloat(storedSupabase) : (launch?.default_supabase_monthly_usd ?? 25);
+      return { geminiDefault, supabaseDefault };
+    }
+
+    function updateCostMetrics() {
+      if (!snapshotData) return;
+      const mon = snapshotData.monetization || {};
+      const launch = snapshotData.launch_kpis || {};
+      const totalUsers = snapshotData.total_users || 1;
+      const geminiEl = document.getElementById("gemini-cost-input");
+      const supabaseEl = document.getElementById("supabase-cost-input");
+      const outEl = document.getElementById("cost-metrics-out");
+      if (!geminiEl || !supabaseEl || !outEl) return;
+      const gemini = parseFloat(geminiEl.value) || 0;
+      const supabase = parseFloat(supabaseEl.value) || 0;
+      localStorage.setItem("oasis_gemini_monthly_usd", String(gemini));
+      localStorage.setItem("oasis_supabase_monthly_usd", String(supabase));
+      const revenue = mon.total_revenue_usd || 0;
+      const est = mon.estimated_api_cost_usd || 0;
+      const netRevenue = revenue - gemini - supabase;
+      const netArpu = totalUsers ? (netRevenue / totalUsers).toFixed(2) : "—";
+      const ltvAdj = totalUsers ? ((netRevenue / totalUsers) * 12).toFixed(2) : "—";
+      const variance = est > 0 ? (((gemini - est) / est) * 100).toFixed(1) : "—";
+      const fc = launch.usage_cost_forecast || {};
+      outEl.innerHTML = `
+        <div class="metrics">
+          ${metric("Net revenue (after costs)", "$" + netRevenue.toFixed(2))}
+          ${metric("Net ARPU (adjusted)", "$" + netArpu)}
+          ${metric("LTV proxy adjusted (12 mo)", "$" + ltvAdj)}
+          ${metric("Gemini vs model variance", variance === "—" ? "—" : variance + "%")}
+        </div>
+        <p class="section-cap">7d prompts: ${fc.prompts_last_7d ?? "—"} · est. cost $${fc.estimated_cost_last_7d_usd ?? "—"} · projected monthly $${fc.projected_monthly_cost_usd ?? "—"} (model run-rate). Enter AI Studio actuals above.</p>
+      `;
+    }
+
     function render(data, sourceLabel) {
+      snapshotData = data;
       destroyCharts();
       const act = data.activation || {};
       const eng = data.engagement || {};
@@ -224,6 +299,9 @@
       const overall = ret.overall_retention_pct || {};
       const churn = ret.churn_pct || {};
       const limitations = (data.limitations || []).map((n) => `<li>${n}</li>`).join("");
+      const launch = data.launch_kpis || {};
+      const headlines = launch.headlines || {};
+      const costDefaults = loadCostDefaults(mon, launch);
 
       let chartId = 0;
       const nextId = () => `chart-${chartId++}`;
@@ -238,6 +316,20 @@
           <summary>Data limitations</summary>
           <ul class="limitations">${limitations}</ul>
         </details>
+
+        <section>
+          <h2>Product Hunt Launch KPIs</h2>
+          <p class="section-cap">At-a-glance scorecard mapped to Launch KPIs.txt · status: live (from DB), partial (proxy), manual (enter in dashboard)</p>
+          <div class="metrics">
+            ${metric("24h activation", pct(headlines.activation_24h_pct))}
+            ${metric("D7 retention", pct(headlines.retention_d7_pct))}
+            ${metric("Latest WAU", headlines.latest_wau ?? "—")}
+            ${metric("Premium conversion", pct(headlines.premium_conversion_pct))}
+            ${metric("Feedback rate", pct(headlines.feedback_submission_rate_pct))}
+            ${metric("Net ARPU", headlines.arpu_net_usd != null ? "$" + headlines.arpu_net_usd : "—")}
+          </div>
+          ${kpiTableRows(launch.kpi_rows || [])}
+        </section>
 
         <section>
           <h2>Daily Active Users Model</h2>
@@ -300,11 +392,25 @@
           <div class="metrics">
             ${metric("Token limit hit rate", pct(mon.token_limit_hit_rate_pct))}
             ${metric("Premium conversion", pct(mon.premium_conversion_pct))}
+            ${metric("Conversion among limit-hitters", pct(mon.premium_conversion_among_limit_hitters_pct))}
+            ${metric("Median days to first limit", mon.median_days_to_first_limit != null ? mon.median_days_to_first_limit + " d" : "—")}
+            ${metric("Median hours to first limit", mon.median_hours_to_first_limit != null ? mon.median_hours_to_first_limit + " h" : "—")}
+            ${metric("Conversion velocity", (mon.conversion_velocity_hours && mon.conversion_velocity_hours.median != null) ? mon.conversion_velocity_hours.median + " h" : "—")}
+          </div>
+          <div class="metrics">
             ${metric("ARPU (gross)", `$${mon.arpu_gross_usd ?? "—"}`)}
             ${metric("ARPU (net)", `$${mon.arpu_net_usd ?? "—"}`)}
             ${metric("Revenue", `$${mon.total_revenue_usd ?? "—"}`)}
             ${metric("Est. API cost", `$${mon.estimated_api_cost_usd ?? "—"}`)}
             ${metric("LTV proxy (12 mo)", `$${mon.ltv_proxy_usd ?? "—"}`)}
+          </div>
+          <div class="cost-panel">
+            <h3 style="margin:0 0 0.75rem;font-size:0.95rem">Costs &amp; forecast</h3>
+            <label for="gemini-cost-input">Actual Gemini spend (USD/month)</label>
+            <input type="number" id="gemini-cost-input" min="0" step="0.01" value="${costDefaults.geminiDefault}" />
+            <label for="supabase-cost-input">Supabase Pro (USD/month)</label>
+            <input type="number" id="supabase-cost-input" min="0" step="0.01" value="${costDefaults.supabaseDefault}" />
+            <div id="cost-metrics-out"></div>
           </div>
           <div class="info">${(mon.cac_ltv && mon.cac_ltv.note) || "CAC/LTV ratio unavailable in DB."}</div>
           <div class="chart-box"><h3>Token limit hits by lifecycle day</h3><canvas id="${nextId()}"></canvas></div>
@@ -353,12 +459,15 @@
       }
       const hits = mon.limit_hits_by_lifecycle_day || [];
       if (hits.length) {
-        barChart(nextId(), hits.map((h) => String(h.lifecycle_day)), hits.map((h) => h.users), "Users");
+        barChart(nextId(), hits.map((h) => String(h.lifecycle_day)), hits.map((h) => h.hit_count ?? h.users ?? 0), "Hits");
       }
       const dist = fb.distribution || [];
       if (dist.length) {
         barChart(nextId(), dist.map((d) => d.bucket), dist.map((d) => d.users), "Users");
       }
+      updateCostMetrics();
+      document.getElementById("gemini-cost-input")?.addEventListener("input", updateCostMetrics);
+      document.getElementById("supabase-cost-input")?.addEventListener("input", updateCostMetrics);
     }
 
     async function fetchSnapshot() {

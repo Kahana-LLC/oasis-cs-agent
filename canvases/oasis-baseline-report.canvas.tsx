@@ -20,7 +20,7 @@ import {
 } from "cursor/canvas";
 
 const BASELINE = {
-  "generated_at": "2026-05-24T16:58:13.711696Z",
+  "generated_at": "2026-05-24T17:12:20.426575Z",
   "snapshot_date": "2026-05-24",
   "total_users": 122,
   "active_users": 122,
@@ -565,6 +565,8 @@ const BASELINE = {
       }
     ],
     "median_days_to_first_limit": 118,
+    "median_hours_to_first_limit": 2832.0,
+    "premium_conversion_among_limit_hitters_pct": 100.0,
     "premium_conversion_pct": 8.2,
     "premium_users": 10,
     "conversion_velocity_hours": {
@@ -845,6 +847,269 @@ const BASELINE = {
       "at_risk_mau": "Inactive today and prior 6 days, active 7\u201329 days ago",
       "dead": "No activity in the last 30 days"
     }
+  },
+  "launch_kpis": {
+    "kpi_rows": [
+      {
+        "category": "Activation",
+        "metric": "AI activation rate (1h)",
+        "value": "27.9%",
+        "status": "live"
+      },
+      {
+        "category": "Activation",
+        "metric": "AI activation rate (24h)",
+        "value": "32.0%",
+        "status": "live"
+      },
+      {
+        "category": "Activation",
+        "metric": "AI activation rate (3d)",
+        "value": "33.6%",
+        "status": "live"
+      },
+      {
+        "category": "Activation",
+        "metric": "AI activation rate (7d)",
+        "value": "38.5%",
+        "status": "live"
+      },
+      {
+        "category": "Activation",
+        "metric": "Time to first AI command (median h)",
+        "value": "5.07 h",
+        "status": "live"
+      },
+      {
+        "category": "Activation",
+        "metric": "Time to first AI command (mean h)",
+        "value": "415.88 h",
+        "status": "live"
+      },
+      {
+        "category": "Engagement",
+        "metric": "Power users \u2014 10+ prompts day 0",
+        "value": "7.4%",
+        "status": "live"
+      },
+      {
+        "category": "Engagement",
+        "metric": "Power users \u2014 10+ prompts week 0",
+        "value": "13.9%",
+        "status": "live"
+      },
+      {
+        "category": "Engagement",
+        "metric": "Multi-day AI in first 7 days",
+        "value": "12.3%",
+        "status": "live"
+      },
+      {
+        "category": "Engagement",
+        "metric": "Avg prompts / active day (latest cohort)",
+        "value": "3.0",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "D1 retention",
+        "value": "10.7%",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "D3 retention",
+        "value": "4.1%",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "D7 retention",
+        "value": "11.8%",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "D14 retention",
+        "value": "4.4%",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "D30 retention",
+        "value": "2.8%",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "Latest WAU",
+        "value": "16 (6.7% WoW)",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "Churn 7d (ever-active)",
+        "value": "76.7%",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "Churn 14d (ever-active)",
+        "value": "72.6%",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "Churn 30d (ever-active)",
+        "value": "63.0%",
+        "status": "live"
+      },
+      {
+        "category": "Retention",
+        "metric": "Sessions / active user (latest week)",
+        "value": "10.75",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "Token limit hit rate",
+        "value": "4.5%",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "Median days to first token limit",
+        "value": "118 d",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "Median hours to first token limit",
+        "value": "2832.0 h",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "Premium conversion (all users)",
+        "value": "8.2%",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "Premium conversion (limit hitters)",
+        "value": "100.0%",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "Conversion velocity (median h to upgrade)",
+        "value": "486.7 h",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "ARPU gross",
+        "value": "$1.34",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "ARPU net (est. API cost)",
+        "value": "$1.34",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "Est. API cost (all-time model)",
+        "value": "$0.38",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "Projected monthly API cost (7d run-rate)",
+        "value": "$0.43",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "LTV proxy (12 mo, net ARPU)",
+        "value": "$16.08",
+        "status": "live"
+      },
+      {
+        "category": "Monetization",
+        "metric": "CAC / LTV ratio",
+        "value": "Unavailable \u2014 no acquisition spend in DB",
+        "status": "partial"
+      },
+      {
+        "category": "Monetization",
+        "metric": "Actual Gemini spend (monthly)",
+        "value": "Enter in dashboard \u2014 AI Studio actuals",
+        "status": "manual"
+      },
+      {
+        "category": "Feedback",
+        "metric": "Feedback submission rate",
+        "value": "24.6%",
+        "status": "live"
+      },
+      {
+        "category": "Feedback",
+        "metric": "Median hours to first feedback",
+        "value": "622.45 h",
+        "status": "live"
+      },
+      {
+        "category": "Feedback",
+        "metric": "Anomalies (<15 min post-signup)",
+        "value": "6",
+        "status": "live"
+      },
+      {
+        "category": "Feedback",
+        "metric": "Manual review samples",
+        "value": "8",
+        "status": "live"
+      },
+      {
+        "category": "DAU",
+        "metric": "DAU (today)",
+        "value": "0",
+        "status": "live"
+      },
+      {
+        "category": "DAU",
+        "metric": "WAU (model)",
+        "value": "16",
+        "status": "live"
+      },
+      {
+        "category": "DAU",
+        "metric": "MAU (model)",
+        "value": "26",
+        "status": "live"
+      }
+    ],
+    "headlines": {
+      "activation_24h_pct": 32.0,
+      "retention_d7_pct": 11.8,
+      "latest_wau": 16,
+      "premium_conversion_pct": 8.2,
+      "feedback_submission_rate_pct": 24.6,
+      "arpu_net_usd": 1.34
+    },
+    "usage_cost_forecast": {
+      "window_days": 7,
+      "window_start": "2026-05-18",
+      "window_end": "2026-05-24",
+      "prompts_last_7d": 517,
+      "estimated_cost_last_7d_usd": 0.1,
+      "projected_monthly_prompts": 2216,
+      "projected_monthly_cost_usd": 0.43
+    },
+    "premium_conversion_among_limit_hitters_pct": 100.0,
+    "default_supabase_monthly_usd": 25
   },
   "validation": {
     "payments_success_count": 14,

@@ -1,0 +1,57 @@
+﻿Here's a comprehensive list of metrics to monitor during and after your Product Hunt launch for Oasis:
+Activation & Engagement Metrics
+* AI command activation rate: % of new users who submit their first AI prompt within 1 hour, 24 hours, 3 days, and 7 days of signup
+* Time to first AI command: Median and average time from signup to first prompt submission
+* AI usage frequency: Average number of prompts per user per day (segmented by cohort)
+* Power user identification: % of users submitting 10+ prompts in their first day/week
+* Feature adoption depth: % of users who use AI commands in multiple sessions (not just once)
+Retention & Churn Metrics
+* D1, D3, D7, D14, D30 retention rates: % of users who return on each day post-signup
+* Weekly active users (WAU): Tracking week-over-week growth
+* Churn rate: % of users who don't return within 7/14/30 days
+* Session frequency: Average sessions per active user per week
+Monetization Metrics
+* Current costs
+        Supabase Pro ($25/month) - 
+* Gemini API spend Your total cost (April 27 - May 24, 2026) (today)
+* Cost$1.59-Savings$0.00=Total cost$1.59
+*    * Token limit hit rate: % of users reaching daily token limits (overall and by day since signup)
+   * Time to token limit: Median time from signup to first limit hit (indicates power users likely to convert)
+   * Premium conversion rate: % of users upgrading to $20/month plan (overall and from users who hit limits)
+   * Conversion velocity: Time from signup to premium upgrade
+   * Average revenue per user (ARPU): Total revenue divided by total users, factoring in Gemini API costs
+   * Customer acquisition cost (CAC) vs. lifetime value (LTV) ratio
+Feedback & Quality Metrics
+   * Feedback submission rate: % of users submitting feedback/training data (from feedback_events table)
+   * Feedback velocity: Average time from signup to first feedback submission
+   * Feedback frequency per user: Distribution of users by number of feedback submissions
+   * Anomaly detection: Users submitting feedback unusually fast (potential spam/testing issues)
+   * Feedback quality: Manual review sampling of submissions
+
+
+Supabase usage limits
+You have not exceeded your Pro Plan quota in this billing cycle.
+Egress
+0.122 / 250 GB (<1%)
+Edge Function Invocations
+706 / 2,000,000 (<1%)
+Monthly Active Users
+12 / 100,000 MAU (<1%)
+Cached Egress
+0 / 250 GB 
+Monthly Active SSO Users
+0 / 50 MAU 
+Monthly Active Third-Party Users
+0 / 100,000 MAU 
+Storage Size
+0 / 100 GB 
+Storage Image Transformations
+0 / 100 
+Realtime Concurrent Peak Connections
+0 / 500 
+Realtime Messages
+0 / 5,000,000 
+Log Drain Events
+0 
+Micro Compute Hours
+145 hours ($1.95)

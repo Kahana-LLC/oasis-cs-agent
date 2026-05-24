@@ -55,6 +55,28 @@ def main() -> None:
         for note in data.get("limitations", []):
             st.markdown(f"- {note}")
 
+    # --- Launch KPIs ---
+    launch = data.get("launch_kpis", {})
+    if launch:
+        st.header("Product Hunt Launch KPIs")
+        st.caption(
+            "At-a-glance scorecard mapped to Launch KPIs.txt · "
+            "status: live (from DB), partial (proxy), manual (enter below)"
+        )
+        headlines = launch.get("headlines", {})
+        h1, h2, h3, h4, h5, h6 = st.columns(6)
+        h1.metric("24h activation", _pct(headlines.get("activation_24h_pct")))
+        h2.metric("D7 retention", _pct(headlines.get("retention_d7_pct")))
+        h3.metric("Latest WAU", headlines.get("latest_wau", "—"))
+        h4.metric("Premium conversion", _pct(headlines.get("premium_conversion_pct")))
+        h5.metric("Feedback rate", _pct(headlines.get("feedback_submission_rate_pct")))
+        arpu_net = headlines.get("arpu_net_usd")
+        h6.metric("Net ARPU", f"${arpu_net}" if arpu_net is not None else "—")
+
+        kpi_rows = launch.get("kpi_rows", [])
+        if kpi_rows:
+            st.dataframe(pd.DataFrame(kpi_rows), use_container_width=True, hide_index=True)
+
     # --- DAU Model ---
     dau = data.get("dau_model", {})
     if dau:
@@ -163,16 +185,66 @@ def main() -> None:
     # --- Monetization ---
     st.header("Monetization")
     mon = data.get("monetization", {})
-    m1, m2, m3, m4 = st.columns(4)
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Token limit hit rate", _pct(mon.get("token_limit_hit_rate_pct")))
     m2.metric("Premium conversion", _pct(mon.get("premium_conversion_pct")))
-    m3.metric("ARPU (gross)", f"${mon.get('arpu_gross_usd', '—')}")
-    m4.metric("ARPU (net of API est.)", f"${mon.get('arpu_net_usd', '—')}")
+    m3.metric("Limit-hitter conversion", _pct(mon.get("premium_conversion_among_limit_hitters_pct")))
+    m4.metric("Median days to limit", mon.get("median_days_to_first_limit", "—"))
+    m5.metric("Median hours to limit", mon.get("median_hours_to_first_limit", "—"))
+    conv_vel = mon.get("conversion_velocity_hours") or {}
+    m6.metric("Conversion velocity", f"{conv_vel.get('median', '—')} h")
 
-    m5, m6, m7 = st.columns(3)
-    m5.metric("Revenue (successful payments)", f"${mon.get('total_revenue_usd', '—')}")
-    m6.metric("Est. API cost", f"${mon.get('estimated_api_cost_usd', '—')}")
-    m7.metric("LTV proxy (12 mo)", f"${mon.get('ltv_proxy_usd', '—')}")
+    m7, m8, m9, m10, m11 = st.columns(5)
+    m7.metric("ARPU (gross)", f"${mon.get('arpu_gross_usd', '—')}")
+    m8.metric("ARPU (net of API est.)", f"${mon.get('arpu_net_usd', '—')}")
+    m9.metric("Revenue (successful payments)", f"${mon.get('total_revenue_usd', '—')}")
+    m10.metric("Est. API cost", f"${mon.get('estimated_api_cost_usd', '—')}")
+    m11.metric("LTV proxy (12 mo)", f"${mon.get('ltv_proxy_usd', '—')}")
+
+    launch = data.get("launch_kpis", {})
+    forecast = launch.get("usage_cost_forecast", {})
+    est_api = mon.get("estimated_api_cost_usd") or 0
+    default_gemini = forecast.get("projected_monthly_cost_usd", est_api)
+    default_supabase = launch.get("default_supabase_monthly_usd", 25)
+
+    st.subheader("Costs & forecast")
+    if "gemini_monthly_usd" not in st.session_state:
+        st.session_state.gemini_monthly_usd = float(default_gemini)
+    if "supabase_monthly_usd" not in st.session_state:
+        st.session_state.supabase_monthly_usd = float(default_supabase)
+    c1, c2 = st.columns(2)
+    gemini_cost = c1.number_input(
+        "Actual Gemini spend (USD/month)",
+        min_value=0.0,
+        step=0.01,
+        key="gemini_monthly_usd",
+    )
+    supabase_cost = c2.number_input(
+        "Supabase Pro (USD/month)",
+        min_value=0.0,
+        step=0.01,
+        key="supabase_monthly_usd",
+    )
+
+    total_users = data.get("total_users") or 1
+    revenue = mon.get("total_revenue_usd") or 0
+    net_revenue = revenue - gemini_cost - supabase_cost
+    net_arpu = net_revenue / total_users if total_users else 0
+    ltv_adj = net_arpu * 12
+    variance = ((gemini_cost - est_api) / est_api * 100) if est_api else None
+
+    r1, r2, r3, r4 = st.columns(4)
+    r1.metric("Net revenue (after costs)", f"${net_revenue:.2f}")
+    r2.metric("Net ARPU (adjusted)", f"${net_arpu:.2f}")
+    r3.metric("LTV proxy adjusted (12 mo)", f"${ltv_adj:.2f}")
+    r4.metric("Gemini vs model variance", f"{variance:.1f}%" if variance is not None else "—")
+
+    st.caption(
+        f"7d prompts: {forecast.get('prompts_last_7d', '—')} · "
+        f"est. cost ${forecast.get('estimated_cost_last_7d_usd', '—')} · "
+        f"projected monthly ${forecast.get('projected_monthly_cost_usd', '—')} (model run-rate). "
+        "Enter AI Studio actuals above."
+    )
 
     cac = mon.get("cac_ltv", {})
     st.info(cac.get("note", "CAC/LTV ratio unavailable in DB."))
@@ -180,7 +252,9 @@ def main() -> None:
     hits = mon.get("limit_hits_by_lifecycle_day", [])
     if hits:
         st.subheader("Token limit hits by lifecycle day at hit")
-        st.bar_chart(pd.DataFrame(hits).set_index("lifecycle_day"))
+        df_hits = pd.DataFrame(hits).set_index("lifecycle_day")
+        hit_col = "hit_count" if "hit_count" in df_hits.columns else "users"
+        st.bar_chart(df_hits[[hit_col]])
 
     # --- Feedback ---
     st.header("Feedback")
