@@ -30,7 +30,16 @@
       },
       "constraints": ["Shared with CS agent transactional sends (PLAN.md)"],
       "upgrade_trigger": "Contacts > 2,000 or daily signups > 300/day sustained",
-      "notes": "Use separate lists: transactional-agent, nps, limit-hitter. Lifecycle + PH templates deployed here."
+      "notes": "Use separate lists: transactional-agent, nps, limit-hitter. Lifecycle + PH templates deployed here.",
+      "paid_tier": {
+        "name": "Starter",
+        "pricing_url": "https://www.brevo.com/pricing/",
+        "price_usd_monthly": 29,
+        "price_usd_annual_monthly": 26.08,
+        "limits": { "emails_per_month": 20000, "contacts": 500000 },
+        "replaces_providers": ["omnisend"],
+        "notes": "Removes free-tier 300/day and 2,000 contact caps. Replaces OmniSend for paid lifecycle; keep Mailgun/EmailOctopus on free tiers."
+      }
     },
     {
       "id": "mailgun",
@@ -59,8 +68,8 @@
         "runway_months_min": 2
       },
       "constraints": ["250 contact cap below 500 subs year-end goal"],
-      "upgrade_trigger": "paid_subscribers >= 250 ($5k MRR)",
-      "notes": "Migrate upgrade thank-you to Brevo paid at 250 subs."
+      "upgrade_trigger": "Deprecate — use Brevo Starter ($29/mo) for paid lifecycle instead",
+      "notes": "Free tier placeholder only. Upgrade thank-you already on Brevo (deployed_via). Skip OmniSend onboarding; consolidate on Brevo Starter at first paid sub or when Brevo free tier binds."
     },
     {
       "id": "mailerlite",
@@ -151,42 +160,115 @@
       "rollup": "Dead + MAU = total user base"
     }
   ],
+  "launch_config": {
+    "waitlist": 175,
+    "internal_team": 47,
+    "launch_brevo_audience": 222,
+    "launch_window_days": 3,
+    "activation_24h_pct": 0.32,
+    "pmf_wau_eligible_pct": 0.40,
+    "paid_conversion_pct": 0.015,
+    "agent_brevo_daily_reserve": 50,
+    "default_new_users_per_day_max": 7,
+    "default_new_users_per_month_max": 200,
+    "slider_day_max": 1000,
+    "slider_month_max": 3000
+  },
+  "routing_rules": [
+    {
+      "id": "ph_week_brevo_primary",
+      "label": "PH week: Brevo primary",
+      "trigger": "ph_signups >= 1 OR launch_week mode",
+      "sequences": ["welcome", "activation_nudge"],
+      "provider_id": "brevo",
+      "notes": "Skip HubSpot primary during launch; welcome already deployed on Brevo."
+    },
+    {
+      "id": "brevo_daily_overflow",
+      "label": "Brevo daily overflow",
+      "trigger": "brevo projected daily > 240",
+      "sequences": ["pmf_day10"],
+      "provider_id": "mailgun",
+      "notes": "Route PMF to Mailgun; stagger NPS sends over 24h when Brevo daily exceeds 240."
+    },
+    {
+      "id": "omnisend_to_brevo",
+      "label": "OmniSend → Brevo Starter",
+      "trigger": "paid_subscribers >= 1 OR Brevo free tier binds",
+      "sequences": ["upgrade_thank_you", "cancelled_winback"],
+      "provider_id": "brevo",
+      "notes": "OmniSend free tier caps at 250 contacts — migrate to Brevo Starter ($29/mo · 20k sends/mo · 500k contacts)."
+    },
+    {
+      "id": "emailoctopus_cap",
+      "label": "EmailOctopus contact cap",
+      "trigger": "emailoctopus contacts > 2000",
+      "sequences": ["at_risk_nurture", "dead_resurrection"],
+      "provider_id": "mailerlite",
+      "notes": "Overflow at-risk WAU to MailerLite; cap dead resurrection at 10/mo."
+    }
+  ],
+  "scenario_presets": [
+    { "id": "pre_ph", "label": "Pre-PH", "new_users_per_day_max": 0, "new_users_per_month_max": 0, "mode": "launch_week", "paid_override": null },
+    { "id": "ph_low", "label": "PH low", "new_users_per_day_max": 67, "new_users_per_month_max": 200, "mode": "launch_week", "paid_override": null },
+    { "id": "ph_medium", "label": "PH medium", "new_users_per_day_max": 200, "new_users_per_month_max": 600, "mode": "launch_week", "paid_override": null },
+    { "id": "ph_high", "label": "PH high", "new_users_per_day_max": 667, "new_users_per_month_max": 2000, "mode": "launch_week", "paid_override": null },
+    { "id": "q4_target", "label": "Q4 target", "new_users_per_day_max": 4, "new_users_per_month_max": 120, "mode": "steady_month", "paid_override": 500 }
+  ],
   "capacity_cliffs": [
     {
-      "id": "hubspot_ph_burst",
-      "provider_id": "hubspot",
-      "trigger": "2,000+ signups in launch week",
-      "action": "Queue welcomes across months or route overflow to Brevo transactional list"
+      "id": "brevo_launch_peak",
+      "provider_id": "brevo",
+      "trigger": "Launch peak > 240/day (222 audience + signups ÷ 3)",
+      "action": "Stagger NPS days 3–7; route PMF to Mailgun; reserve 50/day for CS agent"
     },
     {
       "id": "brevo_contacts",
       "provider_id": "brevo",
-      "trigger": "Total contacts > 2,000",
-      "action": "Prune 12-month inactive; upgrade Brevo before PH high"
+      "trigger": "Contacts > 1,600 (80% of 2,000 cap)",
+      "action": "Prune 12-month inactive before PH; upgrade Brevo if > 2,000"
     },
     {
-      "id": "omnisend_250",
+      "id": "hubspot_defer_ph",
+      "provider_id": "hubspot",
+      "trigger": "PH week OR signups > 400/week",
+      "action": "Brevo primary for welcome/activation; HubSpot post-PH only when signups < 500/mo"
+    },
+    {
+      "id": "omnisend_200",
       "provider_id": "omnisend",
-      "trigger": "paid_subscribers >= 250",
-      "action": "Move upgrade thank-you and cancelled win-back to Brevo paid tier"
+      "trigger": "paid_subscribers >= 1 (OmniSend deprecated)",
+      "action": "Skip OmniSend — use Brevo Starter ($29/mo · 20k sends/mo · 500k contacts) for paid lifecycle"
     },
     {
-      "id": "emailoctopus_contacts",
+      "id": "mailgun_pmf_primary",
+      "provider_id": "mailgun",
+      "trigger": "Signups > 80/week sustained",
+      "action": "Enforce Mailgun primary for PMF (off Brevo interim deployed template)"
+    },
+    {
+      "id": "emailoctopus_2000",
       "provider_id": "emailoctopus",
       "trigger": "Marketing contacts > 2,000",
-      "action": "Upgrade EmailOctopus or overflow at-risk to MailerLite"
+      "action": "Upgrade EmailOctopus (~$8/mo); MailerLite overflow insufficient at 500 cap"
     },
     {
-      "id": "mailerlite_500",
+      "id": "mailerlite_overflow",
       "provider_id": "mailerlite",
-      "trigger": "Marketing contacts > 400",
-      "action": "Priority queue at-risk only; cap dead resurrection; upgrade ~$10/mo"
+      "trigger": "EmailOctopus contacts > 2,000 (overflow only)",
+      "action": "At-risk WAU only on MailerLite; not a primary nurture provider"
+    },
+    {
+      "id": "brevo_starter_monthly",
+      "provider_id": "brevo",
+      "trigger": "Brevo Starter: projected sends > 16,000/mo (80% of 20k)",
+      "action": "Keep PMF on Mailgun; nurture on EmailOctopus; upgrade Brevo Business tier or split marketing vs agent"
     },
     {
       "id": "brevo_agent",
       "provider_id": "brevo",
-      "trigger": "CS agent + marketing compete for daily send cap",
-      "action": "Separate Brevo sub-account or dedicated transactional list for agent"
+      "trigger": "Agent + marketing > 250/day",
+      "action": "Separate Brevo sub-account or dedicated transactional list for CS agent"
     }
   ],
   "sequences": [

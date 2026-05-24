@@ -272,63 +272,90 @@ MailerLite remains viable until inflow approaches **500/month** — i.e. ~10× c
 
 ### Scenario stress tests
 
+**Launch audience (Brevo):** 222 recipients on PH teaser + launch — **175 waitlist + 47 internal team**. This is separate from organic PH signups and counts toward Brevo daily peak and contacts.
+
+Use the interactive **[`/email-machine#capacity-scenarios`](/email-machine#capacity-scenarios)** planner to model any signup volume. Presets below match `scenario_presets` in `email_sequences.json`.
+
 #### A. Baseline (May 24 — pre-PH)
 
 | Sequence | Eligible users | Sends/mo | Provider | Headroom |
 |----------|---------------:|---------:|----------|----------|
-| Welcome | ~0 new | 0 | HubSpot | Full |
+| Welcome | ~0 new | 0 | Brevo (strategy: HubSpot) | Full |
 | NPS | ~0 | 0 | Brevo | Full |
-| At-risk nurture | 26 | ~52 (2×) | MailerLite | 500 contacts · 12k sends |
-| Dead resurrection | 95 (cap 20/mo) | 40 | MailerLite | Contact-limited |
+| At-risk nurture | 26 | ~78 (3× drip) | EmailOctopus | 2,500 contacts · 10k sends |
+| Dead resurrection | 95 (cap 20/mo) | 40 | EmailOctopus | Contact headroom |
 | Limit-hitter | 1 | 2 | Brevo | Full |
 | Upgrade thank-you | 1 | 1 | OmniSend | Full |
 
-**MailerLite contacts in use:** ~26 at-risk + 20 dead campaign = **46 / 500**.
+**EmailOctopus contacts in use:** ~26 at-risk + 20 dead campaign ≈ **46 / 2,500**.
 
 #### B. PH low (+200 signups in launch week)
 
-| Sequence | Sends | Provider | Risk |
-|----------|------:|----------|------|
-| Welcome | 200 | HubSpot | 10% of monthly cap |
+| Sequence | Sends | Provider (with routing) | Risk |
+|----------|------:|----------------------|------|
+| PH teaser + launch | 222 | Brevo | ~37/day on launch days — OK |
+| Welcome | 200 | **Brevo** (PH week routing) | OK |
 | NPS (week 2+) | 200 | Brevo | OK (~29/day) |
-| Activation nudge (~68% non-24h) | ~136 | HubSpot/Brevo | OK |
+| Activation nudge (~68% non-24h) | ~136 | **Brevo** | OK |
 | PMF (est. 40% WAU-eligible) | ~80 | Mailgun | OK |
 
-**Brevo contacts:** 122 + 200 = **322 / 2,000** — OK.
+**Brevo contacts:** 122 + 200 + 222 launch ≈ **544 / 2,000** — OK.
 
 #### C. PH high (+2,000 signups in launch week)
 
-| Sequence | Sends | Provider | Risk |
-|----------|------:|----------|------|
-| Welcome | **2,000** | HubSpot | **Entire monthly cap in one week** |
-| NPS | 2,000 | Brevo | ~286/day — OK |
-| Activation nudge | ~1,360 | HubSpot/Brevo | Brevo overflow required |
-| PMF | ~800 | Mailgun | ~27/day — OK |
+| Sequence | Sends | Provider (with routing) | Risk |
+|----------|------:|----------------------|------|
+| PH teaser + launch | 222 | Brevo | Included in peak |
+| Welcome | 2,000 | **Brevo** (not HubSpot) | Launch peak ~755/day — **exceeds 300/day cap** |
+| NPS | 2,000 | Brevo (stagger days 3–7) | Contributes to peak |
+| Activation nudge | ~1,360 | **Brevo** | Contributes to peak |
+| PMF | ~800 | **Mailgun** (overflow rule) | ~27/day — OK |
 
-**Mitigations for PH high:**
+**Mitigations for PH high (simulation-backed):**
 
-1. **HubSpot overflow:** Queue welcome sends across May/June or route overflow welcome to Brevo transactional list.
-2. **Brevo contacts:** 122 + 2,000 = **2,122** — **exceeds 2,000 contact cap**. Upgrade Brevo or prune 12-month dead before PH.
-3. **MailerLite contacts:** Base + 2,000 >> 500 — **priority queue mandatory** (at-risk WAU only until upgrade).
+1. **Brevo daily peak:** Stagger NPS over days 3–7; route PMF to Mailgun; reserve 50/day for CS agent.
+2. **HubSpot defer:** Do **not** enable HubSpot primary during PH week — Brevo already hosts welcome template.
+3. **Brevo contacts:** 122 + 2,000 + 222 ≈ **2,344** — exceeds 2,000. Prune 12-month inactive before PH.
+4. **EmailOctopus:** ~352 contacts at 2,122 users — comfortable; MailerLite overflow not needed.
 
 #### D. Dec 2026 target (500 paid subs)
 
 | Provider | Issue | Migration plan |
 |----------|-------|----------------|
-| OmniSend | Free tier caps at **250 contacts** | At **250 `paid_subscribers`**: move upgrade thank-you + cancelled win-back to **Brevo paid** or dedicated transactional provider |
-| MailerLite | 500 contacts vs ~600+ user base | Upgrade MailerLite (~$10/mo) or split resurrection to 6th provider |
-| HubSpot | 2,000/mo vs sustained new-user growth | Upgrade when monthly signups > 2,000 consistently (June milestone ~85 subs implies heavy acquisition) |
-| Brevo | Agent + marketing + limit-hitter | Separate sub-account or paid tier for CS agent transactional |
+| OmniSend | Free tier caps at **250 contacts** | **Skip OmniSend** — use **Brevo Starter** ($29/mo) for paid lifecycle |
+| Brevo free | 300/day · 2,000 contacts | **Brevo Starter**: $29/mo · **20,000 sends/mo** · **500,000 contacts** ($26.08/mo annual) |
+| EmailOctopus | 2,500 contact cap at scale | Upgrade ~$8/mo at 2,000 contacts |
+| HubSpot | 2,000/mo vs sustained growth | Post-PH only when signups < 500/mo |
+
+**Brevo Starter vs free (verified pricing):** Not unlimited — **20k emails/month** and **500k contacts**. PH high simulation ≈ **5,800 Brevo sends/mo** — fits Starter with headroom. Watch the **20k/month** ceiling if most lifecycle email consolidates on Brevo; daily peak (300/day free) goes away on Starter.
+
+**OmniSend swap:** Yes — once on Brevo Starter, OmniSend adds no value. Paid Zen welcome and cancelled win-back stay on Brevo (already deployed there). One **$29/mo** line item replaces OmniSend + solves free-tier contact/daily cliffs. At 250 paid subs (~$5k MRR), that's **~0.6% of revenue** — compatible with 80% gross margin.
+
+### §6.1 Routing rules (implementation)
+
+Rules are encoded in `email_sequences.json` → `routing_rules` and applied automatically by the scenario planner and (future) CS agent.
+
+| Rule ID | Trigger | Sequences affected | Provider override |
+|---------|---------|-------------------|-------------------|
+| `ph_week_brevo_primary` | PH week OR `ph_signups >= 1` | welcome, activation_nudge | **brevo** (skip HubSpot) |
+| `brevo_daily_overflow` | Brevo projected daily > 240 | pmf_day10 | **mailgun**; stagger NPS 24h |
+| `omnisend_to_brevo` | `paid_subscribers >= 1` OR Brevo free tier binds | upgrade_thank_you, cancelled_winback | **brevo** (Starter $29/mo) |
+| `emailoctopus_cap` | EmailOctopus contacts > 2,000 | at_risk_nurture, dead_resurrection | overflow mailerlite; cap dead at 10/mo |
+
+**Do not enable HubSpot primary during PH week.** Welcome and activation run on Brevo (already deployed); HubSpot monthly cap (2,000) cannot absorb a PH burst.
 
 ### Known cliffs — summary
 
 | Cliff | Trigger | Action |
 |-------|---------|--------|
-| HubSpot monthly exhaustion | PH high welcome burst | Brevo welcome overflow; batch across months |
-| Brevo 2,000 contacts | PH high or Q3 growth | Prune dead; upgrade Brevo |
-| OmniSend 250 paid | `paid_subscribers >= 250` (~Nov milestone 440) | Brevo for paid lifecycle emails |
-| MailerLite 500 contacts | `contacts > 400` | Priority: at-risk WAU > MAU > dead resurrection |
-| Brevo agent conflict | Agent sends + marketing compete | Dedicated transactional list / sub-account |
+| Brevo launch peak | Peak > 240/day (222 audience + signups ÷ 3) | Stagger NPS; PMF → Mailgun; reserve 50/day for agent |
+| Brevo contacts | Contacts > 1,600 (80%) | Prune dead; upgrade if > 2,000 |
+| HubSpot defer PH | PH week OR signups > 400/week | Brevo primary; HubSpot post-PH only |
+| OmniSend 200 paid | `paid_subscribers >= 200` on free stack | Upgrade to **Brevo Starter**; deprecate OmniSend |
+| Brevo Starter 20k/mo | Projected Brevo sends > 16,000/mo | Split PMF/nurture to Mailgun/EmailOctopus or Brevo Business |
+| Mailgun PMF primary | Signups > 80/week sustained | Enforce Mailgun for PMF |
+| EmailOctopus 2,000 | Marketing contacts > 2,000 | Upgrade EmailOctopus; MailerLite overflow only |
+| Brevo agent conflict | Agent + marketing > 250/day | Dedicated transactional list / sub-account |
 
 ---
 
@@ -366,7 +393,7 @@ From Adam’s draft, extended:
 2. **Unsubscribe:** Honor per-provider unsubscribe; sync suppression list across HubSpot, Brevo, MailerLite.
 3. **Dedup:** CS agent `outreach_log` — never send same `trigger_name` twice to same user.
 4. **Priority when contact caps bind:** At-risk WAU → at-risk MAU → limit hitters → dead resurrection (newest dead first, cap 20/month).
-5. **Paid users:** Remove from free nurture sequences; route to OmniSend/Brevo paid lifecycle only.
+5. **Paid users:** Remove from free nurture sequences; route to **Brevo Starter** paid lifecycle only (skip OmniSend).
 
 ---
 
@@ -388,50 +415,54 @@ The CS agent ([`PLAN.md`](../PLAN.md)) already uses **Brevo** for transactional 
 
 ### Phase 0 — Pre-PH (now → May 26)
 
-- [ ] Stand up MailerLite; launch **at-risk WAU nurture** for 16 users.
-- [ ] Pilot **dead resurrection** (cap 20 users, 2-touch).
-- [ ] Wire **limit-hitter upgrade** for the 1 current limit hitter + future hits.
-- [ ] Confirm HubSpot welcome template; Brevo NPS template.
-- [ ] Prune Brevo/MailerLite lists to maximize contact headroom before PH.
+- [ ] Prune Brevo contacts (target < 100 active marketing contacts before PH)
+- [ ] Separate Brevo lists: `transactional-agent`, `lifecycle-nps`, `lifecycle-welcome`, `limit-hitter`
+- [ ] Stand up **EmailOctopus** at-risk WAU nurture for 16 users (not MailerLite primary)
+- [ ] Pilot **dead resurrection** on EmailOctopus (cap 20 users, 2-touch)
+- [ ] Wire **limit-hitter upgrade** for current limit hitters + future hits
+- [ ] Pre-wire **Brevo Starter** ($29/mo) lifecycle list — skip OmniSend onboarding
+- [ ] Review **[`/email-machine#capacity-scenarios`](/email-machine#capacity-scenarios)** with PH low/high presets
 
 ### Phase 1 — PH week (May 27 ± 3 days)
 
-- [ ] Welcome via HubSpot for all new signups; monitor daily send count vs 2,000 cap.
-- [ ] Activation nudge at 24h for non-prompt users.
-- [ ] Pre-written overflow: if HubSpot > 1,500 sends in month, switch new welcomes to Brevo.
-- [ ] Daily dashboard review: `bucket_at_risk_wau`, `activation_24h_pct`, `total_users`.
+- [ ] Send **222 launch emails via Brevo** (175 waitlist + 47 internal) on teaser + launch days
+- [ ] Welcome + activation on **Brevo** (not HubSpot); PMF on **Mailgun** when Brevo daily > 240
+- [ ] Stagger NPS over days 3–7 post-signup (not fixed day 3 for entire cohort)
+- [ ] Monitor scenario planner daily; enable routing rules before upgrading any provider
+- [ ] Daily dashboard review: `bucket_at_risk_wau`, `activation_24h_pct`, `total_users`
 
 ### Phase 2 — Post-PH (Jun → Sep)
 
-- [ ] NPS day-7 and PMF for new cohorts.
-- [ ] Scale limit-hitter upgrade as `token_limit_hit_rate_pct` rises.
-- [ ] Track `paid_subscribers` vs monthly milestones (85 Jun, 156 Jul, …).
-- [ ] At 250 paid: migrate upgrade thank-you off OmniSend free tier.
+- [ ] NPS and PMF for new cohorts (Mailgun primary for PMF when signups > 80/week)
+- [ ] Scale limit-hitter upgrade as `token_limit_hit_rate_pct` rises
+- [ ] Track `paid_subscribers` vs monthly milestones (85 Jun, 156 Jul, …)
+- [ ] At **first paid sub**: confirm upgrade thank-you + cancelled win-back on **Brevo Starter** (not OmniSend)
 
 ### Phase 3 — Scale to 500 subs (Oct → Dec)
 
-- [ ] Upgrade providers as capacity triggers fire (§6).
-- [ ] Cancelled sub win-back live.
-- [ ] Monthly review: gross margin vs email tool spend (target 80% margin).
+- [ ] Upgrade providers only when scenario planner shows `at_limit` (runway < 2 mo)
+- [ ] Upgrade EmailOctopus at 2,000 contacts if nurture volume grows
+- [ ] Cancelled sub win-back live on Brevo (post-OmniSend migration)
+- [ ] Monthly review: gross margin vs email tool spend (target 80% margin)
 
 ---
 
 ## 11. Open decisions
 
-| # | Question | Options |
-|---|----------|---------|
-| 1 | Dead resurrection provider when MailerLite full? | MailerLite upgrade · 6th free provider · Brevo campaign |
-| 2 | HubSpot PH overflow? | Brevo welcome clone · Paid HubSpot · Delay welcome 24h batching |
-| 3 | OmniSend post-250? | Brevo paid lifecycle · Keep OmniSend paid (~$16/mo) |
-| 4 | Activation D3 follow-up? | Yes (doubles HubSpot/Brevo sends) · No (single 24h nudge only) |
+| # | Question | Decision (simulation-backed) |
+|---|----------|------------------------------|
+| 1 | Dead resurrection when EmailOctopus full? | Upgrade EmailOctopus at 2,000 contacts; MailerLite overflow WAU-only |
+| 2 | HubSpot PH overflow? | **Default: Brevo primary during PH week** — do not enable HubSpot |
+| 3 | OmniSend post-250? | **Skip OmniSend** — Brevo Starter $29/mo (20k sends · 500k contacts) from first paid sub or when free Brevo binds |
+| 4 | Activation D3 follow-up? | No (single 24h nudge only) — doubles Brevo load during PH |
 | 5 | Current-user nurture? | Defer until DAU > PH baseline · Never (in-app only) |
-| 6 | Budget vs margin at upgrade time? | Approve when `runway_months < 2` · Hard cap on email SaaS spend |
+| 6 | Budget vs margin at upgrade time? | Approve when scenario planner shows `at_limit`; prefer **Brevo Starter** ($29/mo · 20k sends) over many providers |
 
 ---
 
 ## Shipped templates (Brevo)
 
-Live HTML previews and **project charter**: **[`/email-machine`](/email-machine)** (DAU buckets, strategy vs shipped providers, capacity panel, copy HTML).
+Live HTML previews, **project charter**, and **PH scenario planner**: **[`/email-machine`](/email-machine)** (DAU buckets, strategy vs shipped providers, capacity panel, copy HTML).
 
 Where **deployed** Brevo automations differ from the multi-provider **strategy** below, the engineer reference shows both (`deployed_via: brevo` on sequences with Brevo templates).
 
@@ -459,7 +490,7 @@ The baseline snapshot includes **`email_provider_capacity`**: per-provider conta
 | `NEAR_LIMIT_RUNWAY` | Runway &lt;2 months at current send rate |
 | `AT_LIMIT_*` | Same metrics at ≥100% |
 
-Surfaced on: main dashboard KPI row, Key insights, and [`/email-machine#provider-capacity`](/email-machine).
+Surfaced on: main dashboard KPI row, Key insights, [`/email-machine#provider-capacity`](/email-machine#provider-capacity) (live), and [`/email-machine#capacity-scenarios`](/email-machine#capacity-scenarios) (what-if PH signup projections).
 
 v1 uses DAU bucket estimates; replace with `outreach_log` counts when CS agent Phase 4 ships.
 

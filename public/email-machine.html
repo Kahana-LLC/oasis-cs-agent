@@ -363,12 +363,495 @@
       </section>`;
     }
 
+    const CADENCE_SENDS = {
+      "one-time": 1,
+      "drip-2-4": 3,
+      "one-time-plus-d7": 2,
+      "campaign-2-touch": 2,
+      "one-time-plus-d14": 2,
+    };
+
+    function getBaselineState() {
+      const dau = snapshotData?.dau_model || {};
+      return {
+        totalUsers: snapshotData?.total_users || 122,
+        bucketCounts: { ...(dau.bucket_counts || { new: 0, current: 0, reactivated: 0, resurrected: 1, at_risk_wau: 16, at_risk_mau: 10, dead: 95 }) },
+        monetization: { ...(snapshotData?.monetization || { paid_subscribers: 1, users_hit_limit: 1, cancelled_paid_subscribers: 0 }) },
+      };
+    }
+
+    function projectBucketsForSim(totalUsers, newMonthly) {
+      const dau = Math.max(1, Math.round(totalUsers * 0.08));
+      const atRiskWau = Math.max(1, Math.round(dau * 0.94));
+      const atRiskMau = Math.max(1, Math.round(totalUsers * 0.08));
+      const dead = Math.max(0, totalUsers - dau - atRiskWau - atRiskMau - 2);
+      return {
+        new: Math.min(Math.max(1, Math.floor(newMonthly / 30)), 5),
+        current: Math.max(0, dau - 2),
+        reactivated: 1,
+        resurrected: 1,
+        at_risk_wau: atRiskWau,
+        at_risk_mau: atRiskMau,
+        dead,
+      };
+    }
+
+    function seqEligible(seq, ctx) {
+      const cadence = CADENCE_SENDS[seq.cadence || "one-time"] || 1;
+      let eligible = 0;
+      for (const b of seq.buckets || []) {
+        if (b in ctx.bucketCounts) eligible += ctx.bucketCounts[b];
+        else if (b === "paid") eligible += ctx.paidSubs;
+        else if (b === "limit_hitter") eligible += ctx.limitHitters;
+        else if (b === "cancelled_paid") eligible += ctx.cancelledPaid;
+        else if (b === "waitlist") eligible += ctx.launchAudience;
+      }
+      const signupVol = ctx.signupVol;
+      if (seq.id === "welcome" || seq.id === "nps_day3") eligible = signupVol;
+      else if (seq.id === "pmf_day10") eligible = Math.round(signupVol * ctx.pmfPct);
+      else if (seq.id === "activation_nudge") eligible = Math.round(signupVol * (1 - ctx.activationPct));
+      else if (seq.id === "dead_resurrection") eligible = Math.min(ctx.bucketCounts.dead || 0, ctx.deadCap);
+      else if (seq.id === "ph_teaser" || seq.id === "ph_launch") {
+        eligible = ctx.mode === "launch_week" ? ctx.launchAudience : 0;
+      }
+      return { sends: eligible * cadence, eligible };
+    }
+
+    function providerContactsSim(pid, ctx, byProvider) {
+      const signupVol = ctx.signupVol;
+      if (pid === "omnisend") {
+        return ctx.activeRules.includes("omnisend_to_brevo") ? 0 : ctx.paidSubs;
+      }
+      if (pid === "hubspot") {
+        const usesHubspot = ctx.activeRules.includes("ph_week_brevo_primary") ? 0 : signupVol;
+        return usesHubspot;
+      }
+      if (pid === "mailgun") return Math.round(signupVol * ctx.pmfPct);
+      if (pid === "emailoctopus") {
+        const ar = (ctx.bucketCounts.at_risk_wau || 0) + (ctx.bucketCounts.at_risk_mau || 0);
+        const dead = Math.min(ctx.bucketCounts.dead || 0, ctx.deadCap);
+        const ret = (ctx.bucketCounts.reactivated || 0) + (ctx.bucketCounts.resurrected || 0);
+        return ar + dead + ret;
+      }
+      if (pid === "mailerlite") {
+        const eoCap = providerById("emailoctopus")?.free_limits?.contacts || 2500;
+        const eoUsed = providerContactsSim("emailoctopus", ctx, byProvider);
+        if (eoUsed > eoCap * 0.8) return Math.min(500, Math.round((eoUsed - eoCap * 0.8) * 0.5));
+        return 0;
+      }
+      if (pid === "brevo") {
+        let base = signupVol + ctx.limitHitters + ctx.cancelledPaid + ctx.paidSubs;
+        if (ctx.mode === "launch_week") base += ctx.launchAudience;
+        base += signupVol + Math.round(signupVol * ctx.pmfPct);
+        return Math.min(ctx.totalUsers, base);
+      }
+      return ctx.totalUsers;
+    }
+
+    function computeDailyPeaks(ctx) {
+      const { newUsersDay, newUsersMonth, mode, launchAudience, launchDays, activationPct, pmfPct, agentReserve, activeRules } = ctx;
+      const npsDailyPeak = Math.round((newUsersMonth / 30) * 1.5);
+      const launchBrevo = mode === "launch_week" ? launchAudience / 2 / launchDays : 0;
+      const peaks = {};
+      peaks.brevo =
+        newUsersDay +
+        Math.round(newUsersDay * (1 - activationPct)) +
+        npsDailyPeak +
+        launchBrevo +
+        agentReserve;
+      peaks.mailgun = Math.max(Math.round((newUsersMonth * pmfPct) / 30), Math.round(newUsersDay * pmfPct / 5));
+      peaks.hubspot = activeRules.includes("ph_week_brevo_primary")
+        ? 0
+        : newUsersDay + Math.round(newUsersDay * (1 - activationPct));
+      return peaks;
+    }
+
+    function simulateCapacity(opts) {
+      const lc = emailData?.launch_config || {};
+      const newUsersDay = opts.newUsersPerDayMax ?? lc.default_new_users_per_day_max ?? 7;
+      const newUsersMonth = opts.newUsersPerMonthMax ?? lc.default_new_users_per_month_max ?? 200;
+      const mode = opts.mode || "launch_week";
+      const baseline = getBaselineState();
+      const launchAudience = lc.launch_brevo_audience ?? 222;
+      const launchDays = lc.launch_window_days ?? 3;
+      const activationPct = lc.activation_24h_pct ?? 0.32;
+      const pmfPct = lc.pmf_wau_eligible_pct ?? 0.40;
+      const paidConversion = lc.paid_conversion_pct ?? 0.015;
+      const agentReserve = lc.agent_brevo_daily_reserve ?? 50;
+
+      const signupVol = newUsersMonth;
+      const totalUsers = baseline.totalUsers + newUsersMonth;
+      const autoPaid = Math.max(baseline.monetization.paid_subscribers || 0, Math.round(totalUsers * paidConversion));
+      const paidSubs = opts.paidOverride != null ? opts.paidOverride : autoPaid;
+      const bucketCounts = projectBucketsForSim(totalUsers, newUsersMonth);
+      const rateInconsistent = newUsersDay * 30 > newUsersMonth && newUsersMonth > 0;
+
+      let deadCap = 20;
+      const activeRules = [];
+      if (mode === "launch_week" || newUsersMonth >= 1) activeRules.push("ph_week_brevo_primary");
+      if (paidSubs >= 1) activeRules.push("omnisend_to_brevo");
+
+      const ctx = {
+        newUsersDay,
+        newUsersMonth,
+        mode,
+        signupVol,
+        totalUsers,
+        paidSubs,
+        limitHitters: Math.max(baseline.monetization.users_hit_limit || 0, Math.round(newUsersMonth * 0.05)),
+        cancelledPaid: baseline.monetization.cancelled_paid_subscribers || 0,
+        bucketCounts,
+        launchAudience,
+        launchDays,
+        activationPct,
+        pmfPct,
+        deadCap,
+        activeRules,
+        agentReserve,
+      };
+
+      const eoContacts = providerContactsSim("emailoctopus", ctx, {});
+      if (eoContacts > 2000) {
+        activeRules.push("emailoctopus_cap");
+        ctx.deadCap = 10;
+      }
+      ctx.activeRules = activeRules;
+
+      function effectiveProvider(seq) {
+        let pid = seq.provider_id;
+        if (activeRules.includes("ph_week_brevo_primary") && ["welcome", "activation_nudge"].includes(seq.id)) {
+          pid = "brevo";
+        }
+        if (activeRules.includes("omnisend_to_brevo") && ["upgrade_thank_you", "cancelled_winback"].includes(seq.id)) {
+          pid = "brevo";
+        }
+        return pid;
+      }
+
+      const byProvider = {};
+      for (const seq of emailData?.sequences || []) {
+        const { sends } = seqEligible(seq, ctx);
+        if (sends <= 0) continue;
+        let pid = effectiveProvider(seq);
+        byProvider[pid] = (byProvider[pid] || 0) + sends;
+        if (seq.provider_overflow_id && newUsersMonth >= 600) {
+          byProvider[seq.provider_overflow_id] = (byProvider[seq.provider_overflow_id] || 0) + sends * 0.15;
+        }
+      }
+
+      const dailyPeaks = computeDailyPeaks(ctx);
+      if (dailyPeaks.brevo > 240) {
+        activeRules.push("brevo_daily_overflow");
+        const pmfSeq = (emailData?.sequences || []).find((s) => s.id === "pmf_day10");
+        if (pmfSeq) {
+          const { sends: pmfSends } = seqEligible(pmfSeq, ctx);
+          byProvider.brevo = Math.max(0, (byProvider.brevo || 0) - pmfSends);
+          byProvider.mailgun = (byProvider.mailgun || 0) + pmfSends;
+        }
+      }
+      ctx.activeRules = activeRules;
+
+      const brevoProv = providerById("brevo");
+      const brevoFree = brevoProv?.free_limits || {};
+      const brevoStarterLimits = brevoProv?.paid_tier?.limits || null;
+      const brevoContactsEst = providerContactsSim("brevo", ctx, byProvider);
+      const useBrevoStarter =
+        paidSubs >= 1 ||
+        dailyPeaks.brevo > (brevoFree.emails_per_day ?? Infinity) ||
+        brevoContactsEst > (brevoFree.contacts ?? Infinity);
+
+      const providerRows = [];
+      const failures = [];
+      const priority = { launch_peak: 0, daily: 1, monthly: 2, contacts: 3 };
+
+      for (const prov of emailData?.providers || []) {
+        const pid = prov.id;
+        const lim =
+          pid === "brevo" && useBrevoStarter && brevoStarterLimits
+            ? { ...brevoStarterLimits }
+            : { ...(prov.free_limits || {}) };
+        const monthly = byProvider[pid] || 0;
+        const dailyAvg = monthly / 30;
+        const contacts = providerContactsSim(pid, ctx, byProvider);
+        const metrics = [];
+
+        const moLim = lim.marketing_emails_per_month ?? lim.emails_per_month;
+        if (moLim != null) {
+          const pct = monthly / moLim;
+          metrics.push({ key: "monthly", label: "Sends/mo", used: monthly, limit: moLim, pct });
+          if (pct >= 1) failures.push({ pid, type: "monthly", used: monthly, limit: moLim, name: prov.name });
+        }
+        const dayLim = lim.emails_per_day;
+        if (dayLim != null) {
+          const peak = dailyPeaks[pid] ?? dailyAvg;
+          const usePeak = dailyPeaks[pid] != null && dailyPeaks[pid] > dailyAvg;
+          const dailyUsed = usePeak ? peak : dailyAvg;
+          const pct = dailyUsed / dayLim;
+          metrics.push({
+            key: usePeak ? "launch_peak" : "daily",
+            label: usePeak ? "Peak day" : "Sends/day avg",
+            used: dailyUsed,
+            limit: dayLim,
+            pct,
+          });
+          if (pct >= 1) {
+            failures.push({
+              pid,
+              type: usePeak ? "launch_peak" : "daily",
+              used: dailyUsed,
+              limit: dayLim,
+              name: prov.name,
+            });
+          }
+        }
+        if (lim.contacts != null) {
+          const pct = contacts / lim.contacts;
+          metrics.push({ key: "contacts", label: "Contacts", used: contacts, limit: lim.contacts, pct });
+          if (pct >= 1) failures.push({ pid, type: "contacts", used: contacts, limit: lim.contacts, name: prov.name });
+        }
+
+        const worst = metrics.reduce((a, m) => (!a || m.pct > a.pct ? m : a), null);
+        const worstPct = worst ? worst.pct : 0;
+        const status = worstPct >= 1 ? "at_limit" : worstPct >= 0.8 ? "near_limit" : "ok";
+
+        providerRows.push({
+          id: pid,
+          name: prov.name,
+          monthly,
+          contacts,
+          metrics,
+          worst,
+          status,
+          barLabel: worst ? `${worst.label}: ${Math.round(worst.used).toLocaleString()} / ${worst.limit.toLocaleString()}` : "—",
+        });
+      }
+
+      failures.sort((a, b) => {
+        const pa = priority[a.type] ?? 9;
+        const pb = priority[b.type] ?? 9;
+        return pa !== pb ? pa - pb : b.used / b.limit - a.used / a.limit;
+      });
+
+      const triggeredCliffs = [];
+      for (const cliff of emailData?.capacity_cliffs || []) {
+        const row = providerRows.find((p) => p.id === cliff.provider_id);
+        if (!row) continue;
+        let fire = false;
+        if (cliff.id === "brevo_launch_peak") {
+          fire = dailyPeaks.brevo > 240;
+        } else if (cliff.id === "brevo_contacts") {
+          fire = (providerRows.find((p) => p.id === "brevo")?.contacts || 0) > 1600;
+        } else if (cliff.id === "hubspot_defer_ph") {
+          fire = mode === "launch_week" || newUsersMonth > 400 || newUsersDay * 7 > 400;
+        } else if (cliff.id === "omnisend_200") {
+          fire = paidSubs >= 1;
+        } else if (cliff.id === "mailgun_pmf_primary") {
+          fire = newUsersMonth > 80 || newUsersDay * 7 > 80;
+        } else if (cliff.id === "emailoctopus_2000") {
+          fire = providerContactsSim("emailoctopus", ctx, byProvider) > 2000;
+        } else if (cliff.id === "mailerlite_overflow") {
+          fire = activeRules.includes("emailoctopus_cap");
+        } else if (cliff.id === "brevo_starter_monthly") {
+          const brevoRow = providerRows.find((p) => p.id === "brevo");
+          fire = useBrevoStarter && (brevoRow?.monthly || 0) > 16000;
+        } else if (cliff.id === "brevo_agent") {
+          fire = dailyPeaks.brevo > 250;
+        }
+        if (fire) triggeredCliffs.push(cliff);
+      }
+
+      const goalsNote = useBrevoStarter
+        ? "Brevo Starter ($29/mo · 20k sends/mo): OmniSend deprecated; watch 20k/month ceiling."
+        : "Before first paid sub: free Brevo (300/day · 2k contacts). Upgrade to Starter at $29/mo when PH or paid lifecycle binds.";
+
+      return {
+        providerRows,
+        firstStall: failures[0] || null,
+        activeRules,
+        triggeredCliffs,
+        goalsNote,
+        autoPaid,
+        totalUsers,
+        newUsersDay,
+        newUsersMonth,
+        rateInconsistent,
+        dailyPeaks,
+      };
+    }
+
+    function renderScenarioPlannerShell() {
+      const lc = emailData?.launch_config || {};
+      const presets = emailData?.scenario_presets || [];
+      const audience = lc.launch_brevo_audience ?? 222;
+      const dayMax = lc.slider_day_max ?? 1000;
+      const monthMax = lc.slider_month_max ?? 3000;
+      const dayDefault = lc.default_new_users_per_day_max ?? 7;
+      const monthDefault = lc.default_new_users_per_month_max ?? 200;
+      const presetBtns = presets
+        .map(
+          (p) =>
+            `<button type="button" class="scenario-preset-btn" data-day="${p.new_users_per_day_max ?? 0}" data-month="${p.new_users_per_month_max ?? 0}" data-mode="${escapeHtml(p.mode)}" data-paid="${p.paid_override ?? ""}">${escapeHtml(p.label)}</button>`
+        )
+        .join("");
+      return `<section id="capacity-scenarios">
+        <h2>PH scenario planner</h2>
+        <p class="section-cap">Set max new-user rates to see where free tiers break. Launch audience: <strong>${audience}</strong> Brevo recipients (175 waitlist + 47 internal). Daily max stress-tests send caps; monthly max drives lifecycle volume and contacts.</p>
+        <div class="scenario-controls">
+          <div class="scenario-control-group">
+            <label for="scenario-day-max">New users / day (max)</label>
+            <input type="range" id="scenario-day-max" min="0" max="${dayMax}" step="1" value="${dayDefault}" />
+            <input type="number" id="scenario-day-max-num" min="0" max="${dayMax}" step="1" value="${dayDefault}" />
+          </div>
+          <div class="scenario-control-group">
+            <label for="scenario-month-max">New users / month (max)</label>
+            <input type="range" id="scenario-month-max" min="0" max="${monthMax}" step="10" value="${monthDefault}" />
+            <input type="number" id="scenario-month-max-num" min="0" max="${monthMax}" step="1" value="${monthDefault}" />
+          </div>
+          <div class="scenario-control-group">
+            <label for="scenario-paid">Paid subscribers <span id="scenario-paid-mode" class="section-cap">(auto)</span></label>
+            <input type="range" id="scenario-paid" min="0" max="500" step="5" value="0" />
+            <input type="number" id="scenario-paid-num" min="0" max="500" step="1" value="0" />
+            <label class="scenario-override-toggle"><input type="checkbox" id="scenario-paid-override" /> Override auto</label>
+          </div>
+          <div class="scenario-control-group">
+            <label>Mode</label>
+            <label><input type="radio" name="scenario-mode" value="launch_week" checked /> Launch week</label>
+            <label><input type="radio" name="scenario-mode" value="steady_month" /> Steady month</label>
+          </div>
+          <div class="scenario-presets">${presetBtns}</div>
+        </div>
+        <div id="scenario-summary"></div>
+        <div id="scenario-provider-cards" class="capacity-kpi-row"></div>
+      </section>`;
+    }
+
+    function updateScenarioUI() {
+      const dayEl = document.getElementById("scenario-day-max");
+      const paidOverrideCb = document.getElementById("scenario-paid-override");
+      if (!dayEl) return;
+
+      const newUsersDay = Number(document.getElementById("scenario-day-max-num")?.value || dayEl.value);
+      const newUsersMonth = Number(document.getElementById("scenario-month-max-num")?.value || document.getElementById("scenario-month-max")?.value);
+      const mode = document.querySelector('input[name="scenario-mode"]:checked')?.value || "launch_week";
+      const paidOverrideOn = paidOverrideCb?.checked;
+      const paidVal = Number(document.getElementById("scenario-paid-num")?.value || 0);
+      const sim = simulateCapacity({
+        newUsersPerDayMax: newUsersDay,
+        newUsersPerMonthMax: newUsersMonth,
+        mode,
+        paidOverride: paidOverrideOn ? paidVal : null,
+      });
+
+      const modeEl = document.getElementById("scenario-paid-mode");
+      if (modeEl) modeEl.textContent = paidOverrideOn ? "(override)" : `(auto: ${sim.autoPaid})`;
+
+      if (!paidOverrideOn) {
+        const paidSlider = document.getElementById("scenario-paid");
+        const paidNum = document.getElementById("scenario-paid-num");
+        if (paidSlider) paidSlider.value = sim.autoPaid;
+        if (paidNum) paidNum.value = sim.autoPaid;
+      }
+
+      const summaryEl = document.getElementById("scenario-summary");
+      if (summaryEl) {
+        const stall = sim.firstStall;
+        const rateWarn = sim.rateInconsistent
+          ? `<div class="banner banner-info">Daily max × 30 (${(newUsersDay * 30).toLocaleString()}) exceeds monthly max (${newUsersMonth.toLocaleString()}) — peak-day stress uses daily; volume uses monthly.</div>`
+          : "";
+        const stallBanner = stall
+          ? `<div class="banner banner-warn"><strong>First stall:</strong> ${escapeHtml(stall.name)} — ${escapeHtml(stall.type)} (${Math.round(stall.used).toLocaleString()} / ${stall.limit.toLocaleString()})</div>`
+          : `<div class="banner banner-live">All providers within free-tier limits at ${newUsersDay.toLocaleString()}/day · ${newUsersMonth.toLocaleString()}/mo (${mode.replace("_", " ")}).</div>`;
+        const rules = sim.activeRules.length
+          ? `<div class="routing-pills">${sim.activeRules
+              .map((id) => {
+                const rule = (emailData?.routing_rules || []).find((r) => r.id === id);
+                return `<span class="routing-pill" title="${escapeHtml(rule?.notes || "")}">${escapeHtml(rule?.label || id)}</span>`;
+              })
+              .join("")}</div>`
+          : "";
+        const cliffs = sim.triggeredCliffs.length
+          ? `<p class="section-cap"><strong>Cliffs triggered:</strong> ${sim.triggeredCliffs
+              .map((c) => `<a href="#cliff-${escapeHtml(c.id)}">${escapeHtml(c.id)}</a>`)
+              .join(" · ")}</p>`
+          : "";
+        summaryEl.innerHTML = `${rateWarn}${stallBanner}${rules}${cliffs}<p class="section-cap">${escapeHtml(sim.goalsNote)} · Total users: ${sim.totalUsers.toLocaleString()} · Brevo peak day: ~${Math.round(sim.dailyPeaks?.brevo || 0).toLocaleString()}/300</p>`;
+      }
+
+      const cardsEl = document.getElementById("scenario-provider-cards");
+      if (cardsEl) {
+        cardsEl.innerHTML = sim.providerRows
+          .filter((p) => p.worst && p.worst.pct > 0.01)
+          .map((p) => {
+            const pct = Math.min(100, Math.round(100 * p.worst.pct));
+            return `<div class="capacity-kpi-card status-${p.status}" title="${escapeHtml(p.barLabel)}">
+              <span class="capacity-kpi-name">${escapeHtml(p.name)}</span>
+              <div class="capacity-kpi-bar"><div class="capacity-kpi-fill status-${p.status}" style="width:${pct}%"></div></div>
+              <span class="capacity-kpi-meta">${escapeHtml(p.barLabel)} · <span class="status-pill status-${p.status}">${escapeHtml(p.status.replace("_", " "))}</span></span>
+            </div>`;
+          })
+          .join("");
+      }
+    }
+
+    function bindScenarioPlanner() {
+      const syncPair = (rangeId, numId) => {
+        const range = document.getElementById(rangeId);
+        const num = document.getElementById(numId);
+        if (!range || !num) return;
+        range.addEventListener("input", () => {
+          num.value = range.value;
+          updateScenarioUI();
+        });
+        num.addEventListener("input", () => {
+          range.value = num.value;
+          updateScenarioUI();
+        });
+      };
+      syncPair("scenario-day-max", "scenario-day-max-num");
+      syncPair("scenario-month-max", "scenario-month-max-num");
+      syncPair("scenario-paid", "scenario-paid-num");
+
+      document.getElementById("scenario-paid-override")?.addEventListener("change", updateScenarioUI);
+      document.querySelectorAll('input[name="scenario-mode"]').forEach((el) => {
+        el.addEventListener("change", updateScenarioUI);
+      });
+
+      document.querySelectorAll(".scenario-preset-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const day = Number(btn.getAttribute("data-day"));
+          const month = Number(btn.getAttribute("data-month"));
+          const mode = btn.getAttribute("data-mode");
+          const paid = btn.getAttribute("data-paid");
+          document.getElementById("scenario-day-max").value = day;
+          document.getElementById("scenario-day-max-num").value = day;
+          document.getElementById("scenario-month-max").value = month;
+          document.getElementById("scenario-month-max-num").value = month;
+          if (mode) {
+            const radio = document.querySelector(`input[name="scenario-mode"][value="${mode}"]`);
+            if (radio) radio.checked = true;
+          }
+          const overrideCb = document.getElementById("scenario-paid-override");
+          if (paid !== "" && paid != null) {
+            if (overrideCb) overrideCb.checked = true;
+            document.getElementById("scenario-paid").value = paid;
+            document.getElementById("scenario-paid-num").value = paid;
+          } else if (overrideCb) {
+            overrideCb.checked = false;
+          }
+          updateScenarioUI();
+        });
+      });
+
+      updateScenarioUI();
+    }
+
     function renderCharterNav() {
       return `<nav class="charter-toc" aria-label="Charter sections">
         <a href="#overview">Charter</a>
         <a href="#sequences">Sequences</a>
         <a href="#buckets">DAU buckets</a>
         <a href="#provider-capacity">Capacity</a>
+        <a href="#capacity-scenarios">Scenario planner</a>
         <a href="#capacity">Cliffs</a>
         <a href="#providers">Providers</a>
         <a href="#preview-gallery">Previews</a>
@@ -382,7 +865,7 @@
         <tbody>${(emailData?.capacity_cliffs || [])
           .map((c) => {
             const p = providerById(c.provider_id);
-            return `<tr>
+            return `<tr id="cliff-${escapeHtml(c.id)}">
               <td>${escapeHtml(c.id)}</td>
               <td>${escapeHtml(p?.name || c.provider_id)}</td>
               <td>${escapeHtml(c.trigger)}</td>
@@ -494,7 +977,7 @@
           <div class="flow-diagram">
             <strong>DAU buckets (active):</strong> New + Current + Reactivated + Resurrected = DAU<br>
             <strong>Inactive:</strong> At-risk WAU → At-risk MAU → Dead → (Resurrection_Rate) → Resurrected<br>
-            <strong>Monetization cross-cuts:</strong> Limit hitters → Brevo upgrade · Stripe paid → OmniSend thank-you (strategy)<br>
+            <strong>Monetization cross-cuts:</strong> Limit hitters → Brevo · Stripe paid → Brevo Starter $29/mo (replaces OmniSend)<br>
             <strong>Acquisition funnel:</strong> PH teaser / launch (<span class="code">ph-waitlist/</span>) — reusable for future launches.
           </div>
         </section>
@@ -510,9 +993,10 @@
           ${renderBucketsTable()}
         </section>
         ${renderProviderCapacity()}
+        ${renderScenarioPlannerShell()}
         <section id="capacity">
           <h2>Capacity cliffs</h2>
-          <p class="section-cap">When free tiers break — especially Product Hunt burst and OmniSend 250 paid cap vs 500 subs goal.</p>
+          <p class="section-cap">When free tiers break — simulation-backed triggers. Use <a href="#capacity-scenarios">scenario planner</a> to test signup volume.</p>
           ${renderCliffsTable()}
         </section>
         <section id="providers">
@@ -541,6 +1025,7 @@
       `;
       bindFilters();
       bindCopyButtons();
+      bindScenarioPlanner();
     }
 
     async function loadCopyManifest() {

@@ -567,3 +567,93 @@ th {
   font-size: 0.72rem;
   color: var(--muted);
 }
+
+.scenario-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-end;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.scenario-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 180px;
+}
+
+.scenario-control-group label {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.scenario-control-group input[type="range"] {
+  width: 100%;
+  max-width: 220px;
+}
+
+.scenario-control-group input[type="number"] {
+  width: 5rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.scenario-override-toggle {
+  font-weight: 400 !important;
+  font-size: 0.75rem !important;
+}
+
+.scenario-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.scenario-preset-btn {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.scenario-preset-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.routing-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+
+.routing-pill {
+  display: inline-block;
+  font-size: 0.68rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(61, 139, 110, 0.15);
+  color: #6dd4a8;
+  border: 1px solid rgba(61, 139, 110, 0.35);
+}
+
+#scenario-summary {
+  margin: 0.75rem 0;
+}
+
+#scenario-summary .banner {
+  margin-bottom: 0.5rem;
+}
