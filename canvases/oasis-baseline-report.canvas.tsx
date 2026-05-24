@@ -20,8 +20,8 @@ import {
 } from "cursor/canvas";
 
 const BASELINE = {
-  "generated_at": "2026-05-21T22:03:12.784184Z",
-  "snapshot_date": "2026-05-21",
+  "generated_at": "2026-05-24T16:58:13.711696Z",
+  "snapshot_date": "2026-05-24",
   "total_users": 122,
   "active_users": 122,
   "limitations": [
@@ -30,7 +30,8 @@ const BASELINE = {
     "Token limits inferred from llm_daily_usage vs plan limits, not UX events.",
     "NULL plan_id treated as Free (121/122 users historically).",
     "CAC unavailable \u2014 user_acquisition and events tables empty.",
-    "Feedback quality requires manual review of sampled rows."
+    "Feedback quality requires manual review of sampled rows.",
+    "DAU buckets use sessions \u222a llm_usage; flow rates are 7-day average daily transitions."
   ],
   "activation": {
     "total_users": 122,
@@ -62,7 +63,7 @@ const BASELINE = {
       },
       {
         "cohort": "2025-10-27/2025-11-02",
-        "avg_prompts_per_active_day": 33.56
+        "avg_prompts_per_active_day": 32.6
       },
       {
         "cohort": "2025-11-03/2025-11-09",
@@ -86,7 +87,7 @@ const BASELINE = {
       },
       {
         "cohort": "2025-12-22/2025-12-28",
-        "avg_prompts_per_active_day": 3.41
+        "avg_prompts_per_active_day": 3.36
       },
       {
         "cohort": "2025-12-29/2026-01-04",
@@ -94,7 +95,7 @@ const BASELINE = {
       },
       {
         "cohort": "2026-01-05/2026-01-11",
-        "avg_prompts_per_active_day": 9.64
+        "avg_prompts_per_active_day": 9.36
       },
       {
         "cohort": "2026-01-12/2026-01-18",
@@ -110,7 +111,7 @@ const BASELINE = {
       },
       {
         "cohort": "2026-02-02/2026-02-08",
-        "avg_prompts_per_active_day": 9.7
+        "avg_prompts_per_active_day": 9.62
       },
       {
         "cohort": "2026-02-09/2026-02-15",
@@ -180,8 +181,8 @@ const BASELINE = {
   "retention": {
     "overall_retention_pct": {
       "D1": 10.7,
-      "D3": 4.2,
-      "D7": 11.9,
+      "D3": 4.1,
+      "D7": 11.8,
       "D14": 4.4,
       "D30": 2.8
     },
@@ -400,7 +401,7 @@ const BASELINE = {
         "D3": 0.0,
         "D7": 0.0,
         "D14": 0.0,
-        "D30": null
+        "D30": 0.0
       },
       {
         "cohort": "2026-04-27/2026-05-03",
@@ -422,14 +423,14 @@ const BASELINE = {
         "cohort": "2026-05-11/2026-05-17",
         "D1": 20.0,
         "D3": 20.0,
-        "D7": 25.0,
+        "D7": 20.0,
         "D14": null,
         "D30": null
       },
       {
         "cohort": "2026-05-18/2026-05-24",
-        "D1": 50.0,
-        "D3": null,
+        "D1": 33.3,
+        "D3": 0.0,
         "D7": null,
         "D14": null,
         "D30": null
@@ -510,9 +511,9 @@ const BASELINE = {
       }
     ],
     "churn_pct": {
-      "churn_7d_pct": 75.3,
-      "churn_14d_pct": 71.2,
-      "churn_30d_pct": 60.3
+      "churn_7d_pct": 76.7,
+      "churn_14d_pct": 72.6,
+      "churn_30d_pct": 63.0
     },
     "session_frequency_by_week": [
       {
@@ -545,7 +546,7 @@ const BASELINE = {
       },
       {
         "week": "2026-05-18/2026-05-24",
-        "sessions_per_active_user": 8.94
+        "sessions_per_active_user": 10.75
       }
     ]
   },
@@ -573,7 +574,7 @@ const BASELINE = {
     "arpu_gross_usd": 1.34,
     "arpu_net_usd": 1.34,
     "total_revenue_usd": 164.0,
-    "estimated_api_cost_usd": 0.37,
+    "estimated_api_cost_usd": 0.38,
     "ltv_proxy_usd": 16.08,
     "cac_ltv": {
       "cac_available": false,
@@ -608,6 +609,10 @@ const BASELINE = {
     ],
     "anomalies": [
       {
+        "user_id": "91f195ba-eeee-46d9-9f80-56e68ef2b2a7",
+        "minutes_after_signup": 2.1
+      },
+      {
         "user_id": "b3eaaa88-1c97-426c-819e-1e3d8dcb4ed0",
         "minutes_after_signup": 2.1
       },
@@ -618,10 +623,6 @@ const BASELINE = {
       {
         "user_id": "8845c0f5-da2b-4fcc-bc46-d674f4a1d9e3",
         "minutes_after_signup": 7.2
-      },
-      {
-        "user_id": "91f195ba-eeee-46d9-9f80-56e68ef2b2a7",
-        "minutes_after_signup": 2.1
       },
       {
         "user_id": "d24f0dda-8911-4fad-84c3-2a4d95d35fe0",
@@ -690,6 +691,160 @@ const BASELINE = {
         "tag": "by_category"
       }
     ]
+  },
+  "dau_model": {
+    "as_of": "2026-05-24",
+    "bucket_counts": {
+      "new": 0,
+      "current": 0,
+      "reactivated": 0,
+      "resurrected": 0,
+      "at_risk_wau": 16,
+      "at_risk_mau": 10,
+      "dead": 96
+    },
+    "bucket_rows": [
+      {
+        "bucket": "New users",
+        "key": "new",
+        "users": 0,
+        "pct_of_total": 0.0
+      },
+      {
+        "bucket": "Current users",
+        "key": "current",
+        "users": 0,
+        "pct_of_total": 0.0
+      },
+      {
+        "bucket": "Reactivated users",
+        "key": "reactivated",
+        "users": 0,
+        "pct_of_total": 0.0
+      },
+      {
+        "bucket": "Resurrected users",
+        "key": "resurrected",
+        "users": 0,
+        "pct_of_total": 0.0
+      },
+      {
+        "bucket": "At-risk WAU",
+        "key": "at_risk_wau",
+        "users": 16,
+        "pct_of_total": 13.1
+      },
+      {
+        "bucket": "At-risk MAU",
+        "key": "at_risk_mau",
+        "users": 10,
+        "pct_of_total": 8.2
+      },
+      {
+        "bucket": "Dead users",
+        "key": "dead",
+        "users": 96,
+        "pct_of_total": 78.7
+      }
+    ],
+    "totals": {
+      "dau": 0,
+      "wau": 16,
+      "mau": 26,
+      "total_users": 122
+    },
+    "flow_rates_pct": {
+      "NURR": 50.0,
+      "1-NURR": 50.0,
+      "CURR": 25.8,
+      "1-CURR": 74.2,
+      "RURR": 16.7,
+      "1-RURR": 83.3,
+      "SURR": 50.0,
+      "1-SURR": 50.0,
+      "iWAURR": 18.8,
+      "WAU_Loss_Rate": 6.0,
+      "iMAURR": 2.3,
+      "MAU_Loss_Rate": 6.4,
+      "Resurrection_Rate": 0.2
+    },
+    "flow_rate_rows": [
+      {
+        "rate": "NURR",
+        "transition": "New \u2192 Current",
+        "pct": 50.0
+      },
+      {
+        "rate": "1-NURR",
+        "transition": "New \u2192 At-risk WAU",
+        "pct": 50.0
+      },
+      {
+        "rate": "CURR",
+        "transition": "Current \u2192 Current",
+        "pct": 25.8
+      },
+      {
+        "rate": "1-CURR",
+        "transition": "Current \u2192 At-risk WAU",
+        "pct": 74.2
+      },
+      {
+        "rate": "RURR",
+        "transition": "Reactivated \u2192 Current",
+        "pct": 16.7
+      },
+      {
+        "rate": "1-RURR",
+        "transition": "Reactivated \u2192 At-risk WAU",
+        "pct": 83.3
+      },
+      {
+        "rate": "SURR",
+        "transition": "Resurrected \u2192 Current",
+        "pct": 50.0
+      },
+      {
+        "rate": "1-SURR",
+        "transition": "Resurrected \u2192 At-risk WAU",
+        "pct": 50.0
+      },
+      {
+        "rate": "iWAURR",
+        "transition": "At-risk WAU \u2192 Current",
+        "pct": 18.8
+      },
+      {
+        "rate": "WAU_Loss_Rate",
+        "transition": "At-risk WAU \u2192 At-risk MAU",
+        "pct": 6.0
+      },
+      {
+        "rate": "iMAURR",
+        "transition": "At-risk MAU \u2192 Reactivated",
+        "pct": 2.3
+      },
+      {
+        "rate": "MAU_Loss_Rate",
+        "transition": "At-risk MAU \u2192 Dead",
+        "pct": 6.4
+      },
+      {
+        "rate": "Resurrection_Rate",
+        "transition": "Dead \u2192 Resurrected",
+        "pct": 0.2
+      }
+    ],
+    "flow_window_days": 7,
+    "definitions": {
+      "new": "First day of engagement ever",
+      "current": "Active today and at least one other day in the prior 7 days",
+      "reactivated": "First day back after 7\u201329 days away",
+      "resurrected": "First day back after 30+ days away",
+      "at_risk_wau": "Inactive today, active on at least one of the prior 6 days",
+      "at_risk_mau": "Inactive today and prior 6 days, active 7\u201329 days ago",
+      "dead": "No activity in the last 30 days"
+    }
   },
   "validation": {
     "payments_success_count": 14,

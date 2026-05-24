@@ -55,6 +55,37 @@ def main() -> None:
         for note in data.get("limitations", []):
             st.markdown(f"- {note}")
 
+    # --- DAU Model ---
+    dau = data.get("dau_model", {})
+    if dau:
+        st.header("Daily Active Users Model")
+        totals = dau.get("totals", {})
+        st.caption(
+            f"As of {dau.get('as_of', '—')} · flow rates = "
+            f"{dau.get('flow_window_days', 7)}-day avg daily transitions"
+        )
+        c1, c2, c3 = st.columns(3)
+        c1.metric("DAU", totals.get("dau", "—"))
+        c2.metric("WAU", totals.get("wau", "—"))
+        c3.metric("MAU", totals.get("mau", "—"))
+
+        bucket_rows = dau.get("bucket_rows", [])
+        if bucket_rows:
+            cols = st.columns(4)
+            for i, row in enumerate(bucket_rows):
+                cols[i % 4].metric(
+                    row["bucket"],
+                    f"{row['users']} ({row['pct_of_total']}%)",
+                )
+            df_buckets = pd.DataFrame(bucket_rows).set_index("bucket")[["users"]]
+            st.subheader("User buckets")
+            st.bar_chart(df_buckets)
+
+        flow_rows = dau.get("flow_rate_rows", [])
+        if flow_rows:
+            st.subheader("Flow rates")
+            st.dataframe(pd.DataFrame(flow_rows), use_container_width=True, hide_index=True)
+
     # --- Activation ---
     st.header("Activation")
     st.caption("Source: users.created_at + first llm_usage row · activation windows from signup")

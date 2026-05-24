@@ -19,6 +19,7 @@ from models.db import (
     UserPlan,
 )
 from reporting.cost_model import total_api_cost_usd
+from reporting.dau_model import compute_dau_model
 
 RETENTION_DAYS = (1, 3, 7, 14, 30)
 ACTIVATION_WINDOWS_HOURS = {"1h": 1, "24h": 24, "3d": 72, "7d": 168}
@@ -39,6 +40,7 @@ class BaselineSnapshot:
     retention: dict[str, Any]
     monetization: dict[str, Any]
     feedback: dict[str, Any]
+    dau_model: dict[str, Any] = field(default_factory=dict)
     validation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -669,6 +671,7 @@ def compute_baseline_snapshot(
         users_df, daily_df, plans, overrides, payments, user_plans, usage, today
     )
     feedback_metrics = _compute_feedback(users_df, feedback)
+    dau_model = compute_dau_model(users_df, activity, today)
 
     validation = {
         "payments_success_count": len([p for p in payments if p.status == "success"]),
@@ -686,6 +689,7 @@ def compute_baseline_snapshot(
         "NULL plan_id treated as Free (121/122 users historically).",
         "CAC unavailable — user_acquisition and events tables empty.",
         "Feedback quality requires manual review of sampled rows.",
+        "DAU buckets use sessions ∪ llm_usage; flow rates are 7-day average daily transitions.",
     ]
 
     return BaselineSnapshot(
@@ -699,5 +703,6 @@ def compute_baseline_snapshot(
         retention=retention,
         monetization=monetization,
         feedback=feedback_metrics,
+        dau_model=dau_model,
         validation=validation,
     )

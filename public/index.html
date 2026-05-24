@@ -98,6 +98,13 @@
       margin: -0.5rem 0 1rem;
     }
     .data-source.live { color: #6bcba8; }
+    .metric.bucket-new { border-left: 4px solid #6bcba8; }
+    .metric.bucket-current { border-left: 4px solid #3d8bfd; }
+    .metric.bucket-reactivated { border-left: 4px solid #6bcba8; }
+    .metric.bucket-resurrected { border-left: 4px solid #6bcba8; }
+    .metric.bucket-at_risk_wau { border-left: 4px solid #f0b429; }
+    .metric.bucket-at_risk_mau { border-left: 4px solid #a78bfa; }
+    .metric.bucket-dead { border-left: 4px solid #f87171; }
   </style>
 </head>
 <body>
@@ -106,6 +113,24 @@
   </div>
   <script>
     const RETENTION_DAYS = ["D1", "D3", "D7", "D14", "D30"];
+    const DAU_BUCKET_ORDER = [
+      ["new", "New users"],
+      ["current", "Current users"],
+      ["reactivated", "Reactivated"],
+      ["resurrected", "Resurrected"],
+      ["at_risk_wau", "At-risk WAU"],
+      ["at_risk_mau", "At-risk MAU"],
+      ["dead", "Dead users"],
+    ];
+    const DAU_BUCKET_COLORS = {
+      new: "rgba(107, 203, 168, 0.85)",
+      current: "rgba(61, 139, 253, 0.85)",
+      reactivated: "rgba(107, 203, 168, 0.65)",
+      resurrected: "rgba(107, 203, 168, 0.5)",
+      at_risk_wau: "rgba(240, 180, 41, 0.85)",
+      at_risk_mau: "rgba(167, 139, 250, 0.85)",
+      dead: "rgba(248, 113, 113, 0.85)",
+    };
     const charts = [];
 
     function pct(v) {
@@ -121,22 +146,24 @@
       charts.length = 0;
     }
 
-    function barChart(canvasId, labels, values, label) {
+    function barChart(canvasId, labels, values, label, colors) {
       const el = document.getElementById(canvasId);
       if (!el) return;
+      const bg = colors || labels.map(() => "rgba(61, 139, 253, 0.7)");
       charts.push(new Chart(el, {
         type: "bar",
         data: {
           labels,
-          datasets: [{ label, data: values, backgroundColor: "rgba(61, 139, 253, 0.7)" }],
+          datasets: [{ label, data: values, backgroundColor: bg }],
         },
         options: {
+          indexAxis: colors ? "y" : "x",
           responsive: true,
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
             y: { beginAtZero: true, ticks: { color: "#8b9cb3" }, grid: { color: "#2a3548" } },
-            x: { ticks: { color: "#8b9cb3", maxRotation: 45 }, grid: { display: false } },
+            x: { beginAtZero: true, ticks: { color: "#8b9cb3", maxRotation: colors ? 0 : 45 }, grid: { color: colors ? "#2a3548" : "transparent" } },
           },
         },
       }));
@@ -187,6 +214,11 @@
       const ret = data.retention || {};
       const mon = data.monetization || {};
       const fb = data.feedback || {};
+      const dau = data.dau_model || {};
+      const dauTotals = dau.totals || {};
+      const dauBuckets = dau.bucket_counts || {};
+      const dauFlow = dau.flow_rate_rows || [];
+      const totalUsers = data.total_users || dauTotals.total_users || 0;
       const ttf = act.time_to_first_hours || {};
       const rates = act.activation_rate_pct || {};
       const overall = ret.overall_retention_pct || {};
@@ -206,6 +238,26 @@
           <summary>Data limitations</summary>
           <ul class="limitations">${limitations}</ul>
         </details>
+
+        <section>
+          <h2>Daily Active Users Model</h2>
+          <p class="section-cap">As of ${dau.as_of || data.snapshot_date || "—"} · engagement = session or llm_usage · flow rates = ${dau.flow_window_days || 7}-day avg daily transitions</p>
+          <div class="metrics">
+            ${metric("DAU", dauTotals.dau ?? "—")}
+            ${metric("WAU", dauTotals.wau ?? "—")}
+            ${metric("MAU", dauTotals.mau ?? "—")}
+          </div>
+          <div class="metrics">
+            ${DAU_BUCKET_ORDER.map(([key, label]) => {
+              const n = dauBuckets[key] ?? 0;
+              const p = totalUsers ? ((100 * n / totalUsers).toFixed(1)) : "—";
+              return `<div class="metric bucket-${key}"><label>${label}</label><span>${n}</span><small style="color:var(--muted);font-size:0.75rem">${p}%</small></div>`;
+            }).join("")}
+          </div>
+          <div class="chart-box"><h3>User buckets</h3><canvas id="${nextId()}"></canvas></div>
+          <h3 style="font-size:0.95rem">Flow rates</h3>
+          ${tableFromRows(dauFlow.map((r) => ({ rate: r.rate, transition: r.transition, pct: r.pct != null ? r.pct + "%" : "—" })), "rate")}
+        </section>
 
         <section>
           <h2>Activation</h2>
@@ -275,6 +327,12 @@
       `;
 
       chartId = 0;
+      if (Object.keys(dauBuckets).length) {
+        const labels = DAU_BUCKET_ORDER.map(([, label]) => label);
+        const values = DAU_BUCKET_ORDER.map(([key]) => dauBuckets[key] ?? 0);
+        const colors = DAU_BUCKET_ORDER.map(([key]) => DAU_BUCKET_COLORS[key]);
+        barChart(nextId(), labels, values, "Users", colors);
+      }
       if (Object.keys(rates).length) {
         barChart(nextId(), Object.keys(rates), Object.values(rates), "Activation %");
       }

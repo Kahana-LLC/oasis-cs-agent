@@ -1,0 +1,92 @@
+﻿User Email Machine   
+
+
+Buckets
+New users
+Current users
+At-risk WAUs
+At risk MAUs
+Dead Users 
+Reactivated Users
+Resurrected users
+
+
+Flow Rates
+New User Retention Rate
+Current User Retention Rate
+Current users retention rate (CURR): The chance a user comes back this week if they came to the product each of the past two weeks 
+New users retention rate (NURR): The chance a user comes back this week if they were new to the product last week 
+Reactivated user retention rates (RURR): The chance a user comes back this week if they reactivated last week
+Conveniently, the top four buckets of the model add up to DAU. Those buckets are defined as: 
+* New users: first day of engagement ever in the app
+* Current users: engaged today and at least one other time in the prior 6 days
+* Reactivated users: first day of engagement after being away for 7-29 days
+* Resurrected users: first day of engagement after being away for 30 days or longer
+The remaining three buckets represent users who were not active today and have different degrees of inactivity.
+* At-risk WAU: inactive today, but active in at least one of the prior 6 days 
+   * At-risk WAU + DAU = WAU 
+* At-risk MAU: inactive in the past seven days, but active in at least one of the prior 23 days 
+   * At-risk MAU + WAU = MAU
+* Dormant users: inactive in the past 31 days or longer 
+   * MAU + dormant users =  Total user base
+The fact that DAU, WAU, and MAU can easily be calculated from these buckets made it easy to model them over time. This is a key feature of the model. Additionally, by manipulating the rates represented by the arrows, we can model the compounding and cumulative impact of moving these rates over time; in other words, the rates are the levers product teams can pull to grow DAU.
+
+
+
+
+
+
+Hubspot
+
+
+HubSpot’s free accounts allow you to send up to 2,000 marketing emails per calendar month.
+
+
+Limitations: no custom HTML. Can use built-in templates
+
+
+Brevo
+
+
+Brevo’s free account lets you send up to 300 emails per day 
+
+
+Limitation: up to 2000 contacts. 
+
+
+
+
+OmniSend
+
+
+Send 500 monthly emails to 250 contacts per month 
+
+
+Mailgun
+
+
+Send 100 emails per day 
+
+
+MailerLite
+
+
+Send 12,000 emails per month to up to 500 subscribers 
+
+
+Adam’s proposal
+
+
+Welcome Email to All New Users - sent through Hubspot. This will work indefinitely until we hit a New User Monthly Signup Rate > 2,000 new users per month
+
+
+One-time NPS Email to All new users - sent through Brevo. This will work indefinitely until we hit a New User Daily Signup Rate > 300 users per day
+
+
+One-time PMF Email to All New Weekly Active Users - sent through Mailgun. This will work indefinitely until we have Net New WAU Per Week > 100 users per week
+
+
+Upgrade Thank You Email sent through OmniSend to all users who Upgrade with Stripe. This will work indefinitely until we hit 250 total paid subscribers ($20/month) ($5000 MRR). 
+
+
+Selective Nurturing Emails sent through Mailerlite to select user cohorts who are most at-risk of churn (e.g. at-risk MAUs, at-risk WAUs). This will work indefinitely until we hit 500 dead users per month on average. If we see users not opening MailerLite emails and not logging in through Supabase, we will eventually categorize them as “Dead”, remove them from Supabase and from Mailerlite after 12 months of Absence

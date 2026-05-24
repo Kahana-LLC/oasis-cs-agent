@@ -42,7 +42,12 @@ Writes `baseline_snapshot.json` and updates the optional Cursor canvas. Then rer
 | `baseline_metrics.py` | Metric computation |
 | `run_baseline.py` | Fetch + write snapshot + canvas |
 | `snapshot_service.py` | Shared fetch/compute for API + CLI |
+| `dau_model.py` | DAU bucket sizes + flow rates (User Email Machine model) |
 | `build_snapshot.py` | Rebuild from `sql_export.json` (no `.env`) |
+
+## DAU model section
+
+The Vercel dashboard and snapshot JSON include **`dau_model`**: seven user buckets (New, Current, Reactivated, Resurrected, At-risk WAU/MAU, Dead) and flow rates (NURR, CURR, RURR, etc.) per the [Daily Active Users diagram](../User%20Email%20Machine.txt). Engagement = `sessions` ∪ `llm_usage`.
 
 ## Optional: Cursor canvas
 
