@@ -5,6 +5,7 @@
     {
       "id": "hubspot",
       "name": "HubSpot",
+      "pricing_url": "https://www.hubspot.com/pricing/suite?tier=starter",
       "free_limits": { "marketing_emails_per_month": 2000 },
       "near_limit": {
         "contacts_pct": 0.8,
@@ -19,6 +20,7 @@
     {
       "id": "brevo",
       "name": "Brevo",
+      "pricing_url": "https://www.brevo.com/pricing/",
       "free_limits": { "emails_per_day": 300, "contacts": 2000 },
       "near_limit": {
         "contacts_pct": 0.8,
@@ -33,6 +35,7 @@
     {
       "id": "mailgun",
       "name": "Mailgun",
+      "pricing_url": "https://www.mailgun.com/pricing/",
       "free_limits": { "emails_per_day": 100 },
       "near_limit": {
         "contacts_pct": 0.8,
@@ -47,6 +50,7 @@
     {
       "id": "omnisend",
       "name": "OmniSend",
+      "pricing_url": "https://www.omnisend.com/pricing/",
       "free_limits": { "emails_per_month": 500, "contacts": 250 },
       "near_limit": {
         "contacts_pct": 0.8,
@@ -61,6 +65,7 @@
     {
       "id": "mailerlite",
       "name": "MailerLite",
+      "pricing_url": "https://www.mailerlite.com/pricing",
       "free_limits": { "emails_per_month": 12000, "contacts": 500 },
       "near_limit": {
         "contacts_pct": 0.8,
@@ -70,7 +75,22 @@
       },
       "constraints": ["Contact cap binds before send cap"],
       "upgrade_trigger": "Contacts > 400 or sustained PH growth",
-      "notes": "Priority queue: at-risk WAU > MAU > dead resurrection."
+      "notes": "Overflow for EmailOctopus nurture when contact cap tight; 500 contacts vs EmailOctopus 2,500."
+    },
+    {
+      "id": "emailoctopus",
+      "name": "EmailOctopus",
+      "pricing_url": "https://emailoctopus.com/pricing",
+      "free_limits": { "contacts": 2500, "emails_per_month": 10000 },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": ["Free tier: 2,500 subscribers · 10,000 emails/mo"],
+      "upgrade_trigger": "Contacts > 2,500 or sustained PH growth beyond 10k sends/mo",
+      "notes": "Primary nurture provider — displaces MailerLite (500 contact cap) for at-risk, resurrection, return sequences."
     }
   ],
   "buckets": [
@@ -149,6 +169,12 @@
       "provider_id": "omnisend",
       "trigger": "paid_subscribers >= 250",
       "action": "Move upgrade thank-you and cancelled win-back to Brevo paid tier"
+    },
+    {
+      "id": "emailoctopus_contacts",
+      "provider_id": "emailoctopus",
+      "trigger": "Marketing contacts > 2,000",
+      "action": "Upgrade EmailOctopus or overflow at-risk to MailerLite"
     },
     {
       "id": "mailerlite_500",
@@ -341,12 +367,12 @@
       "trigger_summary": "User enters at-risk WAU or at-risk MAU bucket",
       "trigger_when": "On bucket transition; WAU cohort prioritized over MAU",
       "trigger_implementation": "bucket in (at_risk_wau, at_risk_mau)",
-      "provider_id": "mailerlite",
-      "provider_overflow_id": null,
+      "provider_id": "emailoctopus",
+      "provider_overflow_id": "mailerlite",
       "implementation_status": "needs_implementation",
       "cadence": "drip-2-4",
       "dedup_trigger_name": "at_risk_nurture",
-      "free_tier_runway": "Until net dead inflow ~500/month OR contacts > 500",
+      "free_tier_runway": "2,500 contacts · 10k sends/mo; overflow to MailerLite at 500 cap",
       "dashboard_metrics": ["bucket_at_risk_wau", "bucket_at_risk_mau", "flow_iWAURR", "flow_iMAURR", "flow_MAU_Loss_Rate"],
       "dashboard_anchors": ["dau-model"],
       "corporate_goals": ["dau"],
@@ -401,12 +427,12 @@
       "trigger_summary": "User in dead bucket, eligible for win-back",
       "trigger_when": "Day 0 + day 14 of campaign; cap 20 new users/month when contacts tight",
       "trigger_implementation": "bucket=dead AND NOT emailed in 30d AND NOT 12mo absent",
-      "provider_id": "mailerlite",
+      "provider_id": "emailoctopus",
       "provider_overflow_id": null,
       "implementation_status": "needs_implementation",
       "cadence": "campaign-2-touch",
       "dedup_trigger_name": "dead_resurrection",
-      "free_tier_runway": "Lowest MailerLite priority after at-risk cohorts",
+      "free_tier_runway": "Cap 20 new users/mo when contacts tight; EmailOctopus 2,500 contact headroom",
       "dashboard_metrics": ["bucket_dead", "flow_Resurrection_Rate", "flow_MAU_Loss_Rate"],
       "dashboard_anchors": ["dau-model"],
       "corporate_goals": ["dau"],
@@ -421,12 +447,12 @@
       "trigger_summary": "User re-enters after absence",
       "trigger_when": "First day in reactivated or resurrected bucket",
       "trigger_implementation": "bucket transition to reactivated OR resurrected",
-      "provider_id": "mailerlite",
+      "provider_id": "emailoctopus",
       "provider_overflow_id": null,
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
       "dedup_trigger_name": "return_reinforcement",
-      "free_tier_runway": "Shares MailerLite contact cap with nurture/resurrection",
+      "free_tier_runway": "Shares EmailOctopus contact cap with nurture/resurrection",
       "dashboard_metrics": ["flow_RURR", "flow_SURR", "flow_1-RURR", "flow_1-SURR"],
       "dashboard_anchors": ["dau-model"],
       "corporate_goals": ["dau"],

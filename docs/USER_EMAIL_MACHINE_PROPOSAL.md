@@ -98,13 +98,16 @@ These rates appear on the dashboard and in Key insights. Moving them grows DAU c
 
 ## 3. Provider stack and free-tier constraints
 
+Six free-tier providers; **EmailOctopus** is the primary nurture/resurrection provider (2,500 contacts · 10,000 emails/mo), displacing **MailerLite** (500 contact cap) on at-risk, dead, and return sequences. MailerLite remains as overflow/legacy.
+
 | Provider | Free limit | Primary role (Adam’s draft) | Hard constraints |
 |----------|------------|----------------------------|------------------|
 | **HubSpot** | 2,000 marketing emails / month | Welcome (all new users) | No custom HTML; built-in templates only |
 | **Brevo** | 300 emails / day · 2,000 contacts | NPS (all new users) | Also CS agent transactional ([`PLAN.md`](../PLAN.md)) |
 | **Mailgun** | 100 emails / day | PMF (new WAU) | Transactional-oriented |
 | **OmniSend** | 500 emails / month · **250 contacts** | Upgrade thank-you (Stripe) | **250 paid cap** — below 500 subs goal |
-| **MailerLite** | 12,000 emails / month · **500 contacts** | At-risk nurturing | Contact ceiling, not send ceiling |
+| **EmailOctopus** | 10,000 emails / month · **2,500 contacts** | At-risk nurture, dead resurrection, return reinforcement | Primary nurture provider (displaces MailerLite) |
+| **MailerLite** | 12,000 emails / month · **500 contacts** | Overflow / legacy nurture | Contact ceiling; secondary to EmailOctopus |
 
 ### Monthly send budget (theoretical max)
 
@@ -114,6 +117,7 @@ These rates appear on the dashboard and in Key insights. Moving them grows DAU c
 | Brevo | ~9,000 (300 × 30) | 2,000 |
 | Mailgun | ~3,000 (100 × 30) | — |
 | OmniSend | 500 | 250 |
+| EmailOctopus | 10,000 | 2,500 |
 | MailerLite | 12,000 | 500 |
 
 ### Pros / cons summary
@@ -124,7 +128,8 @@ These rates appear on the dashboard and in Key insights. Moving them grows DAU c
 | Brevo | Day-7 NPS + CS agent + limit-hitter overflow | Shared with agent sends; contact cap |
 | Mailgun | WAU PMF survey | Lower daily cap than Brevo |
 | OmniSend | Paid upgrade celebration | Hits 250 contacts before 500 subs goal |
-| MailerLite | Multi-touch at-risk drips | 500 contacts fills fast post-PH |
+| EmailOctopus | Multi-touch nurture + resurrection drips | 2,500 contact cliff post-PH |
+| MailerLite | Overflow when EmailOctopus near cap | 500 contacts fills fast post-PH |
 
 ---
 
@@ -140,7 +145,7 @@ Adam’s five sequences are **Phase 1 — approved draft**. Five additional sequ
 | 2 | **NPS** | Brevo | All new users | Day 7 post-signup | One-time | Until daily signups > **300/day** |
 | 3 | **PMF survey** | Mailgun | New WAU-eligible users | First week with WAU activity | One-time | Until net new WAU/week > **100** |
 | 4 | **Upgrade thank-you** | OmniSend | Stripe upgrades | New `user_plans` row (`paid_subscribers` +1) | One-time | Until **250 paid** ($5k MRR) |
-| 5 | **At-risk nurture** | MailerLite | At-risk WAU + at-risk MAU | Bucket transition into at-risk | Drip (2–4 touches) | Until **500 dead/month inflow** (see §6) |
+| 5 | **At-risk nurture** | EmailOctopus (overflow: MailerLite) | At-risk WAU + at-risk MAU | Bucket transition into at-risk | Drip (2–4 touches) | Until **2,500 contacts** on EmailOctopus |
 
 ### Phase 1 additions (dashboard-driven)
 
@@ -148,8 +153,8 @@ Adam’s five sequences are **Phase 1 — approved draft**. Five additional sequ
 |---|----------|----------|----------|---------|---------|--------------|
 | 6 | **Activation nudge** | HubSpot (overflow: Brevo) | Signups with no AI prompt in 24h | `activation_24h_pct` cohort; no `llm_usage` in first 24h | One-time (+ optional D3) | 4.5× DAU · NURR |
 | 7 | **Limit-hitter upgrade** | Brevo (overflow: Mailgun) | Free users who hit token cap | `users_hit_limit` + not in `paid_subscribers` | One-time + D7 reminder | **500 subs** · `limit_hitter_conversion_pct` |
-| 8 | **Dead resurrection** | MailerLite (capped queue) | Dead bucket, eligible | `bucket=dead` · not emailed in 30d · not 12mo absent | 2-touch campaign | 4.5× DAU · Resurrection_Rate |
-| 9 | **Return reinforcement** | MailerLite | Reactivated / resurrected | First day in bucket | One-time | RURR · SURR · prevent 1-RURR / 1-SURR |
+| 8 | **Dead resurrection** | EmailOctopus (capped queue) | Dead bucket, eligible | `bucket=dead` · not emailed in 30d · not 12mo absent | 2-touch campaign | 4.5× DAU · Resurrection_Rate |
+| 9 | **Return reinforcement** | EmailOctopus | Reactivated / resurrected | First day in bucket | One-time | RURR · SURR · prevent 1-RURR / 1-SURR |
 | 10 | **Cancelled sub win-back** | Brevo (post-250: paid tier) | `cancelled_paid_subscribers` | `user_plans.is_active=false` | One-time + D14 | **500 subs** · retention |
 
 ### Per-sequence detail
@@ -181,7 +186,7 @@ Each sequence should log to CS agent `outreach_log` (see [`PLAN.md`](../PLAN.md)
 - **Success metrics:** `paid_subscribers`, `active_paid_subscribers`, `corporate_goals.subscribers.month_target`.
 - **Dedup:** Once per upgrade event.
 
-#### 5. At-risk nurture (MailerLite) — Adam
+#### 5. At-risk nurture (EmailOctopus) — Adam
 
 - **Audience:** Priority queue — at-risk WAU first, then at-risk MAU. Cap dead resurrection separately (seq 8).
 - **Success metrics:** `bucket_at_risk_wau`, `bucket_at_risk_mau`, `flow_iWAURR`, `flow_iMAURR`, `flow_MAU_Loss_Rate`.

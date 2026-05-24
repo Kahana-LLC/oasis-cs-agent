@@ -116,6 +116,43 @@
       return `<span class="status-pill ${cls}">${escapeHtml(status.replace(/_/g, " "))}</span>`;
     }
 
+    const CADENCE_LABELS = {
+      "one-time": "One-time send",
+      "drip-2-4": "Drip (2–4 touches)",
+      "one-time-plus-d7": "One-time + D7 reminder",
+      "campaign-2-touch": "2-touch campaign",
+      "one-time-plus-d14": "One-time + D14 follow-up",
+    };
+
+    function cadenceLabel(cadence) {
+      return CADENCE_LABELS[cadence] || cadence || "—";
+    }
+
+    function providerCell(seq) {
+      let html = strategyProviderCell(seq);
+      if (seq.deployed_via && seq.deployed_via !== seq.provider_id) {
+        const shipped = providerById(seq.deployed_via);
+        html += `<br><span class="section-cap">Brevo interim: ${escapeHtml(shipped?.name || seq.deployed_via)}</span>`;
+      }
+      return html;
+    }
+
+    function requirementsCell(seq) {
+      const cadence = cadenceLabel(seq.cadence);
+      return `<div class="requirements-cell">
+        <div class="requirements-plain">
+          <strong>Audience:</strong> ${bucketPills(seq.buckets)}<br>
+          <strong>Frequency:</strong> ${escapeHtml(cadence)}<br>
+          <strong>When:</strong> ${escapeHtml(seq.trigger_when || "—")}<br>
+          ${escapeHtml(seq.trigger_summary || "")}
+        </div>
+        <div class="requirements-tech">
+          <span class="code">${escapeHtml(seq.trigger_implementation || "")}</span><br>
+          <span class="code">dedup: ${escapeHtml(seq.dedup_trigger_name || "")}</span> · outreach_log
+        </div>
+      </div>`;
+    }
+
     function strategyProviderCell(seq) {
       const primary = providerById(seq.provider_id);
       const overflow = seq.provider_overflow_id ? providerById(seq.provider_overflow_id) : null;
@@ -123,14 +160,6 @@
         return `${escapeHtml(primary?.name || seq.provider_id)} <span class="section-cap">→ ${escapeHtml(overflow.name)}</span>`;
       }
       return escapeHtml(primary?.name || seq.provider_id);
-    }
-
-    function shippedProviderCell(seq) {
-      const shippedId = seq.deployed_via || seq.provider_id;
-      const shipped = providerById(shippedId);
-      const differs = seq.deployed_via && seq.deployed_via !== seq.provider_id;
-      const label = escapeHtml(shipped?.name || shippedId);
-      return differs ? `${label} <span class="section-cap">(interim)</span>` : label;
     }
 
     function capacityForProvider(id) {
@@ -257,8 +286,11 @@
           const used = seqs
             .filter((s) => s.provider_id === p.id || s.provider_overflow_id === p.id)
             .map((s) => s.name);
+          const nameHtml = p.pricing_url
+            ? `<a href="${escapeHtml(p.pricing_url)}" target="_blank" rel="noopener">${escapeHtml(p.name)}</a>`
+            : escapeHtml(p.name);
           return `<div class="provider-card ${providerStatusClass(p.id)}" data-provider-id="${escapeHtml(p.id)}">
-            <h3>${escapeHtml(p.name)} ${providerStatusPill(p.id)}</h3>
+            <h3>${nameHtml} ${providerStatusPill(p.id)}</h3>
             <div class="limits">${escapeHtml(formatLimits(p))}</div>
             <div class="constraints">${(p.constraints || []).map(escapeHtml).join(" · ")}</div>
             <div class="upgrade"><strong>Upgrade when:</strong> ${escapeHtml(p.upgrade_trigger || "—")}</div>
@@ -334,8 +366,8 @@
     function renderCharterNav() {
       return `<nav class="charter-toc" aria-label="Charter sections">
         <a href="#overview">Charter</a>
-        <a href="#buckets">DAU buckets</a>
         <a href="#sequences">Sequences</a>
+        <a href="#buckets">DAU buckets</a>
         <a href="#provider-capacity">Capacity</a>
         <a href="#capacity">Cliffs</a>
         <a href="#providers">Providers</a>
@@ -364,30 +396,20 @@
     function renderSequenceTable() {
       const rows = (emailData?.sequences || [])
         .map((seq) => {
-          const primary = providerById(seq.provider_id);
-          const shippedCell = shippedProviderCell(seq);
-          const statusCell = implementationStatusBadge(seq);
-          const limitCell = `${escapeHtml(formatLimits(primary))}<br><span class="section-cap">${escapeHtml(seq.free_tier_runway || "")}</span>`;
           return `<tr class="seq-row" data-bucket="${escapeHtml((seq.buckets || []).join(","))}" data-provider="${escapeHtml(seq.provider_id)}" data-overflow="${escapeHtml(seq.provider_overflow_id || "")}" data-phase="${escapeHtml(seq.phase)}">
             <td><strong>${escapeHtml(seq.name)}</strong>${phaseBadge(seq.phase)}</td>
-            <td>${bucketPills(seq.buckets)}</td>
+            <td>${implementationStatusBadge(seq)}</td>
+            <td>${providerCell(seq)}</td>
+            <td>${requirementsCell(seq)}</td>
             <td>${metricLinks(seq)}</td>
             <td>${previewCell(seq)}</td>
-            <td>${escapeHtml(seq.trigger_summary)}<br><span class="code">${escapeHtml(seq.trigger_implementation || "")}</span></td>
-            <td>${escapeHtml(seq.trigger_when)}</td>
-            <td>${strategyProviderCell(seq)}</td>
-            <td>${shippedCell}</td>
-            <td>${statusCell}</td>
-            <td>${limitCell}</td>
-            <td><span class="code">${escapeHtml(seq.dedup_trigger_name)}</span><br><span class="section-cap">outreach_log</span></td>
           </tr>`;
         })
         .join("");
       return `<div class="seq-table-wrap">
         <table class="seq-table">
           <thead><tr>
-            <th>Sequence</th><th>Bucket(s)</th><th>Metrics</th><th>Preview</th><th>Trigger</th><th>When</th>
-            <th>Strategy provider</th><th>Shipped</th><th>Status</th><th>Free tier</th><th>Dedup</th>
+            <th>Sequence</th><th>Status</th><th>Provider</th><th>Requirements</th><th>Metrics</th><th>Preview</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -460,14 +482,13 @@
         ${renderCharterNav()}
         <section id="overview">
           <h2>Charter overview</h2>
-          <p class="section-cap">Implementation guide for engineers wiring Oasis lifecycle email across five free-tier providers. Goals: <strong>500 paid subscribers by Dec 31, 2026</strong>, <strong>4.5× DAU</strong> vs Product Hunt launch week, <strong>80% gross margin</strong>.</p>
+          <p class="section-cap">Implementation guide for engineers wiring Oasis lifecycle email across six free-tier providers. Goals: <strong>500 paid subscribers by Dec 31, 2026</strong>, <strong>4.5× DAU</strong> vs Product Hunt launch week, <strong>80% gross margin</strong>.</p>
           <div class="info">
             <ul style="margin:0;padding-left:1.25rem">
-              <li><strong>Strategy provider</strong> — target routing per proposal (HubSpot welcome, Mailgun PMF, etc.)</li>
-              <li><strong>Shipped</strong> — interim Brevo template/automation where it exists today (not the same as implemented)</li>
+              <li><strong>Provider</strong> — strategy routing per proposal; muted line when Brevo interim template differs from target</li>
+              <li><strong>Requirements</strong> — audience, cadence, when, Supabase trigger spec, and outreach_log dedup (implementation spec for engineers)</li>
               <li><strong>Status</strong> — multi-provider / CS agent implementation (<span class="code">shipped</span> vs <span class="code">needs_implementation</span>)</li>
               <li><strong>Near limit</strong> — alert at 80% of contacts/sends or &lt;2 months runway (<span class="code">email_provider_capacity</span> in snapshot)</li>
-              <li><strong>Dedup</strong> — all sends log to <span class="code">outreach_log</span> via <span class="code">dedup_trigger_name</span></li>
             </ul>
           </div>
           <div class="flow-diagram">
@@ -477,16 +498,16 @@
             <strong>Acquisition funnel:</strong> PH teaser / launch (<span class="code">ph-waitlist/</span>) — reusable for future launches.
           </div>
         </section>
+        <section id="sequences">
+          <h2>Sequence reference</h2>
+          <p class="section-cap">Requirements column = implementation spec for engineers (audience, cadence, Supabase trigger, dedup). Filter to find a cohort. <strong>2 of 12 sequences implemented</strong> (PH waitlist only).</p>
+          ${renderFilters()}
+          ${renderSequenceTable()}
+        </section>
         <section id="buckets">
           <h2>DAU buckets</h2>
           <p class="section-cap">Classified daily from sessions ∪ llm_usage · same logic as <span class="code">reporting/dau_model.py</span></p>
           ${renderBucketsTable()}
-        </section>
-        <section id="sequences">
-          <h2>Sequence reference</h2>
-          <p class="section-cap">What fires, when, strategy vs shipped provider, and outreach_log dedup. Filter to find a cohort. <strong>2 of 12 sequences implemented</strong> (PH waitlist only).</p>
-          ${renderFilters()}
-          ${renderSequenceTable()}
         </section>
         ${renderProviderCapacity()}
         <section id="capacity">
@@ -496,7 +517,7 @@
         </section>
         <section id="providers">
           <h2>Email providers (free tier)</h2>
-          <p class="section-cap">Five providers; each sequence uses one primary and optional overflow.</p>
+          <p class="section-cap">Six providers; each sequence uses one primary and optional overflow. Names link to official pricing.</p>
           <div class="provider-grid">${renderProviders()}</div>
         </section>
         ${renderPreviewGallery()}
