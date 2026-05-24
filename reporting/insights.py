@@ -48,12 +48,104 @@ def _add_item(
     )
 
 
+def _goal_gap_insights(
+    snapshot: dict[str, Any],
+    deltas: dict[str, Any],
+    corporate_goals: dict[str, Any],
+    period: str,
+) -> list[dict[str, Any]]:
+    """High-priority insights tied to corporate goals."""
+    items: list[dict[str, Any]] = []
+    corp = corporate_goals or {}
+    launch = corp.get("launch") or {}
+    subs = corp.get("subscribers") or {}
+    margin = corp.get("gross_margin_pct") or {}
+    dau_g = corp.get("dau_multiple") or {}
+
+    if not launch.get("post_launch") and launch.get("days_until", 99) <= 7:
+        days = launch.get("days_until", 0)
+        lo, hi = launch.get("ph_signup_range", [200, 2000])
+        _add_item(
+            items,
+            severity="high",
+            title=f"Product Hunt in {days} days",
+            detail=(
+                f"Launch May 27 ~3am ET may add {lo}–{hi} users on top of "
+                f"{launch.get('waitlist', 176)} waitlist. Subscriber goal: {subs.get('target', 461)}."
+            ),
+            lever="Maximize 24h activation and limit-hitter → paid conversion before and during launch.",
+            metrics=["activation_24h_pct", "premium_conversion_pct"],
+            anchor="activation",
+        )
+
+    if not subs.get("on_track"):
+        gap = subs.get("gap", 0)
+        d_sub = _delta_metric(deltas, period, "premium_conversion_pct")
+        trend_note = ""
+        if d_sub and d_sub.get("direction") in ("down", "flat"):
+            trend_note = f" Conversion trend: {_fmt_delta(d_sub, unit=' pp')}."
+        _add_item(
+            items,
+            severity="high",
+            title="Subscriber goal gap",
+            detail=(
+                f"{subs.get('current', 0)} of {subs.get('target', 461)} paid subscribers "
+                f"({subs.get('pct_of_goal', 0)}% of goal). Need {gap} more.{trend_note}"
+            ),
+            lever="Improve upgrade path at token limit; resurrect engaged free users.",
+            metrics=["premium_conversion_pct", "limit_hitter_conversion_pct"],
+            anchor="monetization",
+        )
+
+    if margin.get("current") is not None and not margin.get("on_track"):
+        _add_item(
+            items,
+            severity="high",
+            title="Gross margin below 80% target",
+            detail=(
+                f"Current gross margin {margin.get('current')}% vs "
+                f"{margin.get('target', 80)}% goal (gap {margin.get('gap_pp')} pp)."
+            ),
+            lever="Reduce API burn per user and grow paid conversion to improve margin.",
+            metrics=["gross_margin_pct", "arpu_net_usd"],
+            anchor="monetization",
+        )
+
+    dau_status = dau_g.get("status")
+    if dau_status == "locked" and not dau_g.get("on_track"):
+        _add_item(
+            items,
+            severity="medium",
+            title="DAU below 4.5× launch-week baseline",
+            detail=(
+                f"Current {dau_g.get('multiple')}× vs baseline {dau_g.get('baseline')} "
+                f"(goal {dau_g.get('target_multiple')}×)."
+            ),
+            lever="Focus resurrection and at-risk WAU recovery to grow DAU.",
+            metrics=["dau", "bucket_dead", "flow_Resurrection_Rate"],
+            anchor="dau-model",
+        )
+    elif dau_status in ("pending_baseline", "collecting_baseline"):
+        _add_item(
+            items,
+            severity="info",
+            title="DAU growth baseline not locked yet",
+            detail="4.5× goal vs launch-week average locks after 7 days post–Product Hunt.",
+            lever="Run daily baseline snapshots through launch week.",
+            metrics=["dau"],
+            anchor="dau-model",
+        )
+
+    return items
+
+
 def generate_key_insights(
     snapshot: dict[str, Any],
     deltas: dict[str, Any],
+    corporate_goals: dict[str, Any] | None = None,
     period: str = "weekly",
 ) -> dict[str, Any]:
-    """Build churn-focused insight cards from snapshot + deltas."""
+    """Build churn-focused insight cards from snapshot + deltas + goals."""
     dau = snapshot.get("dau_model") or {}
     buckets = dau.get("bucket_counts") or {}
     flow = dau.get("flow_rates_pct") or {}
@@ -63,7 +155,9 @@ def generate_key_insights(
     at_risk_mau = buckets.get("at_risk_mau", 0)
     dead_pct = round(100.0 * dead / total, 1) if total else 0
 
-    items: list[dict[str, Any]] = []
+    items: list[dict[str, Any]] = _goal_gap_insights(
+        snapshot, deltas, corporate_goals or {}, period
+    )
     d_dead = _delta_metric(deltas, period, "bucket_dead")
     d_at_wau = _delta_metric(deltas, period, "bucket_at_risk_wau")
     d_at_mau = _delta_metric(deltas, period, "bucket_at_risk_mau")
@@ -251,8 +345,17 @@ def generate_key_insights(
 
     items.sort(key=lambda x: SEVERITY_ORDER.get(x["severity"], 9))
 
+    corp = corporate_goals or {}
+    subs = corp.get("subscribers") or {}
+    if subs and not subs.get("on_track"):
+        summary_parts_goal = [
+            f"Subscriber goal: {subs.get('current', 0)}/{subs.get('target', 461)}"
+        ]
+    else:
+        summary_parts_goal = []
+
     weekly_dead = _fmt_delta(d_dead, unit=" users")
-    summary_parts = []
+    summary_parts = list(summary_parts_goal)
     if weekly_dead:
         summary_parts.append(f"Dead users changed {weekly_dead} vs last week")
     if dead_pct >= 40:
@@ -279,7 +382,7 @@ def generate_key_insights(
 
     return {
         "summary": summary,
-        "items": items[:6],
+        "items": items[:8],
         "focus_areas": focus or ["resurrection", "at_risk_wau"],
         "delta_period_used": period,
     }

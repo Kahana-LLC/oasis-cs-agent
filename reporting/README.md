@@ -68,7 +68,17 @@ Run **`main.py --baseline` daily** (or rely on live `/api/snapshot` upserts) so 
 | `snapshot_history.py` | Extract, upsert, fetch history |
 | `metric_deltas.py` | Delta math + significance flags |
 | `insights.py` | Key insights cards |
-| `metric_glossary.py` | Tooltip copy |
+| `metric_glossary.py` | Tooltip copy (static meanings) |
+| `corporate_goals.py` | Target constants (461 subs, 80% margin, 4.5× DAU) |
+| `goal_progress.py` | Progress + trend phrases |
+| `goals_state.py` | DAU launch-week baseline in `corporate_goals_state` |
+| `goal_aware_tooltips.py` | Meaning + trend + goals per metric |
+
+See [`../Corporate Goals.txt`](../Corporate%20Goals.txt) for team-facing goal definitions.
+
+**Gross margin:** `100 × (total_revenue_usd − estimated_api_cost_usd − 25) / total_revenue_usd` (Supabase default $25/mo).
+
+**DAU 4.5× goal:** Compared to the average DAU during the 7 days after Product Hunt launch (May 27, 2026 ET), not calendar year-over-year until 12 months of data exist.
 
 ## Optional: Cursor canvas
 

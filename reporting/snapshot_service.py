@@ -82,4 +82,5 @@ def build_snapshot_dict(
             {"summary": "", "items": [], "focus_areas": []},
         )
         data.setdefault("metric_tooltips", {})
+        data.setdefault("corporate_goals", {})
     return data

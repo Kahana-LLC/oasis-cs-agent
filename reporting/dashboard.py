@@ -82,6 +82,43 @@ def main() -> None:
             s += f" ({sign}{d['pct_change']}%)"
         return s
 
+    cg = data.get("corporate_goals") or {}
+    if cg.get("subscribers"):
+        st.header("Corporate goals")
+        launch = cg.get("launch") or {}
+        lo, hi = launch.get("ph_signup_range", [200, 2000])
+        st.caption(
+            f"Waitlist {launch.get('waitlist', 176)} · "
+            f"Product Hunt May 27 3am ET · expect +{lo}–{hi} signups"
+        )
+        g1, g2, g3 = st.columns(3)
+        subs = cg["subscribers"]
+        margin = cg.get("gross_margin_pct") or {}
+        dau = cg.get("dau_multiple") or {}
+        g1.metric(
+            "Subscribers",
+            f"{subs.get('current', 0)} / {subs.get('target', 461)}",
+            help=_help("premium_conversion"),
+        )
+        g1.progress(min(1.0, (subs.get("pct_of_goal") or 0) / 100))
+        margin_cur = margin.get("current")
+        g2.metric(
+            "Gross margin",
+            f"{margin_cur}%" if margin_cur is not None else "—",
+            delta=f"Target {margin.get('target', 80)}%",
+            help=_help("gross_margin_pct"),
+        )
+        if margin_cur is not None:
+            g2.progress(min(1.0, margin_cur / margin.get("target", 80)))
+        dau_label = (
+            f"{dau.get('multiple')}× / {dau.get('target_multiple')}×"
+            if dau.get("multiple") is not None
+            else "Baseline pending"
+        )
+        g3.metric("DAU vs launch week", dau_label, help=_help("dau"))
+        if dau.get("multiple") is not None and dau.get("target_multiple"):
+            g3.progress(min(1.0, dau["multiple"] / dau["target_multiple"]))
+
     insights = data.get("key_insights") or {}
     if insights.get("summary") or insights.get("items"):
         with st.expander("Key insights", expanded=False):

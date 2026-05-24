@@ -20,6 +20,8 @@ from models.db import (
 )
 from reporting.cost_model import total_api_cost_usd
 from reporting.dau_model import compute_dau_model
+from reporting.corporate_goals import DEFAULT_SUPABASE_MONTHLY_USD
+from reporting.goal_progress import compute_gross_margin_pct
 from reporting.launch_kpis import compute_launch_kpis
 
 RETENTION_DAYS = (1, 3, 7, 14, 30)
@@ -46,6 +48,7 @@ class BaselineSnapshot:
     deltas: dict[str, Any] = field(default_factory=dict)
     key_insights: dict[str, Any] = field(default_factory=dict)
     metric_tooltips: dict[str, str] = field(default_factory=dict)
+    corporate_goals: dict[str, Any] = field(default_factory=dict)
     validation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -519,6 +522,9 @@ def _compute_monetization(
     arpu_net = round((gross_revenue - api_cost) / total_users, 2) if total_users else 0
 
     ltv_proxy = round(arpu_net * LTV_ASSUMED_MONTHS, 2)
+    gross_margin_pct = compute_gross_margin_pct(
+        gross_revenue, api_cost, DEFAULT_SUPABASE_MONTHLY_USD
+    )
 
     lifecycle_buckets = [
         {"lifecycle_day": k, "hit_count": v}
@@ -547,6 +553,7 @@ def _compute_monetization(
         "arpu_net_usd": arpu_net,
         "total_revenue_usd": round(gross_revenue, 2),
         "estimated_api_cost_usd": round(api_cost, 2),
+        "gross_margin_pct": gross_margin_pct,
         "ltv_proxy_usd": ltv_proxy,
         "cac_ltv": {
             "cac_available": False,

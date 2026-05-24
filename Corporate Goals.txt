@@ -1,0 +1,25 @@
+Oasis corporate goals (dashboard targets)
+======================================
+
+These goals drive the "Corporate goals" strip and goal-aware metric tooltips on the live dashboard.
+
+Targets
+-------
+- Paid subscribers: 461 (Plus / active paid plans; metric: premium_users)
+- Gross margin: 80%
+  - Formula: (revenue − estimated API cost − Supabase $25/mo) / revenue
+- DAU growth: 4.5× vs Product Hunt launch-week average
+  - Launch date: May 27, 2026, 3:00 AM Eastern
+  - Baseline: average daily DAU over the first 7 calendar days post-launch (auto-locked in Supabase)
+
+Launch context
+--------------
+- Waitlist: 176 (manual constant until integrated from DB)
+- Product Hunt: expect roughly 200–2,000 new signups at launch
+
+Operations
+----------
+- Run daily: .venv/bin/python main.py --baseline
+  - Populates baseline_metric_history for deltas
+  - May lock DAU baseline after launch week
+- Hover ? on any metric for: what it means, trend vs last week, how it relates to these goals

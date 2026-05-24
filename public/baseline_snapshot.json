@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-24T17:23:05.364113Z",
+  "generated_at": "2026-05-24T17:49:29.093277Z",
   "snapshot_date": "2026-05-24",
   "total_users": 122,
   "active_users": 122,
@@ -556,6 +556,7 @@
     "arpu_net_usd": 1.34,
     "total_revenue_usd": 164.0,
     "estimated_api_cost_usd": 0.38,
+    "gross_margin_pct": 84.5,
     "ltv_proxy_usd": 16.08,
     "cac_ltv": {
       "cac_available": false,
@@ -834,32 +835,32 @@
         "metric": "AI activation rate (1h)",
         "value": "27.9%",
         "status": "live",
-        "tooltip": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
-        "metric_key": "activation_24h_pct"
+        "metric_key": "activation_24h_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target."
       },
       {
         "category": "Activation",
         "metric": "AI activation rate (24h)",
         "value": "32.0%",
         "status": "live",
-        "tooltip": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
-        "metric_key": "activation_24h_pct"
+        "metric_key": "activation_24h_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target."
       },
       {
         "category": "Activation",
         "metric": "AI activation rate (3d)",
         "value": "33.6%",
         "status": "live",
-        "tooltip": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
-        "metric_key": "activation_24h_pct"
+        "metric_key": "activation_24h_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target."
       },
       {
         "category": "Activation",
         "metric": "AI activation rate (7d)",
         "value": "38.5%",
         "status": "live",
-        "tooltip": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
-        "metric_key": "activation_24h_pct"
+        "metric_key": "activation_24h_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target."
       },
       {
         "category": "Activation",
@@ -908,8 +909,8 @@
         "metric": "D1 retention",
         "value": "10.7%",
         "status": "live",
-        "tooltip": "Share of users who came back on day 7 after signup (session or AI usage). A leading indicator of whether new users stick.",
-        "metric_key": "retention_d7_pct"
+        "metric_key": "retention_d7_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target."
       },
       {
         "category": "Retention",
@@ -923,8 +924,8 @@
         "metric": "D7 retention",
         "value": "11.8%",
         "status": "live",
-        "tooltip": "Share of users who came back on day 7 after signup (session or AI usage). A leading indicator of whether new users stick.",
-        "metric_key": "retention_d7_pct"
+        "metric_key": "retention_d7_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target."
       },
       {
         "category": "Retention",
@@ -952,24 +953,24 @@
         "metric": "Churn 7d (ever-active)",
         "value": "75.3%",
         "status": "live",
-        "tooltip": "Among users who were ever active, the share with no return in the last 7 days. Lower is better \u2014 rising churn means more slipping away.",
-        "metric_key": "churn_7d_pct"
+        "metric_key": "churn_7d_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Lower churn protects DAU and path to 461 subscribers."
       },
       {
         "category": "Retention",
         "metric": "Churn 14d (ever-active)",
         "value": "71.2%",
         "status": "live",
-        "tooltip": "Ever-active users with no activity in the last 14 days.",
-        "metric_key": "churn_14d_pct"
+        "metric_key": "churn_14d_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Lower churn protects DAU and path to 461 subscribers."
       },
       {
         "category": "Retention",
         "metric": "Churn 30d (ever-active)",
         "value": "61.6%",
         "status": "live",
-        "tooltip": "Ever-active users with no activity in the last 30 days.",
-        "metric_key": "churn_30d_pct"
+        "metric_key": "churn_30d_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Lower churn protects DAU and path to 461 subscribers."
       },
       {
         "category": "Retention",
@@ -983,16 +984,16 @@
         "metric": "Token limit hit rate",
         "value": "4.5%",
         "status": "live",
-        "tooltip": "Share of users who hit the daily AI token cap at least once. Often signals power users who may upgrade.",
-        "metric_key": "token_limit_hit_rate_pct"
+        "metric_key": "token_limit_hit_rate_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 80.0% gross margin. Current: 84.5% (on track). Gap: -4.5 pp to target. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target."
       },
       {
         "category": "Monetization",
         "metric": "Median days to first token limit",
         "value": "118 d",
         "status": "live",
-        "tooltip": "Typical days from signup until a user first hits the token cap. Shorter often means heavy early usage.",
-        "metric_key": "median_days_to_first_limit"
+        "metric_key": "median_days_to_first_limit",
+        "tooltip": "What it means: Typical days from signup until a user first hits the token cap. Shorter often means heavy early usage.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal."
       },
       {
         "category": "Monetization",
@@ -1006,16 +1007,16 @@
         "metric": "Premium conversion (all users)",
         "value": "8.2%",
         "status": "live",
-        "tooltip": "Share of all users on a paid Plus plan or active paid subscription. Overall monetization health.",
-        "metric_key": "premium_conversion_pct"
+        "metric_key": "premium_conversion_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target."
       },
       {
         "category": "Monetization",
         "metric": "Premium conversion (limit hitters)",
         "value": "100.0%",
         "status": "live",
-        "tooltip": "Of users who hit token limits, how many are on a paid plan. Measures whether limits drive upgrades.",
-        "metric_key": "limit_hitter_conversion_pct"
+        "metric_key": "limit_hitter_conversion_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target."
       },
       {
         "category": "Monetization",
@@ -1036,8 +1037,8 @@
         "metric": "ARPU net (est. API cost)",
         "value": "$1.34",
         "status": "live",
-        "tooltip": "Average revenue per user after subtracting estimated API costs. Net unit economics per user.",
-        "metric_key": "arpu_net_usd"
+        "metric_key": "arpu_net_usd",
+        "tooltip": "Average revenue per user after subtracting estimated API costs. Net unit economics per user."
       },
       {
         "category": "Monetization",
@@ -1079,8 +1080,8 @@
         "metric": "Feedback submission rate",
         "value": "24.6%",
         "status": "live",
-        "tooltip": "Share of users who submitted at least one feedback/training event. Signals product involvement beyond passive use.",
-        "metric_key": "feedback_submission_rate_pct"
+        "metric_key": "feedback_submission_rate_pct",
+        "tooltip": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal."
       },
       {
         "category": "Feedback",
@@ -1108,24 +1109,24 @@
         "metric": "DAU (today)",
         "value": "1",
         "status": "live",
-        "tooltip": "Users engaged today: new, current, reactivated, or resurrected.",
-        "metric_key": "dau"
+        "metric_key": "dau",
+        "tooltip": "What it means: Users engaged today: new, current, reactivated, or resurrected.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx."
       },
       {
         "category": "DAU",
         "metric": "WAU (model)",
         "value": "17",
         "status": "live",
-        "tooltip": "DAU plus users at-risk WAU (active recently but not today).",
-        "metric_key": "wau"
+        "metric_key": "wau",
+        "tooltip": "What it means: DAU plus users at-risk WAU (active recently but not today).\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx."
       },
       {
         "category": "DAU",
         "metric": "MAU (model)",
         "value": "27",
         "status": "live",
-        "tooltip": "WAU plus users at-risk MAU (active 7\u201329 days ago, inactive lately).",
-        "metric_key": "mau"
+        "metric_key": "mau",
+        "tooltip": "What it means: WAU plus users at-risk MAU (active 7\u201329 days ago, inactive lately).\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx."
       }
     ],
     "headlines": {
@@ -1169,8 +1170,30 @@
     }
   },
   "key_insights": {
-    "summary": "77.9% of the base is dead. 26 users are at-risk (recoverable before 30d dead). Focus on at-risk WAU and resurrection levers.",
+    "summary": "Subscriber goal: 10/461. 77.9% of the base is dead. 26 users are at-risk (recoverable before 30d dead). Focus on at-risk WAU and resurrection levers.",
     "items": [
+      {
+        "severity": "high",
+        "title": "Product Hunt in 3 days",
+        "detail": "Launch May 27 ~3am ET may add 200\u20132000 users on top of 176 waitlist. Subscriber goal: 461.",
+        "lever": "Maximize 24h activation and limit-hitter \u2192 paid conversion before and during launch.",
+        "metrics": [
+          "activation_24h_pct",
+          "premium_conversion_pct"
+        ],
+        "anchor": "activation"
+      },
+      {
+        "severity": "high",
+        "title": "Subscriber goal gap",
+        "detail": "10 of 461 paid subscribers (2.2% of goal). Need 451 more.",
+        "lever": "Improve upgrade path at token limit; resurrect engaged free users.",
+        "metrics": [
+          "premium_conversion_pct",
+          "limit_hitter_conversion_pct"
+        ],
+        "anchor": "monetization"
+      },
       {
         "severity": "high",
         "title": "Majority of users are dead",
@@ -1222,47 +1245,93 @@
     "delta_period_used": "weekly"
   },
   "metric_tooltips": {
-    "activation_24h": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
-    "retention_d7": "Share of users who came back on day 7 after signup (session or AI usage). A leading indicator of whether new users stick.",
-    "latest_wau": "Users active at least once in the last 7 days (sessions or AI prompts). Shows near-term engagement momentum.",
-    "premium_conversion": "Share of all users on a paid Plus plan or active paid subscription. Overall monetization health.",
-    "feedback_rate": "Share of users who submitted at least one feedback/training event. Signals product involvement beyond passive use.",
-    "arpu_net": "Average revenue per user after subtracting estimated API costs. Net unit economics per user.",
-    "churn_7d": "Among users who were ever active, the share with no return in the last 7 days. Lower is better \u2014 rising churn means more slipping away.",
-    "churn_14d": "Ever-active users with no activity in the last 14 days.",
-    "churn_30d": "Ever-active users with no activity in the last 30 days.",
-    "token_limit_hit_rate": "Share of users who hit the daily AI token cap at least once. Often signals power users who may upgrade.",
-    "limit_hitter_conversion": "Of users who hit token limits, how many are on a paid plan. Measures whether limits drive upgrades.",
-    "median_days_to_first_limit": "Typical days from signup until a user first hits the token cap. Shorter often means heavy early usage.",
-    "median_hours_to_first_limit": "Same as days to first limit, in hours.",
-    "conversion_velocity": "Median hours from signup to first premium upgrade among paying users.",
-    "dau": "Users engaged today: new, current, reactivated, or resurrected.",
-    "wau": "DAU plus users at-risk WAU (active recently but not today).",
-    "mau": "WAU plus users at-risk MAU (active 7\u201329 days ago, inactive lately).",
-    "time_to_first_prompt_median": "Median hours from account creation to first AI prompt.",
-    "power_users_day0": "Users with 10+ AI prompts on their signup day.",
-    "power_users_week0": "Users with 10+ AI prompts in their first 7 days.",
-    "multi_day_ai_7d": "Users who used AI on more than one day in their first week.",
-    "bucket_new": "New users: First day of engagement ever",
-    "bucket_current": "Current users: Active today and at least one other day in the prior 7 days",
-    "bucket_reactivated": "Reactivated users: First day back after 7\u201329 days away",
-    "bucket_resurrected": "Resurrected users: First day back after 30+ days away",
-    "bucket_at_risk_wau": "At-risk WAU: Inactive today, active on at least one of the prior 6 days",
-    "bucket_at_risk_mau": "At-risk MAU: Inactive today and prior 6 days, active 7\u201329 days ago",
-    "bucket_dead": "Dead users: No activity in the last 30 days",
-    "flow_NURR": "New \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_1-NURR": "New \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_CURR": "Current \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_1-CURR": "Current \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_RURR": "Reactivated \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_1-RURR": "Reactivated \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_SURR": "Resurrected \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_1-SURR": "Resurrected \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_iWAURR": "At-risk WAU \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_WAU_Loss_Rate": "At-risk WAU \u2192 At-risk MAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_iMAURR": "At-risk MAU \u2192 Reactivated \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_MAU_Loss_Rate": "At-risk MAU \u2192 Dead \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
-    "flow_Resurrection_Rate": "Dead \u2192 Resurrected \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users."
+    "bucket_new": "What it means: New users: First day of engagement ever\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "bucket_current": "What it means: Current users: Active today and at least one other day in the prior 7 days\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "flow_CURR": "What it means: Current \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "premium_conversion_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target.",
+    "flow_RURR": "What it means: Reactivated \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "limit_hitter_conversion": "What it means: Of users who hit token limits, how many are on a paid plan. Measures whether limits drive upgrades.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "premium_users": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target.",
+    "activation_24h_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target.",
+    "time_to_first_prompt_median": "What it means: Median hours from account creation to first AI prompt.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "flow_1-RURR": "What it means: Reactivated \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "flow_SURR": "What it means: Resurrected \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "flow_MAU_Loss_Rate": "What it means: At-risk MAU \u2192 Dead \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "churn_30d": "What it means: Ever-active users with no activity in the last 30 days.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Lower churn protects DAU and path to 461 subscribers.",
+    "power_users_week0": "What it means: Users with 10+ AI prompts in their first 7 days.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "median_hours_to_first_limit": "What it means: Same as days to first limit, in hours.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "flow_iMAURR": "What it means: At-risk MAU \u2192 Reactivated \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "wau": "What it means: DAU plus users at-risk WAU (active recently but not today).\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx.",
+    "feedback_submission_rate_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "flow_WAU_Loss_Rate": "What it means: At-risk WAU \u2192 At-risk MAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "flow_iWAURR": "What it means: At-risk WAU \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "activation_24h": "What it means: Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "latest_wau": "What it means: Users active at least once in the last 7 days (sessions or AI prompts). Shows near-term engagement momentum.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx.",
+    "flow_Resurrection_Rate": "What it means: Dead \u2192 Resurrected \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "churn_7d_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Lower churn protects DAU and path to 461 subscribers.",
+    "retention_d7_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target.",
+    "bucket_at_risk_mau": "What it means: At-risk MAU: Inactive today and prior 6 days, active 7\u201329 days ago\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "gross_margin_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 80.0% gross margin. Current: 84.5% (on track). Gap: -4.5 pp to target. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target.",
+    "limit_hitter_conversion_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target.",
+    "flow_1-NURR": "What it means: New \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "premium_conversion": "What it means: Share of all users on a paid Plus plan or active paid subscription. Overall monetization health.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "flow_1-CURR": "What it means: Current \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "bucket_at_risk_wau": "What it means: At-risk WAU: Inactive today, active on at least one of the prior 6 days\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "median_days_to_first_limit": "What it means: Typical days from signup until a user first hits the token cap. Shorter often means heavy early usage.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "churn_14d": "What it means: Ever-active users with no activity in the last 14 days.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Lower churn protects DAU and path to 461 subscribers.",
+    "dau": "What it means: Users engaged today: new, current, reactivated, or resurrected.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx.",
+    "bucket_reactivated": "What it means: Reactivated users: First day back after 7\u201329 days away\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "feedback_rate": "What it means: Share of users who submitted at least one feedback/training event. Signals product involvement beyond passive use.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "arpu_net": "What it means: Average revenue per user after subtracting estimated API costs. Net unit economics per user.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "token_limit_hit_rate": "What it means: Share of users who hit the daily AI token cap at least once. Often signals power users who may upgrade.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "bucket_resurrected": "What it means: Resurrected users: First day back after 30+ days away\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "token_limit_hit_rate_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 80.0% gross margin. Current: 84.5% (on track). Gap: -4.5 pp to target. Goal: 461 paid subscribers. You have 10 (2.2% of goal). Gap: 451 subscribers to reach target.",
+    "multi_day_ai_7d": "What it means: Users who used AI on more than one day in their first week.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "total_users": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "churn_30d_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Lower churn protects DAU and path to 461 subscribers.",
+    "conversion_velocity": "What it means: Median hours from signup to first premium upgrade among paying users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "churn_7d": "What it means: Among users who were ever active, the share with no return in the last 7 days. Lower is better \u2014 rising churn means more slipping away.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Lower churn protects DAU and path to 461 subscribers.",
+    "retention_d7": "What it means: Share of users who came back on day 7 after signup (session or AI usage). A leading indicator of whether new users stick.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "flow_NURR": "What it means: New \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "flow_1-SURR": "What it means: Resurrected \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "bucket_dead": "What it means: Dead users: No activity in the last 30 days\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Reducing dead/at-risk users supports DAU and subscriber goals.",
+    "power_users_day0": "What it means: Users with 10+ AI prompts on their signup day.\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Context: 176 on waitlist. Product Hunt launch may add 200\u20132000 signups in ~3 days \u2014 activation and conversion drive the 461 subscriber goal.",
+    "churn_14d_pct": "Trend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx. Lower churn protects DAU and path to 461 subscribers.",
+    "mau": "What it means: WAU plus users at-risk MAU (active 7\u201329 days ago, inactive lately).\n\nTrend: Not enough daily snapshot history yet to show a trend.\n\nGoals: Goal: 4.5\u00d7 DAU vs launch-week baseline (set after PH launch). Focus on activation before May 27 influx."
+  },
+  "corporate_goals": {
+    "subscribers": {
+      "current": 10,
+      "target": 461,
+      "pct_of_goal": 2.2,
+      "gap": 451,
+      "on_track": false
+    },
+    "gross_margin_pct": {
+      "current": 84.5,
+      "target": 80.0,
+      "gap_pp": -4.5,
+      "on_track": true
+    },
+    "dau_multiple": {
+      "current_dau": 1,
+      "baseline": null,
+      "multiple": null,
+      "target_multiple": 4.5,
+      "on_track": false,
+      "status": "pre_launch"
+    },
+    "launch": {
+      "date": "2026-05-27",
+      "days_until": 3,
+      "days_since": 0,
+      "post_launch": false,
+      "waitlist": 176,
+      "ph_signup_range": [
+        200,
+        2000
+      ]
+    }
   },
   "validation": {
     "payments_success_count": 14,

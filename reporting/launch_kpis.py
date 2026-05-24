@@ -253,8 +253,12 @@ def compute_launch_kpis(
     }
 
 
-def attach_tooltips_to_kpi_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+def attach_tooltips_to_kpi_rows(
+    rows: list[dict[str, str]],
+    tooltips: dict[str, str] | None = None,
+) -> list[dict[str, str]]:
     """Add plain-English tooltip and metric_key for delta lookup."""
+    from reporting.goal_aware_tooltips import tooltip_for_kpi_row_enriched
     from reporting.metric_glossary import kpi_metric_key, tooltip_for_kpi_row
 
     out: list[dict[str, str]] = []
@@ -262,9 +266,12 @@ def attach_tooltips_to_kpi_rows(rows: list[dict[str, str]]) -> list[dict[str, st
         enriched = dict(row)
         cat = row.get("category", "")
         met = row.get("metric", "")
-        enriched["tooltip"] = tooltip_for_kpi_row(cat, met)
         key = kpi_metric_key(cat, met)
         if key:
             enriched["metric_key"] = key
+        if tooltips:
+            enriched["tooltip"] = tooltip_for_kpi_row_enriched(enriched, tooltips)
+        else:
+            enriched["tooltip"] = tooltip_for_kpi_row(cat, met)
         out.append(enriched)
     return out

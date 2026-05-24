@@ -143,11 +143,13 @@ def enrich_snapshot_with_history(
     *,
     persist: bool = True,
 ) -> dict[str, Any]:
-    """Upsert today, attach deltas + key_insights + tooltips."""
+    """Upsert today, attach deltas, goals, insights, and goal-aware tooltips."""
+    from reporting.goal_aware_tooltips import build_all_tooltips
+    from reporting.goal_progress import compute_goal_progress
+    from reporting.goals_state import load_goals_state, maybe_lock_dau_baseline, save_goals_state
     from reporting.insights import generate_key_insights
     from reporting.launch_kpis import attach_tooltips_to_kpi_rows
     from reporting.metric_deltas import build_all_period_deltas
-    from reporting.metric_glossary import METRIC_TOOLTIPS
 
     today = date.fromisoformat(snapshot["snapshot_date"])
     current = extract_compact_metrics(snapshot)
@@ -160,11 +162,30 @@ def enrich_snapshot_with_history(
 
     priors = fetch_history_for_deltas(today)
     snapshot["deltas"] = build_all_period_deltas(current, priors, today)
-    snapshot["key_insights"] = generate_key_insights(snapshot, snapshot["deltas"])
-    snapshot["metric_tooltips"] = METRIC_TOOLTIPS
+
+    goals_state: dict = {}
+    try:
+        goals_state = load_goals_state()
+        goals_state = maybe_lock_dau_baseline(today, goals_state)
+        if persist:
+            save_goals_state(goals_state)
+    except Exception as exc:
+        log.warning("goals state skipped: %s", exc)
+
+    snapshot["corporate_goals"] = compute_goal_progress(
+        snapshot, snapshot["deltas"], goals_state, today=today
+    )
+    snapshot["key_insights"] = generate_key_insights(
+        snapshot, snapshot["deltas"], snapshot["corporate_goals"]
+    )
+    snapshot["metric_tooltips"] = build_all_tooltips(
+        snapshot, snapshot["deltas"], snapshot["corporate_goals"]
+    )
 
     launch = snapshot.get("launch_kpis")
     if launch and launch.get("kpi_rows"):
-        launch["kpi_rows"] = attach_tooltips_to_kpi_rows(launch["kpi_rows"])
+        launch["kpi_rows"] = attach_tooltips_to_kpi_rows(
+            launch["kpi_rows"], snapshot.get("metric_tooltips")
+        )
 
     return snapshot
