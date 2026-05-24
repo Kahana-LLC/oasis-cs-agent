@@ -428,9 +428,11 @@ The CS agent ([`PLAN.md`](../PLAN.md)) already uses **Brevo** for transactional 
 
 Live HTML previews and **project charter**: **[`/email-machine`](/email-machine)** (DAU buckets, strategy vs shipped providers, capacity panel, copy HTML).
 
-Where **deployed** Brevo automations differ from the multi-provider **strategy** below, the engineer reference shows both (`deployed_via: brevo` on shipped sequences).
+Where **deployed** Brevo automations differ from the multi-provider **strategy** below, the engineer reference shows both (`deployed_via: brevo` on sequences with Brevo templates).
 
-| Sequence | Strategy provider | Shipped | Trigger (deployed) |
+**Charter `implementation_status`:** only **PH teaser** and **PH launch** are `shipped` (2 of 12). Welcome, NPS, PMF, Paid Zen welcome, and all other sequences are `needs_implementation` — Brevo HTML may exist, but CS agent routing and multi-provider stack are not built yet.
+
+| Sequence | Strategy provider | Shipped (Brevo interim) | Trigger (deployed) |
 |----------|-------------------|---------|-------------------|
 | Welcome | HubSpot | **Brevo** — `brevo-oasis-welcome.html` | On signup |
 | NPS | Brevo (day 7 in strategy) | **Brevo** — `brevo-oasis-nps-day3.html` | **Day 3** after signup |

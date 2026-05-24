@@ -453,8 +453,8 @@ th {
   font-weight: 600;
 }
 
-.status-pill.status-ok,
 .status-pill.status-shipped { background: rgba(61, 139, 110, 0.2); color: #6dd4a8; }
+.status-pill.status-needs-implementation,
 .status-pill.status-near_limit,
 .status-pill.status-planned { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
 .status-pill.status-at_limit,

@@ -102,15 +102,18 @@
 
     function inferImplementationStatus(seq) {
       if (seq.implementation_status) return seq.implementation_status;
-      if (seq.deployed_via || getPreview(seq)) return "shipped";
-      return "planned";
+      return "needs_implementation";
     }
 
     function implementationStatusBadge(seq) {
       const status = inferImplementationStatus(seq);
       const cls =
-        status === "shipped" ? "status-shipped" : status === "planned" ? "status-planned" : "status-not-started";
-      return `<span class="status-pill ${cls}">${escapeHtml(status.replace("_", " "))}</span>`;
+        status === "shipped"
+          ? "status-shipped"
+          : status === "needs_implementation"
+            ? "status-needs-implementation"
+            : "status-planned";
+      return `<span class="status-pill ${cls}">${escapeHtml(status.replace(/_/g, " "))}</span>`;
     }
 
     function strategyProviderCell(seq) {
@@ -368,6 +371,8 @@
           return `<tr class="seq-row" data-bucket="${escapeHtml((seq.buckets || []).join(","))}" data-provider="${escapeHtml(seq.provider_id)}" data-overflow="${escapeHtml(seq.provider_overflow_id || "")}" data-phase="${escapeHtml(seq.phase)}">
             <td><strong>${escapeHtml(seq.name)}</strong>${phaseBadge(seq.phase)}</td>
             <td>${bucketPills(seq.buckets)}</td>
+            <td>${metricLinks(seq)}</td>
+            <td>${previewCell(seq)}</td>
             <td>${escapeHtml(seq.trigger_summary)}<br><span class="code">${escapeHtml(seq.trigger_implementation || "")}</span></td>
             <td>${escapeHtml(seq.trigger_when)}</td>
             <td>${strategyProviderCell(seq)}</td>
@@ -375,16 +380,14 @@
             <td>${statusCell}</td>
             <td>${limitCell}</td>
             <td><span class="code">${escapeHtml(seq.dedup_trigger_name)}</span><br><span class="section-cap">outreach_log</span></td>
-            <td>${metricLinks(seq)}</td>
-            <td>${previewCell(seq)}</td>
           </tr>`;
         })
         .join("");
       return `<div class="seq-table-wrap">
         <table class="seq-table">
           <thead><tr>
-            <th>Sequence</th><th>Bucket(s)</th><th>Trigger</th><th>When</th>
-            <th>Strategy provider</th><th>Shipped</th><th>Status</th><th>Free tier</th><th>Dedup</th><th>Metrics</th><th>Preview</th>
+            <th>Sequence</th><th>Bucket(s)</th><th>Metrics</th><th>Preview</th><th>Trigger</th><th>When</th>
+            <th>Strategy provider</th><th>Shipped</th><th>Status</th><th>Free tier</th><th>Dedup</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -461,7 +464,8 @@
           <div class="info">
             <ul style="margin:0;padding-left:1.25rem">
               <li><strong>Strategy provider</strong> — target routing per proposal (HubSpot welcome, Mailgun PMF, etc.)</li>
-              <li><strong>Shipped</strong> — what runs on Brevo today while multi-provider routing is built</li>
+              <li><strong>Shipped</strong> — interim Brevo template/automation where it exists today (not the same as implemented)</li>
+              <li><strong>Status</strong> — multi-provider / CS agent implementation (<span class="code">shipped</span> vs <span class="code">needs_implementation</span>)</li>
               <li><strong>Near limit</strong> — alert at 80% of contacts/sends or &lt;2 months runway (<span class="code">email_provider_capacity</span> in snapshot)</li>
               <li><strong>Dedup</strong> — all sends log to <span class="code">outreach_log</span> via <span class="code">dedup_trigger_name</span></li>
             </ul>
@@ -480,7 +484,7 @@
         </section>
         <section id="sequences">
           <h2>Sequence reference</h2>
-          <p class="section-cap">What fires, when, strategy vs shipped provider, and outreach_log dedup. Filter to find a cohort.</p>
+          <p class="section-cap">What fires, when, strategy vs shipped provider, and outreach_log dedup. Filter to find a cohort. <strong>2 of 12 sequences implemented</strong> (PH waitlist only).</p>
           ${renderFilters()}
           ${renderSequenceTable()}
         </section>
