@@ -1,4 +1,4 @@
-"""Copy snapshot JSON into public/ for Vercel static deployment."""
+"""Copy snapshot JSON and email previews into public/ for Vercel static deployment."""
 
 from __future__ import annotations
 
@@ -7,6 +7,11 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from reporting.sync_email_previews import sync_previews
+
 SRC = ROOT / "reporting" / "baseline_snapshot.json"
 DST = ROOT / "public" / "baseline_snapshot.json"
 
@@ -22,6 +27,14 @@ def build() -> int:
     DST.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(SRC, DST)
     print(f"Copied snapshot -> {DST}")
+
+    try:
+        n = sync_previews()
+        print(f"Synced {n} email previews -> {ROOT / 'public' / 'emails'}")
+    except FileNotFoundError as e:
+        print(f"Email preview sync failed: {e}", file=sys.stderr)
+        return 1
+
     return 0
 
 

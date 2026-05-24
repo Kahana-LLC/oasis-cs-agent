@@ -45,3 +45,4 @@ Operations
   - Populates baseline_metric_history for deltas
   - May lock DAU baseline after launch week
 - Hover ? on any metric for: what it means, trend vs last week, how it relates to these goals
+- Email sequence strategy (free-tier providers, DAU buckets): docs/USER_EMAIL_MACHINE_PROPOSAL.md

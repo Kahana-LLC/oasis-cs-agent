@@ -20,5 +20,8 @@ wheels/
 # Large SQL exports for offline baseline build
 reporting/sql_export.json
 
+# Generated email previews (built from brevo-oasis-emails/ via build_static_site.py)
+public/emails/*.html
+
 # MCP config (contains access tokens)
 .mcp.json

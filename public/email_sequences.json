@@ -1,0 +1,436 @@
+{
+  "version": 2,
+  "doc_ref": "docs/USER_EMAIL_MACHINE_PROPOSAL.md",
+  "providers": [
+    {
+      "id": "hubspot",
+      "name": "HubSpot",
+      "free_limits": { "marketing_emails_per_month": 2000 },
+      "constraints": ["No custom HTML", "Built-in templates only"],
+      "upgrade_trigger": "New signups consistently > 2,000/month",
+      "notes": "PH high scenario (2,000 signups) can consume entire monthly cap in launch week."
+    },
+    {
+      "id": "brevo",
+      "name": "Brevo",
+      "free_limits": { "emails_per_day": 300, "contacts": 2000 },
+      "constraints": ["Shared with CS agent transactional sends (PLAN.md)"],
+      "upgrade_trigger": "Contacts > 2,000 or daily signups > 300/day sustained",
+      "notes": "Use separate lists: transactional-agent, nps, limit-hitter. Lifecycle + PH templates deployed here."
+    },
+    {
+      "id": "mailgun",
+      "name": "Mailgun",
+      "free_limits": { "emails_per_day": 100 },
+      "constraints": ["Transactional-oriented"],
+      "upgrade_trigger": "Net new WAU/week > 100 sustained",
+      "notes": "~3,000 emails/month theoretical max."
+    },
+    {
+      "id": "omnisend",
+      "name": "OmniSend",
+      "free_limits": { "emails_per_month": 500, "contacts": 250 },
+      "constraints": ["250 contact cap below 500 subs year-end goal"],
+      "upgrade_trigger": "paid_subscribers >= 250 ($5k MRR)",
+      "notes": "Migrate upgrade thank-you to Brevo paid at 250 subs."
+    },
+    {
+      "id": "mailerlite",
+      "name": "MailerLite",
+      "free_limits": { "emails_per_month": 12000, "contacts": 500 },
+      "constraints": ["Contact cap binds before send cap"],
+      "upgrade_trigger": "Contacts > 400 or sustained PH growth",
+      "notes": "Priority queue: at-risk WAU > MAU > dead resurrection."
+    }
+  ],
+  "buckets": [
+    {
+      "key": "new",
+      "label": "New users",
+      "definition": "First day of engagement ever in the app",
+      "dashboard_field": "dau_model.bucket_counts.new",
+      "flow_rates": ["NURR", "1-NURR"],
+      "rollup": "DAU"
+    },
+    {
+      "key": "current",
+      "label": "Current users",
+      "definition": "Active today and at least one other day in the prior 6 days",
+      "dashboard_field": "dau_model.bucket_counts.current",
+      "flow_rates": ["CURR", "1-CURR"],
+      "rollup": "DAU"
+    },
+    {
+      "key": "reactivated",
+      "label": "Reactivated users",
+      "definition": "First day back after 7–29 days away",
+      "dashboard_field": "dau_model.bucket_counts.reactivated",
+      "flow_rates": ["RURR", "1-RURR"],
+      "rollup": "DAU"
+    },
+    {
+      "key": "resurrected",
+      "label": "Resurrected users",
+      "definition": "First day back after 30+ days away",
+      "dashboard_field": "dau_model.bucket_counts.resurrected",
+      "flow_rates": ["SURR", "1-SURR"],
+      "rollup": "DAU"
+    },
+    {
+      "key": "at_risk_wau",
+      "label": "At-risk WAU",
+      "definition": "Inactive today, active on at least one of the prior 6 days",
+      "dashboard_field": "dau_model.bucket_counts.at_risk_wau",
+      "flow_rates": ["iWAURR", "WAU_Loss_Rate"],
+      "rollup": "At-risk WAU + DAU = WAU"
+    },
+    {
+      "key": "at_risk_mau",
+      "label": "At-risk MAU",
+      "definition": "Inactive today and prior 6 days; active 7–29 days ago",
+      "dashboard_field": "dau_model.bucket_counts.at_risk_mau",
+      "flow_rates": ["iMAURR", "MAU_Loss_Rate"],
+      "rollup": "At-risk MAU + WAU = MAU"
+    },
+    {
+      "key": "dead",
+      "label": "Dead users",
+      "definition": "No activity in the last 30 days",
+      "dashboard_field": "dau_model.bucket_counts.dead",
+      "flow_rates": ["Resurrection_Rate", "MAU_Loss_Rate"],
+      "rollup": "Dead + MAU = total user base"
+    }
+  ],
+  "capacity_cliffs": [
+    {
+      "id": "hubspot_ph_burst",
+      "provider_id": "hubspot",
+      "trigger": "2,000+ signups in launch week",
+      "action": "Queue welcomes across months or route overflow to Brevo transactional list"
+    },
+    {
+      "id": "brevo_contacts",
+      "provider_id": "brevo",
+      "trigger": "Total contacts > 2,000",
+      "action": "Prune 12-month inactive; upgrade Brevo before PH high"
+    },
+    {
+      "id": "omnisend_250",
+      "provider_id": "omnisend",
+      "trigger": "paid_subscribers >= 250",
+      "action": "Move upgrade thank-you and cancelled win-back to Brevo paid tier"
+    },
+    {
+      "id": "mailerlite_500",
+      "provider_id": "mailerlite",
+      "trigger": "Marketing contacts > 400",
+      "action": "Priority queue at-risk only; cap dead resurrection; upgrade ~$10/mo"
+    },
+    {
+      "id": "brevo_agent",
+      "provider_id": "brevo",
+      "trigger": "CS agent + marketing compete for daily send cap",
+      "action": "Separate Brevo sub-account or dedicated transactional list for agent"
+    }
+  ],
+  "sequences": [
+    {
+      "id": "ph_teaser",
+      "name": "PH teaser (waitlist)",
+      "phase": "1-adam",
+      "funnel": "acquisition",
+      "buckets": ["new", "waitlist"],
+      "trigger_summary": "Waitlist contact before Product Hunt launch",
+      "trigger_when": "May 26, 2026 — day before PH launch",
+      "trigger_implementation": "Brevo list: Oasis waitlist (Tally w8V8GA)",
+      "provider_id": "brevo",
+      "provider_overflow_id": null,
+      "deployed_via": "brevo",
+      "cadence": "one-time",
+      "dedup_trigger_name": "ph_teaser_waitlist",
+      "free_tier_runway": "Reusable template for future launches (Windows, Linux, mobile, etc.)",
+      "dashboard_metrics": ["total_users", "activation_24h_pct"],
+      "dashboard_anchors": ["activation"],
+      "corporate_goals": ["dau", "subs"],
+      "preview": {
+        "source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-teaser-waitlist.html",
+        "path": "/emails/ph_teaser.html",
+        "subject": "Tomorrow on Product Hunt (+ a launch-day surprise)",
+        "preheader": "Privacy-first AI browser. Something special for genuine launch-day feedback.",
+        "from_name": "Oasis by Kahana",
+        "plain_text_source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-teaser-plain-text.txt"
+      }
+    },
+    {
+      "id": "ph_launch",
+      "name": "PH launch (waitlist)",
+      "phase": "1-adam",
+      "funnel": "acquisition",
+      "buckets": ["new", "waitlist"],
+      "trigger_summary": "Product Hunt launch day — waitlist + new signups",
+      "trigger_when": "May 27, 2026 — when PH listing is live",
+      "trigger_implementation": "Manual send once PH listing live; Brevo waitlist segment",
+      "provider_id": "brevo",
+      "provider_overflow_id": null,
+      "deployed_via": "brevo",
+      "cadence": "one-time",
+      "dedup_trigger_name": "ph_launch_waitlist",
+      "free_tier_runway": "Reusable for future product launches and platform expansions",
+      "dashboard_metrics": ["total_users", "activation_24h_pct"],
+      "dashboard_anchors": ["activation"],
+      "corporate_goals": ["dau", "subs"],
+      "preview": {
+        "source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-launch-waitlist.html",
+        "path": "/emails/ph_launch.html",
+        "subject": "We're live on Product Hunt: 6 months of Zen, on us",
+        "preheader": "Leave genuine feedback on our launch page. Reply with a screenshot to claim 1M tokens/day.",
+        "from_name": "Oasis by Kahana",
+        "plain_text_source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-launch-plain-text.txt"
+      }
+    },
+    {
+      "id": "welcome",
+      "name": "Welcome",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": ["new"],
+      "trigger_summary": "Account created / new Oasis user signup",
+      "trigger_when": "Immediately on signup",
+      "trigger_implementation": "Brevo automation: new Oasis user signup",
+      "provider_id": "hubspot",
+      "provider_overflow_id": "brevo",
+      "deployed_via": "brevo",
+      "cadence": "one-time",
+      "dedup_trigger_name": "welcome_email",
+      "free_tier_runway": "Strategy: HubSpot until >2k/mo; shipped on Brevo",
+      "dashboard_metrics": ["activation_24h_pct", "flow_NURR", "time_to_first_hours"],
+      "dashboard_anchors": ["activation"],
+      "corporate_goals": ["dau", "subs"],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-welcome.html",
+        "path": "/emails/welcome.html",
+        "subject": "Welcome to Oasis",
+        "preheader": "Docs, Slack, and support links to get started.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-welcome-plain-text.txt"
+      }
+    },
+    {
+      "id": "nps_day3",
+      "name": "NPS",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": ["new"],
+      "trigger_summary": "NPS survey after a few days with the product",
+      "trigger_when": "3 days after signup",
+      "trigger_implementation": "Brevo automation: lifecycle_day == 3",
+      "provider_id": "brevo",
+      "provider_overflow_id": null,
+      "deployed_via": "brevo",
+      "cadence": "one-time",
+      "dedup_trigger_name": "nps_day3",
+      "free_tier_runway": "Until daily signups > 300/day (~9k/mo send cap)",
+      "dashboard_metrics": ["feedback_submission_rate_pct"],
+      "dashboard_anchors": [],
+      "corporate_goals": ["dau"],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3.html",
+        "path": "/emails/nps_day3.html",
+        "subject": "Quick question: how likely are you to recommend Oasis?",
+        "preheader": "One question. Your feedback helps us improve.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3-plain-text.txt"
+      }
+    },
+    {
+      "id": "pmf_day10",
+      "name": "PMF survey",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": ["new"],
+      "trigger_summary": "Product-market fit survey",
+      "trigger_when": "10 days after signup",
+      "trigger_implementation": "Brevo automation: lifecycle_day == 10",
+      "provider_id": "mailgun",
+      "provider_overflow_id": "brevo",
+      "deployed_via": "brevo",
+      "cadence": "one-time",
+      "dedup_trigger_name": "pmf_day10",
+      "free_tier_runway": "Strategy: Mailgun; shipped on Brevo",
+      "dashboard_metrics": ["feedback_submission_rate_pct", "latest_wau"],
+      "dashboard_anchors": ["retention"],
+      "corporate_goals": ["dau"],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10.html",
+        "path": "/emails/pmf_day10.html",
+        "subject": "Help us understand how Oasis fits your workflow",
+        "preheader": "2-minute product survey. Your answers shape what we build next.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10-plain-text.txt"
+      }
+    },
+    {
+      "id": "upgrade_thank_you",
+      "name": "Paid Zen welcome",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": ["paid"],
+      "trigger_summary": "Stripe Zen plan upgrade",
+      "trigger_when": "Immediately on Zen upgrade / checkout",
+      "trigger_implementation": "Stripe checkout OR Brevo when plan = Zen",
+      "provider_id": "omnisend",
+      "provider_overflow_id": "brevo",
+      "deployed_via": "brevo",
+      "cadence": "one-time",
+      "dedup_trigger_name": "upgrade_thank_you",
+      "free_tier_runway": "Strategy: OmniSend until 250 paid; shipped on Brevo",
+      "dashboard_metrics": ["paid_subscribers", "active_paid_subscribers", "corporate_goals.subscribers.month_target"],
+      "dashboard_anchors": ["monetization"],
+      "corporate_goals": ["subs", "margin"],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-paid-zen-welcome.html",
+        "path": "/emails/upgrade_thank_you.html",
+        "subject": "Welcome to Oasis Zen",
+        "preheader": "1M tokens per day and priority support are now active.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-paid-zen-welcome-plain-text.txt"
+      }
+    },
+    {
+      "id": "at_risk_nurture",
+      "name": "At-risk nurture",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": ["at_risk_wau", "at_risk_mau"],
+      "trigger_summary": "User enters at-risk WAU or at-risk MAU bucket",
+      "trigger_when": "On bucket transition; WAU cohort prioritized over MAU",
+      "trigger_implementation": "bucket in (at_risk_wau, at_risk_mau)",
+      "provider_id": "mailerlite",
+      "provider_overflow_id": null,
+      "cadence": "drip-2-4",
+      "dedup_trigger_name": "at_risk_nurture",
+      "free_tier_runway": "Until net dead inflow ~500/month OR contacts > 500",
+      "dashboard_metrics": ["bucket_at_risk_wau", "bucket_at_risk_mau", "flow_iWAURR", "flow_iMAURR", "flow_MAU_Loss_Rate"],
+      "dashboard_anchors": ["dau-model"],
+      "corporate_goals": ["dau"],
+      "preview": null
+    },
+    {
+      "id": "activation_nudge",
+      "name": "Activation nudge",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": ["new"],
+      "trigger_summary": "No AI prompt within 24h of signup",
+      "trigger_when": "24h after signup if zero llm_usage rows",
+      "trigger_implementation": "activation_24h cohort: users_with_first_prompt == false at T+24h",
+      "provider_id": "hubspot",
+      "provider_overflow_id": "brevo",
+      "cadence": "one-time",
+      "dedup_trigger_name": "activation_nudge_24h",
+      "free_tier_runway": "Shares HubSpot monthly cap; overflow to Brevo",
+      "dashboard_metrics": ["activation_24h_pct", "flow_NURR", "flow_1-NURR"],
+      "dashboard_anchors": ["activation"],
+      "corporate_goals": ["dau", "subs"],
+      "preview": null
+    },
+    {
+      "id": "limit_hitter_upgrade",
+      "name": "Limit-hitter upgrade",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": ["limit_hitter"],
+      "trigger_summary": "Free user hits daily token cap",
+      "trigger_when": "First limit hit; optional D7 reminder if still free",
+      "trigger_implementation": "users_hit_limit AND user NOT IN paid_subscribers",
+      "provider_id": "brevo",
+      "provider_overflow_id": "mailgun",
+      "cadence": "one-time-plus-d7",
+      "dedup_trigger_name": "limit_hitter_upgrade",
+      "free_tier_runway": "Brevo 300/day; use dedicated list separate from NPS",
+      "dashboard_metrics": ["limit_hitter_conversion_pct", "token_limit_hit_rate_pct", "paid_subscribers"],
+      "dashboard_anchors": ["monetization"],
+      "corporate_goals": ["subs", "margin"],
+      "preview": null
+    },
+    {
+      "id": "dead_resurrection",
+      "name": "Dead resurrection",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": ["dead"],
+      "trigger_summary": "User in dead bucket, eligible for win-back",
+      "trigger_when": "Day 0 + day 14 of campaign; cap 20 new users/month when contacts tight",
+      "trigger_implementation": "bucket=dead AND NOT emailed in 30d AND NOT 12mo absent",
+      "provider_id": "mailerlite",
+      "provider_overflow_id": null,
+      "cadence": "campaign-2-touch",
+      "dedup_trigger_name": "dead_resurrection",
+      "free_tier_runway": "Lowest MailerLite priority after at-risk cohorts",
+      "dashboard_metrics": ["bucket_dead", "flow_Resurrection_Rate", "flow_MAU_Loss_Rate"],
+      "dashboard_anchors": ["dau-model"],
+      "corporate_goals": ["dau"],
+      "preview": null
+    },
+    {
+      "id": "return_reinforcement",
+      "name": "Return reinforcement",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": ["reactivated", "resurrected"],
+      "trigger_summary": "User re-enters after absence",
+      "trigger_when": "First day in reactivated or resurrected bucket",
+      "trigger_implementation": "bucket transition to reactivated OR resurrected",
+      "provider_id": "mailerlite",
+      "provider_overflow_id": null,
+      "cadence": "one-time",
+      "dedup_trigger_name": "return_reinforcement",
+      "free_tier_runway": "Shares MailerLite contact cap with nurture/resurrection",
+      "dashboard_metrics": ["flow_RURR", "flow_SURR", "flow_1-RURR", "flow_1-SURR"],
+      "dashboard_anchors": ["dau-model"],
+      "corporate_goals": ["dau"],
+      "preview": null
+    },
+    {
+      "id": "cancelled_winback",
+      "name": "Cancelled sub win-back",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": ["cancelled_paid"],
+      "trigger_summary": "Paid subscription cancelled (not renewing)",
+      "trigger_when": "On user_plans.is_active=false; D14 follow-up",
+      "trigger_implementation": "cancelled_paid_subscribers increment",
+      "provider_id": "brevo",
+      "provider_overflow_id": null,
+      "cadence": "one-time-plus-d14",
+      "dedup_trigger_name": "cancelled_winback",
+      "free_tier_runway": "Active after OmniSend free tier full (250 paid)",
+      "dashboard_metrics": ["cancelled_paid_subscribers", "active_paid_subscribers", "paid_subscribers"],
+      "dashboard_anchors": ["monetization"],
+      "corporate_goals": ["subs"],
+      "preview": null
+    }
+  ],
+  "pseudo_buckets": [
+    {
+      "key": "waitlist",
+      "label": "Waitlist / acquisition",
+      "definition": "Pre-signup or launch-funnel contacts entering as new users (PH and future launches)"
+    },
+    {
+      "key": "paid",
+      "label": "Paid (Stripe)",
+      "definition": "Active Zen / $20/mo user_plans row from 2026-05-24 onward"
+    },
+    {
+      "key": "limit_hitter",
+      "label": "Limit hitters",
+      "definition": "Free users who hit daily token cap (cross-bucket monetization segment)"
+    },
+    {
+      "key": "cancelled_paid",
+      "label": "Cancelled paid",
+      "definition": "user_plans.is_active=false"
+    }
+  ]
+}

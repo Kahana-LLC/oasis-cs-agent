@@ -48,7 +48,7 @@ Writes `baseline_snapshot.json` and updates the optional Cursor canvas. Then rer
 
 ## DAU model section
 
-The Vercel dashboard and snapshot JSON include **`dau_model`**: seven user buckets (New, Current, Reactivated, Resurrected, At-risk WAU/MAU, Dead) and flow rates (NURR, CURR, RURR, etc.) per the [Daily Active Users diagram](../User%20Email%20Machine.txt). Engagement = `sessions` ∪ `llm_usage`.
+The Vercel dashboard and snapshot JSON include **`dau_model`**: seven user buckets (New, Current, Reactivated, Resurrected, At-risk WAU/MAU, Dead) and flow rates (NURR, CURR, RURR, etc.) per the [Daily Active Users diagram](../User%20Email%20Machine.txt). Engagement = `sessions` ∪ `llm_usage`. Proposed email sequences mapped to these buckets: [USER_EMAIL_MACHINE_PROPOSAL.md](../docs/USER_EMAIL_MACHINE_PROPOSAL.md). **Engineer subpage (live):** `/email-machine` on the Vercel site (`public/email-machine.html` + `public/email_sequences.json`).
 
 ## Launch KPIs section
 

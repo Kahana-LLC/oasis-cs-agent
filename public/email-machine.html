@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oasis Email Machine — Engineer Reference</title>
+  <link rel="stylesheet" href="/site.css" />
+</head>
+<body>
+  <div class="wrap" id="app">
+    <p class="err">Loading email machine reference…</p>
+  </div>
+  <script>
+    let emailData = null;
+    let snapshotData = null;
+    let bucketCounts = {};
+
+    function escapeHtml(s) {
+      if (s == null) return "";
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function providerById(id) {
+      return (emailData?.providers || []).find((p) => p.id === id);
+    }
+
+    function formatLimits(p) {
+      if (!p?.free_limits) return "—";
+      const lim = p.free_limits;
+      const parts = [];
+      if (lim.marketing_emails_per_month != null) {
+        parts.push(`${lim.marketing_emails_per_month.toLocaleString()}/mo marketing`);
+      }
+      if (lim.emails_per_day != null) {
+        parts.push(`${lim.emails_per_day}/day`);
+      }
+      if (lim.emails_per_month != null) {
+        parts.push(`${lim.emails_per_month.toLocaleString()}/mo`);
+      }
+      if (lim.contacts != null) {
+        parts.push(`${lim.contacts.toLocaleString()} contacts`);
+      }
+      return parts.join(" · ") || "—";
+    }
+
+    function bucketLabel(key) {
+      const b = (emailData?.buckets || []).find((x) => x.key === key);
+      if (b) return b.label;
+      const p = (emailData?.pseudo_buckets || []).find((x) => x.key === key);
+      return p ? p.label : key;
+    }
+
+    function bucketPills(keys) {
+      return (keys || [])
+        .map(
+          (k) =>
+            `<span class="bucket-pill bucket-${escapeHtml(k)}">${escapeHtml(bucketLabel(k))}</span>`
+        )
+        .join("");
+    }
+
+    function phaseBadge(phase) {
+      if (phase === "1-adam") {
+        return '<span class="phase-badge phase-adam">Adam</span>';
+      }
+      if (phase === "1-new") {
+        return '<span class="phase-badge phase-new">New</span>';
+      }
+      return "";
+    }
+
+    function liveCountForBucket(key) {
+      if (bucketCounts[key] == null) return "";
+      return `<span class="live-count">${bucketCounts[key]} users</span>`;
+    }
+
+    function metricLinks(seq) {
+      const anchors = seq.dashboard_anchors || [];
+      const metrics = seq.dashboard_metrics || [];
+      const links = anchors.map(
+        (a) => `<a class="metric-link" href="/#${escapeHtml(a)}">#${escapeHtml(a)}</a>`
+      );
+      metrics.slice(0, 3).forEach((m) => {
+        links.push(`<span class="code">${escapeHtml(m)}</span>`);
+      });
+      return links.join(" ") || "—";
+    }
+
+    function getPreview(seq) {
+      return seq?.preview && typeof seq.preview === "object" ? seq.preview : null;
+    }
+
+    function getPreviewPath(seq) {
+      const p = getPreview(seq);
+      return p?.path || seq.preview_path || null;
+    }
+
+    function deployedBadge(seq) {
+      if (!seq.deployed_via) return "";
+      const strategy = providerById(seq.provider_id)?.name || seq.provider_id;
+      if (seq.deployed_via === seq.provider_id) return "";
+      return `<span class="phase-badge phase-adam" title="Strategy provider: ${escapeHtml(strategy)}">Shipped: ${escapeHtml(seq.deployed_via)}</span>`;
+    }
+
+    function previewIframe(path, title) {
+      return `<div class="preview-iframe-wrap"><iframe src="${escapeHtml(path)}" title="${escapeHtml(title)} preview" sandbox=""></iframe></div>`;
+    }
+
+    function previewCell(seq) {
+      const preview = getPreview(seq);
+      const path = getPreviewPath(seq);
+      if (!path) {
+        return `<details class="email-preview preview-slot">
+          <summary>Preview</summary>
+          <div class="preview-body">Template not yet in <span class="code">brevo-oasis-emails/</span>. Add source HTML and <span class="code">preview.source</span> in email_sequences.json, then run build.</div>
+        </details>`;
+      }
+      const subject = preview?.subject ? escapeHtml(preview.subject) : "Preview";
+      return `<details class="email-preview preview-slot">
+        <summary>${subject}</summary>
+        ${previewIframe(path, seq.name)}
+      </details>`;
+    }
+
+    function renderPreviewGallery() {
+      const withPreview = (emailData?.sequences || []).filter((s) => getPreviewPath(s));
+      if (!withPreview.length) return "";
+      const repoBase = "https://github.com/AdamKershner/oasis-analytics/blob/main/";
+      const cards = withPreview
+        .map((seq) => {
+          const preview = getPreview(seq);
+          const path = getPreviewPath(seq);
+          const sourceLink = preview?.source
+            ? `<a href="${repoBase}${escapeHtml(preview.source)}" target="_blank" rel="noopener">Source file</a>`
+            : "";
+          return `<article class="preview-card" id="preview-${escapeHtml(seq.id)}">
+            <div class="preview-meta">
+              <h3>${escapeHtml(seq.name)}${phaseBadge(seq.phase)}${deployedBadge(seq)}</h3>
+              <p class="preview-subject">${escapeHtml(preview?.subject || "")}</p>
+              <p class="preview-preheader">${escapeHtml(preview?.preheader || "")}</p>
+              <p class="preview-from">${escapeHtml(preview?.from_name || "")} · ${escapeHtml(seq.trigger_when || "")}</p>
+              <p>${bucketPills(seq.buckets)}</p>
+            </div>
+            <details class="email-preview">
+              <summary>Open full preview</summary>
+              ${previewIframe(path, seq.name)}
+            </details>
+            <p class="preview-source">${sourceLink}</p>
+          </article>`;
+        })
+        .join("");
+      return `<section id="preview-gallery">
+        <h2>Email previews</h2>
+        <p class="section-cap">Rendered from <span class="code">brevo-oasis-emails/</span> (built to <span class="code">public/emails/</span> on deploy). Merge tags show sample values (e.g. Alex).</p>
+        <div class="preview-gallery">${cards}</div>
+      </section>`;
+    }
+
+    function renderProviders() {
+      const seqs = emailData?.sequences || [];
+      return (emailData?.providers || [])
+        .map((p) => {
+          const used = seqs
+            .filter((s) => s.provider_id === p.id || s.provider_overflow_id === p.id)
+            .map((s) => s.name);
+          return `<div class="provider-card" data-provider-id="${escapeHtml(p.id)}">
+            <h3>${escapeHtml(p.name)}</h3>
+            <div class="limits">${escapeHtml(formatLimits(p))}</div>
+            <div class="constraints">${(p.constraints || []).map(escapeHtml).join(" · ")}</div>
+            <div class="upgrade"><strong>Upgrade when:</strong> ${escapeHtml(p.upgrade_trigger || "—")}</div>
+            ${p.notes ? `<div class="upgrade">${escapeHtml(p.notes)}</div>` : ""}
+            <div class="seq-list">Sequences: ${used.length ? escapeHtml(used.join(", ")) : "—"}</div>
+          </div>`;
+        })
+        .join("");
+    }
+
+    function renderBucketsTable() {
+      const seqs = emailData?.sequences || [];
+      const rows = (emailData?.buckets || [])
+        .map((b) => {
+          const related = seqs
+            .filter((s) => (s.buckets || []).includes(b.key))
+            .map((s) => s.name)
+            .join(", ");
+          return `<tr data-bucket="${escapeHtml(b.key)}">
+            <td><span class="bucket-pill bucket-${escapeHtml(b.key)}">${escapeHtml(b.label)}</span>${liveCountForBucket(b.key)}</td>
+            <td>${escapeHtml(b.definition)}</td>
+            <td>${escapeHtml(b.rollup || "")}</td>
+            <td class="flow-rates">${(b.flow_rates || []).map((r) => `<span class="code">${escapeHtml(r)}</span>`).join(" ")}</td>
+            <td>${escapeHtml(related || "—")}</td>
+          </tr>`;
+        })
+        .join("");
+      return `<table class="bucket-table">
+        <thead><tr><th>Bucket</th><th>Definition</th><th>Roll-up</th><th>Flow rates</th><th>Sequences</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+
+    function renderCliffsTable() {
+      return `<table class="cliffs-table">
+        <thead><tr><th>Cliff</th><th>Provider</th><th>Trigger</th><th>Action</th></tr></thead>
+        <tbody>${(emailData?.capacity_cliffs || [])
+          .map((c) => {
+            const p = providerById(c.provider_id);
+            return `<tr>
+              <td>${escapeHtml(c.id)}</td>
+              <td>${escapeHtml(p?.name || c.provider_id)}</td>
+              <td>${escapeHtml(c.trigger)}</td>
+              <td>${escapeHtml(c.action)}</td>
+            </tr>`;
+          })
+          .join("")}</tbody>
+      </table>`;
+    }
+
+    function renderSequenceTable() {
+      const rows = (emailData?.sequences || [])
+        .map((seq) => {
+          const primary = providerById(seq.provider_id);
+          const overflow = seq.provider_overflow_id
+            ? providerById(seq.provider_overflow_id)
+            : null;
+          const providerCell = overflow
+            ? `${escapeHtml(primary?.name || seq.provider_id)} <span class="section-cap">overflow → ${escapeHtml(overflow.name)}</span>`
+            : escapeHtml(primary?.name || seq.provider_id);
+          const limitCell = `${escapeHtml(formatLimits(primary))}<br><span class="section-cap">${escapeHtml(seq.free_tier_runway || "")}</span>`;
+          return `<tr class="seq-row" data-bucket="${escapeHtml((seq.buckets || []).join(","))}" data-provider="${escapeHtml(seq.provider_id)}" data-overflow="${escapeHtml(seq.provider_overflow_id || "")}" data-phase="${escapeHtml(seq.phase)}">
+            <td><strong>${escapeHtml(seq.name)}</strong>${phaseBadge(seq.phase)}${deployedBadge(seq)}</td>
+            <td>${bucketPills(seq.buckets)}</td>
+            <td>${escapeHtml(seq.trigger_summary)}<br><span class="code">${escapeHtml(seq.trigger_implementation || "")}</span></td>
+            <td>${escapeHtml(seq.trigger_when)}</td>
+            <td>${providerCell}</td>
+            <td>${limitCell}</td>
+            <td><span class="code">${escapeHtml(seq.dedup_trigger_name)}</span><br><span class="section-cap">outreach_log</span></td>
+            <td>${metricLinks(seq)}</td>
+            <td>${previewCell(seq)}</td>
+          </tr>`;
+        })
+        .join("");
+      return `<div class="seq-table-wrap">
+        <table class="seq-table">
+          <thead><tr>
+            <th>Sequence</th><th>Bucket(s)</th><th>Trigger</th><th>When</th>
+            <th>Provider</th><th>Free tier</th><th>Dedup</th><th>Metrics</th><th>Preview</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    }
+
+    function renderFilters() {
+      const providers = emailData?.providers || [];
+      const buckets = [
+        ...(emailData?.buckets || []).map((b) => [b.key, b.label]),
+        ...(emailData?.pseudo_buckets || []).map((b) => [b.key, b.label]),
+      ];
+      return `<div class="filter-bar">
+        <label>Bucket <select id="filter-bucket"><option value="">All</option>${buckets.map(([k, l]) => `<option value="${escapeHtml(k)}">${escapeHtml(l)}</option>`).join("")}</select></label>
+        <label>Provider <select id="filter-provider"><option value="">All</option>${providers.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("")}</select></label>
+        <label>Phase <select id="filter-phase"><option value="">All</option><option value="1-adam">Adam (Phase 1)</option><option value="1-new">New additions</option></select></label>
+        <span id="filter-count" class="section-cap"></span>
+      </div>`;
+    }
+
+    function applyFilters() {
+      const bucket = document.getElementById("filter-bucket")?.value || "";
+      const provider = document.getElementById("filter-provider")?.value || "";
+      const phase = document.getElementById("filter-phase")?.value || "";
+      const rows = document.querySelectorAll(".seq-row");
+      let visible = 0;
+      rows.forEach((row) => {
+        const buckets = (row.getAttribute("data-bucket") || "").split(",");
+        const matchBucket = !bucket || buckets.includes(bucket);
+        const matchProvider =
+          !provider ||
+          row.getAttribute("data-provider") === provider ||
+          row.getAttribute("data-overflow") === provider;
+        const matchPhase = !phase || row.getAttribute("data-phase") === phase;
+        const show = matchBucket && matchProvider && matchPhase;
+        row.classList.toggle("hidden", !show);
+        if (show) visible++;
+      });
+      const el = document.getElementById("filter-count");
+      if (el) el.textContent = `Showing ${visible} of ${rows.length} sequences`;
+    }
+
+    function bindFilters() {
+      ["filter-bucket", "filter-provider", "filter-phase"].forEach((id) => {
+        document.getElementById(id)?.addEventListener("change", applyFilters);
+      });
+      applyFilters();
+    }
+
+    function liveBanner() {
+      if (!snapshotData) {
+        return `<div class="banner banner-info">Live bucket counts unavailable — showing static reference only. Open on Vercel or run <span class="code">vercel dev</span> for live cohort sizes.</div>`;
+      }
+      const dau = snapshotData.dau_model || {};
+      const asOf = dau.as_of || snapshotData.snapshot_date || "—";
+      const totals = dau.totals || {};
+      return `<div class="banner banner-live">Live cohorts as of ${escapeHtml(asOf)} · DAU ${totals.dau ?? "—"} · WAU ${totals.wau ?? "—"} · MAU ${totals.mau ?? "—"} · <a href="/">Dashboard</a></div>`;
+    }
+
+    function renderPage() {
+      const app = document.getElementById("app");
+      app.innerHTML = `
+        <nav class="site-nav">
+          <a href="/">Dashboard</a>
+          <a href="/email-machine" aria-current="page">Email machine</a>
+        </nav>
+        <h1>User Email Machine</h1>
+        <p class="caption">Engineer reference — DAU buckets, triggers, free-tier providers, and sequence routing. Spec: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md">USER_EMAIL_MACHINE_PROPOSAL.md</a></p>
+        ${liveBanner()}
+        <section id="overview">
+          <h2>Overview</h2>
+          <p class="section-cap">Multi-provider free-tier stack in service of corporate goals: <strong>500 paid subscribers by Dec 31, 2026</strong>, <strong>4.5× DAU</strong> vs Product Hunt launch week, and <strong>80% gross margin</strong>. Each lifecycle stage maps to one provider until capacity triggers an upgrade or overflow.</p>
+          <div class="flow-diagram">
+            <strong>DAU buckets (active):</strong> New + Current + Reactivated + Resurrected = DAU<br>
+            <strong>Inactive:</strong> At-risk WAU → At-risk MAU → Dead → (Resurrection_Rate) → Resurrected<br>
+            <strong>Monetization cross-cuts:</strong> Limit hitters → Brevo upgrade · Stripe paid → OmniSend thank-you<br>
+            <strong>Acquisition funnel:</strong> PH teaser / launch emails (<span class="code">ph-waitlist/</span>) target new users and waitlist — reusable for future launches (Windows, Linux, mobile).
+          </div>
+        </section>
+        ${renderPreviewGallery()}
+        <section id="buckets">
+          <h2>DAU buckets</h2>
+          <p class="section-cap">Classified daily from sessions ∪ llm_usage · same logic as <span class="code">reporting/dau_model.py</span></p>
+          ${renderBucketsTable()}
+        </section>
+        <section id="providers">
+          <h2>Email providers (free tier)</h2>
+          <p class="section-cap">Five providers; each sequence uses one primary and optional overflow.</p>
+          <div class="provider-grid">${renderProviders()}</div>
+        </section>
+        <section id="sequences">
+          <h2>Sequence reference</h2>
+          <p class="section-cap">What fires, when, which provider, and outreach_log dedup key. Filter to find a cohort.</p>
+          ${renderFilters()}
+          ${renderSequenceTable()}
+        </section>
+        <section id="capacity">
+          <h2>Capacity cliffs</h2>
+          <p class="section-cap">When free tiers break — especially Product Hunt burst and OmniSend 250 paid cap vs 500 subs goal.</p>
+          ${renderCliffsTable()}
+        </section>
+        <section id="ops">
+          <h2>Operational loop</h2>
+          <div class="info">
+            <ol style="margin:0;padding-left:1.25rem">
+              <li><span class="code">main.py --baseline</span> → snapshot with <span class="code">dau_model</span> + <span class="code">corporate_goals</span></li>
+              <li>Classify users into buckets (future CS agent daily run)</li>
+              <li>Evaluate sequence triggers → route to provider queue</li>
+              <li>Log sends in <span class="code">outreach_log</span> via <span class="code">dedup_trigger_name</span></li>
+              <li>Monitor weekly deltas on at-risk WAU, dead, Resurrection_Rate, paid_subscribers</li>
+            </ol>
+          </div>
+        </section>
+        <footer>
+          Strategy spec only — no sends implemented yet ·
+          <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/PLAN.md">CS agent PLAN.md</a> ·
+          <a href="/">← Dashboard</a>
+        </footer>
+      `;
+      bindFilters();
+    }
+
+    async function loadSnapshot() {
+      try {
+        const res = await fetch("/api/snapshot", { cache: "no-store" });
+        if (!res.ok) throw new Error(`API ${res.status}`);
+        snapshotData = await res.json();
+        bucketCounts = snapshotData?.dau_model?.bucket_counts || {};
+      } catch {
+        snapshotData = null;
+        bucketCounts = {};
+      }
+    }
+
+    async function init() {
+      try {
+        const res = await fetch("/email_sequences.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("email_sequences.json missing");
+        emailData = await res.json();
+        await loadSnapshot();
+        renderPage();
+      } catch (e) {
+        document.getElementById("app").innerHTML = `<p class="err">Failed to load: ${escapeHtml(e.message)}</p>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

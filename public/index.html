@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Oasis Baseline Report</title>
+  <link rel="stylesheet" href="/site.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -655,6 +656,10 @@
 
       const app = document.getElementById("app");
       app.innerHTML = `
+        <nav class="site-nav">
+          <a href="/" aria-current="page">Dashboard</a>
+          <a href="/email-machine">Email machine</a>
+        </nav>
         <h1>Oasis Baseline Report</h1>
         <p class="caption">Snapshot ${data.snapshot_date || "—"} · ${data.total_users || 0} users (${data.active_users || 0} active)</p>
         <p class="data-source ${String(sourceLabel).includes("live") ? "live" : ""}">Last updated: ${data.generated_at || "—"} · Source: ${sourceLabel}</p>
@@ -783,7 +788,7 @@
           ${tableFromRows(fb.review_samples || [], "user_id")}
         </section>
 
-        <footer>Live metrics via /api/snapshot on refresh · <a href="https://github.com/AdamKershner/oasis-analytics" style="color:var(--accent)">oasis-analytics</a></footer>
+        <footer>Live metrics via /api/snapshot on refresh · <a href="/email-machine">Email machine reference</a> · <a href="https://github.com/AdamKershner/oasis-analytics" style="color:var(--accent)">oasis-analytics</a></footer>
       `;
 
       chartId = 0;

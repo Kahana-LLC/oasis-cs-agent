@@ -1,0 +1,33 @@
+Hi {{ contact.FIRSTNAME }},
+
+Adam Kershner
+Founder, Oasis
+
+I wanted to welcome you personally. Oasis is a privacy-first AI browser you can train, and I am glad you are here.
+
+Oasis with the desert midnight theme:
+https://kahana.co/images/oasis-browser-assistant-screenshot.png
+
+Assistant themes: https://kahana.co/docs/assistant-themes
+
+If you need help getting started, here are the best places to learn, ask questions, and connect:
+
+Browse the docs: https://kahana.co/docs
+Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact us: https://kahana.co/contact
+
+Browse docs: https://kahana.co/docs
+
+I'm here if you have questions, feedback, or just want to talk about Oasis.
+
+Connect with me on social media, reply to this email, or DM me. Either way, I'll be there to help along the way.
+
+Connect with me: https://kahana.co/adam-kershner
+
+You're receiving this because you signed up for Oasis.
+Browse docs: https://kahana.co/docs
+Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact us: https://kahana.co/contact
+Privacy: https://kahana.co/privacy-policy
+View in browser: {{ mirror }}
+Unsubscribe: {{ unsubscribe }}

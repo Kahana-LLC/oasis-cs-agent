@@ -4,6 +4,9 @@
   "buildCommand": "python3 reporting/build_static_site.py",
   "outputDirectory": "public",
   "framework": null,
+  "rewrites": [
+    { "source": "/email-machine", "destination": "/email-machine.html" }
+  ],
   "build": {
     "env": {
       "PYTHON_VERSION": "3.12"

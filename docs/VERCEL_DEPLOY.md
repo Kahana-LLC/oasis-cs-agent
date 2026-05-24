@@ -35,6 +35,8 @@ Streamlit (`main.py --baseline-view`) remains for local interactive use only.
 | **Build Command** | `python reporting/build_static_site.py` |
 | **Output Directory** | `public` |
 
+The build script copies `baseline_snapshot.json` into `public/` and **syncs email HTML previews**: for each sequence with `preview.source` in `email_sequences.json`, it wraps the Brevo fragment from `brevo-oasis-emails/` and writes `public/emails/<sequence_id>.html` (gitignored; regenerated every deploy).
+
 [`vercel.json`](../vercel.json) sets these plus `maxDuration: 60` for the API.
 
 ### Environment variables (required for live dashboard)
@@ -69,8 +71,9 @@ Until history accumulates, delta badges show “—”. Run `.venv/bin/python ma
 
 1. Open `https://oasis-analytics.vercel.app/api/snapshot` — JSON with `generated_at` and metrics.
 2. Open the main URL — header shows **Last updated** and **Source: live (Supabase)**.
-3. Hard-refresh — `generated_at` should reflect a new pull.
-4. If API returns `{"error":"Missing environment variable: ..."}` — add secrets in Vercel and redeploy.
+3. Open `/email-machine` — engineer reference for DAU buckets, triggers, and free-tier email providers (data from `public/email_sequences.json`). The **Email previews** gallery shows rendered Brevo templates when the build step synced `public/emails/*.html`.
+4. Hard-refresh — `generated_at` should reflect a new pull.
+5. If API returns `{"error":"Missing environment variable: ..."}` — add secrets in Vercel and redeploy.
 
 ---
 

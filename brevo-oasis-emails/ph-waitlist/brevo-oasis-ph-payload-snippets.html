@@ -1,0 +1,29 @@
+<p style="margin: 24px 0 8px; font-size: 18px; font-weight: 800; color: #313A00;">Transparent by default</p>
+<p style="margin: 0 0 16px; font-size: 16px; color: #4A5745;">Oasis sends minimal interaction data to Kahana so we can improve the assistant: fix bugs, measure latency, and understand what helps. By default, personalization is <strong>off</strong>: payloads are anonymized with no email or account ID. You only share identifying fields if you opt in from Settings.</p>
+<p style="margin: 0 0 16px; font-size: 16px; color: #4A5745;">Unlike Chromium browsers that can gather broad behavioral signals in the background, Oasis is explicit about what leaves your device. We do not build ad profiles from your location, searches, likes, or purchases. Sensitive context stays local.</p>
+<p style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: #313A00;">Default: anonymized (no user block)</p>
+<pre style="margin: 0 0 16px; padding: 12px; background-color: #F2F4E5; border-radius: 8px; font-family: Menlo, Monaco, Consolas, monospace; font-size: 11px; line-height: 1.45; color: #313A00; white-space: pre-wrap; word-break: break-word;">{
+  "client": { "os": "macOS", "platform": "desktop", "browser_name": "Oasis", "browser_version": "1.0.0" },
+  "prompt": { "text": "tell me some recipes for thai food", "language": "en-US", "input_tokens": 2922 },
+  "context": { "org_tier": "free", "active_tab_url": "about:preferences#privacy", "active_tab_title": "Settings" },
+  "response": { "text": "Thai food is fantastic! …", "latency_ms": 2600, "output_tokens": 60 },
+  "timestamp": "2026-05-21T20:05:13.562Z",
+  "session_id": "046ab22b-6074-41d9-9bc6-1ecee0b1c745",
+  "interaction_id": "1bd1d64a-68fd-4731-be86-56deab7f72d6",
+  "app_version": "1.0.0"
+}</pre>
+<p style="margin: 0 0 8px; font-size: 14px; font-weight: 700; color: #313A00;">Opt-in only: includes user block</p>
+<pre style="margin: 0 0 16px; padding: 12px; background-color: #F2F4E5; border-radius: 8px; font-family: Menlo, Monaco, Consolas, monospace; font-size: 11px; line-height: 1.45; color: #313A00; white-space: pre-wrap; word-break: break-word;">{
+  "user": {
+    "role": "user",
+    "email": "user@example.com",
+    "locale": "en-US",
+    "user_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "opt_in_data_collection_use": true
+  },
+  "client": { "os": "macOS", "platform": "desktop", "browser_name": "Oasis", "browser_version": "1.0.0" },
+  "prompt": { "text": "tell me some italian recipes", "language": "en-US", "input_tokens": 2970 },
+  "response": { "text": "Italian food is incredibly diverse …", "latency_ms": 6078, "output_tokens": 851 }
+}</pre>
+<p style="margin: 0 0 16px; font-size: 13px; color: #6b7355;">Illustrative examples; see the doc for the full field reference.</p>
+<p style="margin: 0 0 16px; font-size: 16px; color: #4A5745;"><a href="https://kahana.co/docs/technical-and-interaction-data" target="_blank" rel="noopener noreferrer" style="color: #4A6200; font-weight: 600; text-decoration: underline;">How Oasis collects interaction data</a></p>

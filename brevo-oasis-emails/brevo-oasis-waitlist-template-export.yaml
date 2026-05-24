@@ -1,0 +1,128 @@
+# Brevo drag-and-drop template export (sanitized backup)
+# Exported from Brevo editor v3.0.1 — May 23, 2026
+# NOT for direct re-import; use block IDs with brevo-oasis-ph-teaser-dnd-spec.md
+# Removed: user-hash, session tokens
+
+author: ""
+brandUpdateTime: "2026-05-23T21:57:07.522Z"
+campaignType: classic
+version: 3.0.1
+subject: "Tomorrow on Product Hunt: Oasis Browser for Mac"
+
+font-fallback:
+  default: Arial
+  headings: Arial
+
+fonts:
+  - "https://fonts.googleapis.com/css2?family=Nunito&family=Raleway&display=swap"
+
+body:
+  id: c30bc190-4472-4cfc-a65a-754aec05b727
+  type: body
+  layout:
+    default:
+      wrapper-width: 600px
+
+styles:
+  default:
+    properties:
+      color: "#4A5745"
+      font-family: Raleway
+      font-size: 16px
+  default-button:
+    properties:
+      background-color: "#4A6200"
+      border-color: "#4A6200"
+      color: "#fff"
+  default-heading2:
+    properties:
+      color: "#313A00"
+      font-family: Nunito
+      font-size: 32px
+  default-link:
+    properties:
+      color: "#4A6200"
+
+blocks:
+  - name: viewInBrowser
+    id: 4e5576af-91e0-47cd-9597-e7cc4f53a159
+    type: text
+    action: keep
+    mergeTag: "{{ mirror }}"
+
+  - name: brand-logo
+    id: 6571a87e-2102-419b-9b04-8325089d3fd8
+    type: image
+    action: keep
+    src: "https://img.mailinblue.com/5789533/images/content_library/original/6a1222ad6a0ea0cc263ae1f1.png"
+
+  - name: text-title
+    id: ae0190f0-fc4b-4d11-b48e-f7e21c9cba0d
+    type: text
+    action: update
+    content: "Oasis launches on Product Hunt tomorrow"
+
+  - name: body-text
+    id: dbc0a94d-c7ed-4abc-a6df-6de694f99ab0
+    type: text
+    action: update
+  # Paste body HTML from brevo-oasis-ph-teaser-dnd-spec.md
+
+  - name: button-primary
+    id: 917808d2-5038-4f9e-bf3f-6612b5924bdb
+    type: text-button
+    action: update
+    label: "See us on Product Hunt"
+    href: "https://www.producthunt.com/products/kahana"
+
+  - name: button-secondary
+    id: null
+    type: text-button
+    action: add
+    label: "Download for Mac (May 27)"
+    href: "https://kahana.co/oasis-pricing"
+
+  - name: raw-html
+    id: 81213d5b-3001-4142-9fc8-ce171979a04f
+    type: raw-html
+    action: delete_or_inline_links_only
+
+  - name: hero-image
+    id: 6894b15a-038a-4707-9b85-72bd94558c2c
+    type: image
+    action: update
+    src: "https://kahana.co/images/oasis-browser-assistant-screenshot.png"
+    alt: "Oasis browser with built-in AI assistant"
+    alt: "Oasis Browser for Mac preview"
+
+  - name: spacer
+    id: f604a84e-6882-4989-8011-febf553ba80b
+    type: spacer
+    action: keep
+
+  - name: social-media-group
+    id: 36c79656-b4b4-4973-9208-3259d913d0cc
+    type: social-media-group
+    action: keep
+    links:
+      - role: linkedin
+        href: "https://www.linkedin.com/company/kahana-co/"
+      - role: youtube
+        href: "https://www.youtube.com/channel/UCwsf3DOnt3uQdrqf-NRZ2_w?sub_confirmation=1"
+      - role: instagram
+        href: "https://instagram.com/kahanahq"
+      - role: website
+        href: "https://kahana.co/"
+      - role: discord
+        href: "https://discord.gg/SHrHghFYb5"
+
+  - name: navigation
+    id: 8ff6bd28-81ae-44ab-a3bd-84fa734fee06
+    type: navigation
+    action: delete_or_replace
+  # Replace with: Product Hunt, Mac download, Waitlist, Contact
+
+  - name: dynamicList
+    id: 2b930d88-a6f3-436f-835f-18134818659b
+    type: grid-row
+    action: delete_if_empty

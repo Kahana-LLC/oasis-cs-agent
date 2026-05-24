@@ -1,0 +1,39 @@
+Hi {{ contact.FIRSTNAME }},
+
+Adam Kershner
+Founder, Oasis
+
+You have had a few days with Oasis. I would love your honest feedback.
+
+How likely are you to recommend Oasis to a friend or colleague? Tap your score below. It takes about one minute, and your answer goes straight to me.
+
+Tap a score (opens pre-filled Tally form):
+0: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=0&email={{ contact.EMAIL }}
+1: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=1&email={{ contact.EMAIL }}
+2: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=2&email={{ contact.EMAIL }}
+3: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=3&email={{ contact.EMAIL }}
+4: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=4&email={{ contact.EMAIL }}
+5: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=5&email={{ contact.EMAIL }}
+6: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=6&email={{ contact.EMAIL }}
+7: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=7&email={{ contact.EMAIL }}
+8: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=8&email={{ contact.EMAIL }}
+9: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=9&email={{ contact.EMAIL }}
+10: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=10&email={{ contact.EMAIL }}
+
+Full survey: https://kahana.co/oasis-nps?email={{ contact.EMAIL }}
+
+Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+
+I'm here if you have questions, feedback, or just want to talk about Oasis.
+
+Connect with me on social media, reply to this email, or DM me. Either way, I'll be there to help along the way.
+
+Connect with me: https://kahana.co/adam-kershner
+
+Browse docs: https://kahana.co/docs
+Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact us: https://kahana.co/contact
+
+View in browser: {{ mirror }}
+Unsubscribe: {{ unsubscribe }}
+Privacy: https://kahana.co/privacy-policy
