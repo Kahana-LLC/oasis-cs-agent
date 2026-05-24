@@ -20,7 +20,11 @@ from models.db import (
 )
 from reporting.cost_model import total_api_cost_usd
 from reporting.dau_model import compute_dau_model
-from reporting.corporate_goals import DEFAULT_SUPABASE_MONTHLY_USD
+from reporting.corporate_goals import (
+    DEFAULT_SUPABASE_MONTHLY_USD,
+    PAID_SUBSCRIBER_BASELINE_COUNT,
+    PAID_SUBSCRIBER_TRACKING_START,
+)
 from reporting.goal_progress import compute_gross_margin_pct
 from reporting.launch_kpis import compute_launch_kpis
 
@@ -437,6 +441,36 @@ def _effective_daily_limits(
     return limits
 
 
+def _count_paid_subscribers(user_plans: list[UserPlan]) -> dict[str, int | set[str]]:
+    """Baseline 1 plus distinct users with user_plans from PAID_SUBSCRIBER_TRACKING_START."""
+    tracked_users: set[str] = set()
+    active_users: set[str] = set()
+    cancelled_users: set[str] = set()
+
+    for up in user_plans:
+        if not up.user_id:
+            continue
+        start = up.start_date
+        start_date = start.date() if isinstance(start, datetime) else start
+        if start_date < PAID_SUBSCRIBER_TRACKING_START:
+            continue
+
+        uid = str(up.user_id)
+        tracked_users.add(uid)
+        if up.is_active:
+            active_users.add(uid)
+        elif up.is_active is False:
+            cancelled_users.add(uid)
+
+    paid = PAID_SUBSCRIBER_BASELINE_COUNT + len(tracked_users)
+    return {
+        "paid_subscribers": paid,
+        "active_paid_subscribers": len(active_users),
+        "cancelled_paid_subscribers": len(cancelled_users),
+        "tracked_user_ids": tracked_users,
+    }
+
+
 def _compute_monetization(
     users_df: pd.DataFrame,
     daily_df: pd.DataFrame,
@@ -477,21 +511,25 @@ def _compute_monetization(
         limit_hit_rate = 0.0
         users_with_daily = 0
 
-    # Premium: users.plan_id Plus or active user_plans
-    plus_from_users = set(
-        users_df.loc[users_df["plan_id"] == "Plus", "user_id"].tolist()
-    )
+    paid_counts = _count_paid_subscribers(user_plans)
+    paid_subscribers = int(paid_counts["paid_subscribers"])
+    tracked_paid_users: set[str] = paid_counts["tracked_user_ids"]  # type: ignore[assignment]
+
     plus_from_subs: dict[str, datetime] = {}
     for up in user_plans:
-        if up.user_id and (up.is_active is None or up.is_active):
-            plus_from_subs[str(up.user_id)] = up.start_date
+        if not up.user_id:
+            continue
+        start = up.start_date
+        start_date = start.date() if isinstance(start, datetime) else start
+        if start_date < PAID_SUBSCRIBER_TRACKING_START:
+            continue
+        plus_from_subs[str(up.user_id)] = up.start_date
 
-    premium_users = plus_from_users | set(plus_from_subs.keys())
     conversion_pct = (
-        round(100.0 * len(premium_users) / total_users, 1) if total_users else None
+        round(100.0 * paid_subscribers / total_users, 1) if total_users else None
     )
 
-    limit_hitter_premium = limit_hit_users & premium_users
+    limit_hitter_premium = limit_hit_users & tracked_paid_users
     limit_hitter_conv_pct = (
         round(100.0 * len(limit_hitter_premium) / len(limit_hit_users), 1)
         if limit_hit_users
@@ -506,7 +544,7 @@ def _compute_monetization(
     )
 
     velocities_hours: list[float] = []
-    for uid in premium_users:
+    for uid in tracked_paid_users:
         created = users_df.loc[users_df["user_id"] == uid, "created_at"]
         if created.empty:
             continue
@@ -540,7 +578,10 @@ def _compute_monetization(
         "median_hours_to_first_limit": median_hours_limit,
         "premium_conversion_among_limit_hitters_pct": limit_hitter_conv_pct,
         "premium_conversion_pct": conversion_pct,
-        "premium_users": len(premium_users),
+        "premium_users": paid_subscribers,
+        "paid_subscribers": paid_subscribers,
+        "active_paid_subscribers": paid_counts["active_paid_subscribers"],
+        "cancelled_paid_subscribers": paid_counts["cancelled_paid_subscribers"],
         "conversion_velocity_hours": {
             "median": round(float(pd.Series(velocities_hours).median()), 1)
             if velocities_hours

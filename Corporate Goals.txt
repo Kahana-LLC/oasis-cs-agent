@@ -5,12 +5,34 @@ These goals drive the "Corporate goals" strip and goal-aware metric tooltips on 
 
 Targets
 -------
-- Paid subscribers: 461 (Plus / active paid plans; metric: premium_users)
+- Paid subscribers: 500 by December 31, 2026 ($20/mo Stripe plans)
 - Gross margin: 80%
   - Formula: (revenue − estimated API cost − Supabase $25/mo) / revenue
 - DAU growth: 4.5× vs Product Hunt launch-week average
   - Launch date: May 27, 2026, 3:00 AM Eastern
   - Baseline: average daily DAU over the first 7 calendar days post-launch (auto-locked in Supabase)
+
+Paid subscriber counting
+------------------------
+- Baseline count: 1 (the real $20/mo subscriber before tracking)
+- From May 24, 2026 onward: add one per distinct user with a new `user_plans` row (Stripe `start_date`)
+- Pre–May 24 test rows and legacy `users.plan_id = Plus` are not counted
+- Metrics: `paid_subscribers`, `active_paid_subscribers` (is_active=true), `cancelled_paid_subscribers` (is_active=false)
+
+Monthly milestones (cumulative, end of month)
+---------------------------------------------
+Linear path from 1 (May 24) to 500 (Dec 31):
+
+| Month   | Target |
+|---------|--------|
+| 2026-05 | ~17    |
+| 2026-06 | ~85    |
+| 2026-07 | ~156   |
+| 2026-08 | ~227   |
+| 2026-09 | ~298   |
+| 2026-10 | ~369   |
+| 2026-11 | ~440   |
+| 2026-12 | 500    |
 
 Launch context
 --------------

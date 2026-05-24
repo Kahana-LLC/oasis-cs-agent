@@ -200,6 +200,12 @@
     .goal-card.goal-ok { border-left: 4px solid #6bcba8; }
     .goal-card label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.25rem; }
     .goal-card .goal-value { font-size: 1.2rem; font-weight: 600; }
+    .goal-subcaption { display: block; font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; }
+    .goal-bar-secondary { margin-top: 0.35rem; opacity: 0.65; }
+    .goal-targets { margin-top: 0.75rem; font-size: 0.8rem; }
+    .goal-targets summary { cursor: pointer; color: var(--muted); }
+    .goal-targets table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    .goal-targets th, .goal-targets td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--border); }
     .goal-bar {
       height: 6px;
       background: #243044;
@@ -365,7 +371,14 @@
       const margin = cg.gross_margin_pct || {};
       const dau = cg.dau_multiple || {};
       const launch = cg.launch || {};
-      const subPct = Math.min(100, subs.pct_of_goal ?? 0);
+      const monthTarget = subs.month_target ?? subs.target ?? 17;
+      const yearTarget = subs.target_year_end ?? 500;
+      const subPctMonth = monthTarget
+        ? Math.min(100, ((subs.current ?? 0) / monthTarget) * 100)
+        : 0;
+      const subPctYear = yearTarget
+        ? Math.min(100, ((subs.current ?? 0) / yearTarget) * 100)
+        : 0;
       const marginPct = margin.current != null && margin.target
         ? Math.min(100, (margin.current / margin.target) * 100)
         : 0;
@@ -384,14 +397,29 @@
       const launchCap = launch.post_launch
         ? `Post-launch day ${launch.days_since || 0}`
         : `PH in ${launch.days_until ?? "—"}d · May 27 3am ET`;
+      const monthLabel = subs.month_label || subs.month || "This month";
+      const subOnTrack = subs.on_track_month ?? subs.on_track;
+      const monthlyRows = (subs.monthly_targets || [])
+        .map(
+          (row) =>
+            `<tr><td>${escapeHtml(row.label || row.month)}</td><td>${row.cumulative_target ?? "—"}</td></tr>`
+        )
+        .join("");
+      const monthlyTable = monthlyRows
+        ? `<details class="goal-targets"><summary>Monthly subscriber targets (May–Dec 2026)</summary>
+            <table><thead><tr><th>Month</th><th>Cumulative target</th></tr></thead><tbody>${monthlyRows}</tbody></table>
+          </details>`
+        : "";
       return `<section id="corporate-goals" class="goals-strip">
         <h2>Corporate goals</h2>
         <p class="section-cap">${launchCap} · Waitlist ${launch.waitlist ?? 176} · expect +${lo}–${hi} signups</p>
         <div class="goals-grid">
-          <div class="goal-card ${subs.on_track ? "goal-ok" : "goal-warn"}">
-            <label>Subscribers</label>
-            <span class="goal-value">${subs.current ?? "—"} / ${subs.target ?? 461}</span>
-            <div class="goal-bar"><div class="goal-bar-fill" style="width:${subPct}%"></div></div>
+          <div class="goal-card ${subOnTrack ? "goal-ok" : "goal-warn"}">
+            <label>Subscribers ($20/mo)</label>
+            <span class="goal-value">${subs.current ?? "—"} / ${monthTarget}</span>
+            <span class="goal-subcaption">${yearTarget} by Dec 31 · ${monthLabel} target</span>
+            <div class="goal-bar"><div class="goal-bar-fill" style="width:${subPctMonth}%"></div></div>
+            <div class="goal-bar goal-bar-secondary"><div class="goal-bar-fill" style="width:${subPctYear}%"></div></div>
           </div>
           <div class="goal-card ${margin.on_track ? "goal-ok" : "goal-warn"}">
             <label>Gross margin</label>
@@ -404,6 +432,7 @@
             <div class="goal-bar"><div class="goal-bar-fill" style="width:${dauPct}%"></div></div>
           </div>
         </div>
+        ${monthlyTable}
       </section>`;
     }
 

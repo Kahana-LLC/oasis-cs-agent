@@ -18,8 +18,8 @@ METRIC_TOOLTIPS: dict[str, str] = {
         "Shows near-term engagement momentum."
     ),
     "premium_conversion": (
-        "Share of all users on a paid Plus plan or active paid subscription. "
-        "Overall monetization health."
+        "Share of all users counted as paid subscribers ($20/mo Stripe plans). "
+        "Count = baseline 1 plus distinct user_plans from May 24, 2026 onward."
     ),
     "feedback_rate": (
         "Share of users who submitted at least one feedback/training event. "

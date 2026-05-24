@@ -95,12 +95,19 @@ def main() -> None:
         subs = cg["subscribers"]
         margin = cg.get("gross_margin_pct") or {}
         dau = cg.get("dau_multiple") or {}
+        month_target = subs.get("month_target", subs.get("target", 17))
+        year_target = subs.get("target_year_end", 500)
+        month_label = subs.get("month_label", subs.get("month", "This month"))
         g1.metric(
-            "Subscribers",
-            f"{subs.get('current', 0)} / {subs.get('target', 461)}",
+            "Subscribers ($20/mo)",
+            f"{subs.get('current', 0)} / {month_target}",
+            delta=f"{year_target} by Dec 31",
             help=_help("premium_conversion"),
         )
-        g1.progress(min(1.0, (subs.get("pct_of_goal") or 0) / 100))
+        g1.caption(f"{month_label} target · year-end goal {year_target}")
+        g1.progress(
+            min(1.0, (subs.get("current") or 0) / month_target) if month_target else 0.0
+        )
         margin_cur = margin.get("current")
         g2.metric(
             "Gross margin",

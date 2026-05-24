@@ -69,12 +69,14 @@ Run **`main.py --baseline` daily** (or rely on live `/api/snapshot` upserts) so 
 | `metric_deltas.py` | Delta math + significance flags |
 | `insights.py` | Key insights cards |
 | `metric_glossary.py` | Tooltip copy (static meanings) |
-| `corporate_goals.py` | Target constants (461 subs, 80% margin, 4.5× DAU) |
+| `corporate_goals.py` | Target constants (500 subs by Dec 31, 80% margin, 4.5× DAU); monthly subscriber milestones |
 | `goal_progress.py` | Progress + trend phrases |
 | `goals_state.py` | DAU launch-week baseline in `corporate_goals_state` |
 | `goal_aware_tooltips.py` | Meaning + trend + goals per metric |
 
 See [`../Corporate Goals.txt`](../Corporate%20Goals.txt) for team-facing goal definitions.
+
+**Paid subscribers:** baseline 1 plus distinct `user_plans` users with `start_date >= 2026-05-24`. Year-end goal 500; dashboard shows current vs this month’s cumulative target.
 
 **Gross margin:** `100 × (total_revenue_usd − estimated_api_cost_usd − 25) / total_revenue_usd` (Supabase default $25/mo).
 

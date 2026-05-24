@@ -158,6 +158,13 @@ def compute_launch_kpis(
         ),
         row(
             "Monetization",
+            "Paid subscribers ($20/mo)",
+            _fmt_num(
+                monetization.get("paid_subscribers", monetization.get("premium_users"))
+            ),
+        ),
+        row(
+            "Monetization",
             "Premium conversion (all users)",
             _fmt_pct(monetization.get("premium_conversion_pct")),
         ),

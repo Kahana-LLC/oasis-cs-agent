@@ -9,10 +9,14 @@ from reporting.corporate_goals import (
     DAU_TARGET_MULTIPLE,
     DEFAULT_SUPABASE_MONTHLY_USD,
     GROSS_MARGIN_TARGET_PCT,
+    MONTHLY_SUBSCRIBER_TARGETS,
     PH_SIGNUP_RANGE,
     PRODUCT_HUNT_LAUNCH_DATE,
-    SUBSCRIBER_TARGET,
+    SUBSCRIBER_TARGET_YEAR_END,
+    SUBSCRIBER_YEAR_END_DATE,
     WAITLIST_COUNT,
+    month_target_for_date,
+    year_end_prorated_target,
 )
 
 # Metrics where an increase is bad for the business
@@ -104,11 +108,25 @@ def compute_goal_progress(
     mon = snapshot.get("monetization") or {}
     dau_totals = (snapshot.get("dau_model") or {}).get("totals") or {}
 
-    premium_users = mon.get("premium_users") or 0
-    sub_pct = (
-        round(100.0 * premium_users / SUBSCRIBER_TARGET, 1) if SUBSCRIBER_TARGET else 0
+    paid_subscribers = mon.get("paid_subscribers")
+    if paid_subscribers is None:
+        paid_subscribers = mon.get("premium_users") or 0
+
+    month_ctx = month_target_for_date(today)
+    month_target = int(month_ctx["cumulative_target"])
+    prorated_month = int(month_ctx["prorated_target"])
+    year_prorated = year_end_prorated_target(today)
+
+    sub_pct_month = (
+        round(100.0 * paid_subscribers / month_target, 1) if month_target else 0
     )
-    sub_gap = max(0, SUBSCRIBER_TARGET - premium_users)
+    sub_gap_month = max(0, month_target - paid_subscribers)
+    sub_pct_year = (
+        round(100.0 * paid_subscribers / SUBSCRIBER_TARGET_YEAR_END, 1)
+        if SUBSCRIBER_TARGET_YEAR_END
+        else 0
+    )
+    sub_gap_year = max(0, SUBSCRIBER_TARGET_YEAR_END - paid_subscribers)
 
     revenue = mon.get("total_revenue_usd") or 0
     api_cost = mon.get("estimated_api_cost_usd") or 0
@@ -136,11 +154,23 @@ def compute_goal_progress(
 
     return {
         "subscribers": {
-            "current": premium_users,
-            "target": SUBSCRIBER_TARGET,
-            "pct_of_goal": sub_pct,
-            "gap": sub_gap,
-            "on_track": premium_users >= SUBSCRIBER_TARGET,
+            "current": paid_subscribers,
+            "target_year_end": SUBSCRIBER_TARGET_YEAR_END,
+            "year_end_date": str(SUBSCRIBER_YEAR_END_DATE),
+            "pct_of_year_end_goal": sub_pct_year,
+            "gap_year_end": sub_gap_year,
+            "month": month_ctx["month"],
+            "month_label": month_ctx["label"],
+            "month_target": month_target,
+            "prorated_target": prorated_month,
+            "on_track_month": paid_subscribers >= prorated_month,
+            "on_track_year_end": paid_subscribers >= year_prorated,
+            "monthly_targets": MONTHLY_SUBSCRIBER_TARGETS,
+            # Backward-compatible fields (month context)
+            "target": month_target,
+            "pct_of_goal": sub_pct_month,
+            "gap": sub_gap_month,
+            "on_track": paid_subscribers >= prorated_month,
         },
         "gross_margin_pct": {
             "current": margin,

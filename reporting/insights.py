@@ -71,15 +71,18 @@ def _goal_gap_insights(
             title=f"Product Hunt in {days} days",
             detail=(
                 f"Launch May 27 ~3am ET may add {lo}–{hi} users on top of "
-                f"{launch.get('waitlist', 176)} waitlist. Subscriber goal: {subs.get('target', 461)}."
+                f"{launch.get('waitlist', 176)} waitlist. "
+                f"Subscriber goal: {subs.get('target_year_end', 500)} by Dec 31."
             ),
             lever="Maximize 24h activation and limit-hitter → paid conversion before and during launch.",
             metrics=["activation_24h_pct", "premium_conversion_pct"],
             anchor="activation",
         )
 
-    if not subs.get("on_track"):
+    if not subs.get("on_track_month", subs.get("on_track")):
         gap = subs.get("gap", 0)
+        month_tgt = subs.get("month_target", subs.get("target", 0))
+        year_tgt = subs.get("target_year_end", 500)
         d_sub = _delta_metric(deltas, period, "premium_conversion_pct")
         trend_note = ""
         if d_sub and d_sub.get("direction") in ("down", "flat"):
@@ -89,8 +92,11 @@ def _goal_gap_insights(
             severity="high",
             title="Subscriber goal gap",
             detail=(
-                f"{subs.get('current', 0)} of {subs.get('target', 461)} paid subscribers "
-                f"({subs.get('pct_of_goal', 0)}% of goal). Need {gap} more.{trend_note}"
+                f"{subs.get('current', 0)} paid subscribers — "
+                f"{subs.get('month_label', 'this month')} target {month_tgt} "
+                f"({subs.get('gap', 0)} behind). "
+                f"Year-end goal: {year_tgt} by Dec 31 "
+                f"({subs.get('gap_year_end', 0)} to go).{trend_note}"
             ),
             lever="Improve upgrade path at token limit; resurrect engaged free users.",
             metrics=["premium_conversion_pct", "limit_hitter_conversion_pct"],
@@ -347,9 +353,10 @@ def generate_key_insights(
 
     corp = corporate_goals or {}
     subs = corp.get("subscribers") or {}
-    if subs and not subs.get("on_track"):
+    if subs and not subs.get("on_track_month", subs.get("on_track")):
         summary_parts_goal = [
-            f"Subscriber goal: {subs.get('current', 0)}/{subs.get('target', 461)}"
+            f"Subscribers: {subs.get('current', 0)}/{subs.get('month_target', subs.get('target', 0))} "
+            f"this month ({subs.get('target_year_end', 500)} by Dec 31)"
         ]
     else:
         summary_parts_goal = []

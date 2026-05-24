@@ -8,7 +8,7 @@ from reporting.corporate_goals import (
     DAU_TARGET_MULTIPLE,
     GROSS_MARGIN_TARGET_PCT,
     PH_SIGNUP_RANGE,
-    SUBSCRIBER_TARGET,
+    SUBSCRIBER_TARGET_YEAR_END,
     WAITLIST_COUNT,
 )
 from reporting.goal_progress import trend_phrase
@@ -24,12 +24,17 @@ def _section(title: str, body: str) -> str:
 def _goal_subscribers(corp: dict[str, Any]) -> str:
     s = corp.get("subscribers") or {}
     cur = s.get("current", 0)
-    tgt = s.get("target", SUBSCRIBER_TARGET)
-    gap = s.get("gap", 0)
-    pct = s.get("pct_of_goal", 0)
+    year_tgt = s.get("target_year_end", SUBSCRIBER_TARGET_YEAR_END)
+    month_tgt = s.get("month_target", s.get("target", 0))
+    gap_year = s.get("gap_year_end", 0)
+    pct_year = s.get("pct_of_year_end_goal", 0)
+    month_label = s.get("month_label", "this month")
+    on_month = "on track" if s.get("on_track_month") else "behind pace"
     return (
-        f"Goal: {tgt} paid subscribers. You have {cur} ({pct}% of goal). "
-        f"Gap: {gap} subscribers to reach target."
+        f"Goal: {year_tgt} paid subscribers by Dec 31, 2026; "
+        f"{month_label} target: {month_tgt} ({on_month}). "
+        f"You have {cur} ({pct_year}% of year-end goal). "
+        f"Gap to year-end: {gap_year} subscribers."
     )
 
 
@@ -78,11 +83,11 @@ def _goal_launch_context(corp: dict[str, Any]) -> str:
         return (
             f"Context: {WAITLIST_COUNT} on waitlist. Product Hunt launch may add "
             f"{lo}–{hi} signups in ~{days} days — activation and conversion drive the "
-            f"{SUBSCRIBER_TARGET} subscriber goal."
+            f"{SUBSCRIBER_TARGET_YEAR_END} subscriber goal by Dec 31."
         )
     return (
         f"Context: Post–Product Hunt launch; expect {lo}–{hi} new users alongside "
-        f"{WAITLIST_COUNT} waitlist. Scale DAU and conversion to hit {SUBSCRIBER_TARGET} subscribers."
+        f"{WAITLIST_COUNT} waitlist. Scale DAU and conversion to hit {SUBSCRIBER_TARGET_YEAR_END} subscribers by year-end."
     )
 
 
@@ -108,7 +113,7 @@ def _goals_for_metric(metric_key: str, corp: dict[str, Any]) -> str:
     if metric_key in ("activation_24h_pct", "retention_d7_pct"):
         return _goal_launch_context(corp) + " " + _goal_subscribers(corp)
     if metric_key.startswith("churn_"):
-        return _goal_dau(corp) + " Lower churn protects DAU and path to " + str(SUBSCRIBER_TARGET) + " subscribers."
+        return _goal_dau(corp) + " Lower churn protects DAU and path to " + str(SUBSCRIBER_TARGET_YEAR_END) + " subscribers."
     return _goal_launch_context(corp)
 
 
