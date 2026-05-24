@@ -188,21 +188,39 @@
       margin-bottom: 1rem;
       font-size: 0.95rem;
     }
-    .insight-cards { display: grid; gap: 0.75rem; }
-    .insight-card {
+    .insight-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .insight-row {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 0.85rem 1rem;
       border-left: 4px solid var(--border);
     }
-    .insight-card.severity-high { border-left-color: #f87171; }
-    .insight-card.severity-medium { border-left-color: #f0b429; }
-    .insight-card.severity-info { border-left-color: var(--accent); }
-    .insight-card h4 { margin: 0 0 0.35rem; font-size: 0.9rem; }
-    .insight-card p { margin: 0.25rem 0; font-size: 0.85rem; color: var(--muted); }
-    .insight-card .lever { color: var(--text); font-size: 0.85rem; margin-top: 0.5rem; }
-    .insight-card a { color: var(--accent); font-size: 0.8rem; }
+    .insight-row.severity-high { border-left-color: #f87171; }
+    .insight-row.severity-medium { border-left-color: #f0b429; }
+    .insight-row.severity-info { border-left-color: var(--accent); }
+    .insight-row summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 0.65rem 0.85rem;
+    }
+    .insight-row summary::-webkit-details-marker { display: none; }
+    .insight-cols {
+      display: grid;
+      grid-template-columns: minmax(11rem, 1.1fr) minmax(12rem, 1.4fr) minmax(12rem, 1.5fr);
+      gap: 0.75rem 1rem;
+      align-items: start;
+    }
+    .insight-cols .col-title { font-size: 0.85rem; font-weight: 600; }
+    .insight-cols .col-detail { font-size: 0.8rem; color: var(--muted); word-wrap: break-word; }
+    .insight-cols .col-lever { font-size: 0.8rem; color: var(--text); word-wrap: break-word; }
+    .insight-expand {
+      padding: 0 0.85rem 0.65rem;
+      font-size: 0.8rem;
+    }
+    .insight-expand a { color: var(--accent); }
+    @media (max-width: 720px) {
+      .insight-cols { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -312,22 +330,27 @@
       if (!items.length) {
         return `<section id="key-insights"><h2>Key insights</h2><p class="insights-summary">${escapeHtml(summary)}</p></section>`;
       }
-      const cards = items
+      const rows = items
         .map((item) => {
           const anchor = item.anchor ? `#${item.anchor}` : "#dau-model";
-          return `<article class="insight-card severity-${item.severity || "info"}">
-            <h4>${escapeHtml(item.title)}</h4>
-            <p>${escapeHtml(item.detail)}</p>
-            <p class="lever"><strong>Lever:</strong> ${escapeHtml(item.lever)}</p>
-            <a href="${anchor}">Go to section →</a>
-          </article>`;
+          const sev = item.severity || "info";
+          return `<details class="insight-row severity-${sev}">
+            <summary>
+              <div class="insight-cols">
+                <span class="col-title">${escapeHtml(item.title)}</span>
+                <span class="col-detail">${escapeHtml(item.detail)}</span>
+                <span class="col-lever"><strong>Lever:</strong> ${escapeHtml(item.lever)}</span>
+              </div>
+            </summary>
+            <div class="insight-expand"><a href="${anchor}">Go to section →</a></div>
+          </details>`;
         })
         .join("");
       return `<section id="key-insights">
         <h2>Key insights</h2>
         <p class="section-cap">Churn &amp; dead-user focus — prioritized levers for resurrection and at-risk recovery</p>
         <p class="insights-summary">${escapeHtml(summary)}</p>
-        <div class="insight-cards">${cards}</div>
+        <div class="insight-list">${rows}</div>
       </section>`;
     }
 

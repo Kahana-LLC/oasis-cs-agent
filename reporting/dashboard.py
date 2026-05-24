@@ -84,14 +84,14 @@ def main() -> None:
 
     insights = data.get("key_insights") or {}
     if insights.get("summary") or insights.get("items"):
-        st.header("Key insights")
-        st.caption("Churn & dead-user focus — levers for resurrection and at-risk recovery")
-        st.info(insights.get("summary", ""))
-        for item in insights.get("items", [])[:6]:
-            sev = item.get("severity", "info")
-            with st.expander(f"[{sev}] {item.get('title', 'Insight')}", expanded=(sev == "high")):
-                st.write(item.get("detail", ""))
-                st.markdown(f"**Lever:** {item.get('lever', '')}")
+        with st.expander("Key insights", expanded=False):
+            st.caption("Churn & dead-user focus — levers for resurrection and at-risk recovery")
+            st.info(insights.get("summary", ""))
+            for item in insights.get("items", [])[:6]:
+                c1, c2, c3 = st.columns([1, 1.4, 1.6])
+                c1.markdown(f"**{item.get('title', 'Insight')}**")
+                c2.caption(item.get("detail", ""))
+                c3.caption(f"Lever: {item.get('lever', '')}")
 
     deltas = data.get("deltas") or {}
     if not (deltas.get(delta_period) or {}).get("available"):
