@@ -92,3 +92,46 @@ def sync_previews(
         synced += 1
 
     return synced
+
+
+def sync_copy_manifest(
+    manifest_path: Path | None = None,
+    out_dir: Path | None = None,
+    *,
+    repo_root: Path | None = None,
+) -> int:
+    """Write raw HTML/plain-text sources for Copy buttons on /email-machine."""
+    repo_root = repo_root or ROOT
+    manifest_path = manifest_path or repo_root / "public" / "email_sequences.json"
+    out_dir = out_dir or repo_root / "public" / "emails"
+
+    data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    sequences = data.get("sequences") or []
+    copy_data: dict[str, dict[str, str]] = {}
+
+    for seq in sequences:
+        preview = seq.get("preview")
+        if not isinstance(preview, dict) or not preview.get("source"):
+            continue
+        seq_id = str(seq.get("id", ""))
+        if not seq_id:
+            continue
+        source_path = repo_root / str(preview["source"])
+        if not source_path.is_file():
+            raise FileNotFoundError(f"Copy source missing for {seq_id}: {source_path}")
+
+        entry: dict[str, str] = {
+            "html": source_path.read_text(encoding="utf-8"),
+            "source_path": str(preview["source"]),
+        }
+        plain_rel = preview.get("plain_text_source")
+        if plain_rel:
+            plain_path = repo_root / str(plain_rel)
+            if plain_path.is_file():
+                entry["plain_text"] = plain_path.read_text(encoding="utf-8")
+        copy_data[seq_id] = entry
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    dest = out_dir / "copy_manifest.json"
+    dest.write_text(json.dumps(copy_data, ensure_ascii=False), encoding="utf-8")
+    return len(copy_data)

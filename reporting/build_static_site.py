@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from reporting.sync_email_previews import sync_previews
+from reporting.sync_email_previews import sync_copy_manifest, sync_previews
 
 SRC = ROOT / "reporting" / "baseline_snapshot.json"
 DST = ROOT / "public" / "baseline_snapshot.json"
@@ -31,6 +31,8 @@ def build() -> int:
     try:
         n = sync_previews()
         print(f"Synced {n} email previews -> {ROOT / 'public' / 'emails'}")
+        m = sync_copy_manifest()
+        print(f"Synced {m} copy sources -> {ROOT / 'public' / 'emails' / 'copy_manifest.json'}")
     except FileNotFoundError as e:
         print(f"Email preview sync failed: {e}", file=sys.stderr)
         return 1

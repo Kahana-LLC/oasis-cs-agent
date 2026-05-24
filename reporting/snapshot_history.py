@@ -175,6 +175,15 @@ def enrich_snapshot_with_history(
     snapshot["corporate_goals"] = compute_goal_progress(
         snapshot, snapshot["deltas"], goals_state, today=today
     )
+
+    try:
+        from reporting.email_provider_capacity import compute_email_provider_capacity
+
+        snapshot["email_provider_capacity"] = compute_email_provider_capacity(snapshot)
+    except Exception as exc:
+        log.warning("email provider capacity skipped: %s", exc)
+        snapshot.setdefault("email_provider_capacity", {"providers": [], "any_near_limit": False})
+
     snapshot["key_insights"] = generate_key_insights(
         snapshot, snapshot["deltas"], snapshot["corporate_goals"]
     )

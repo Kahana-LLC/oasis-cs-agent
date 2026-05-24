@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Oasis Email Machine — Engineer Reference</title>
+  <title>Oasis Email Machine — Project Charter</title>
   <link rel="stylesheet" href="/site.css" />
 </head>
 <body>
@@ -14,6 +14,7 @@
     let emailData = null;
     let snapshotData = null;
     let bucketCounts = {};
+    let copyManifest = {};
 
     function escapeHtml(s) {
       if (s == null) return "";
@@ -99,11 +100,95 @@
       return p?.path || seq.preview_path || null;
     }
 
-    function deployedBadge(seq) {
-      if (!seq.deployed_via) return "";
-      const strategy = providerById(seq.provider_id)?.name || seq.provider_id;
-      if (seq.deployed_via === seq.provider_id) return "";
-      return `<span class="phase-badge phase-adam" title="Strategy provider: ${escapeHtml(strategy)}">Shipped: ${escapeHtml(seq.deployed_via)}</span>`;
+    function inferImplementationStatus(seq) {
+      if (seq.implementation_status) return seq.implementation_status;
+      if (seq.deployed_via || getPreview(seq)) return "shipped";
+      return "planned";
+    }
+
+    function implementationStatusBadge(seq) {
+      const status = inferImplementationStatus(seq);
+      const cls =
+        status === "shipped" ? "status-shipped" : status === "planned" ? "status-planned" : "status-not-started";
+      return `<span class="status-pill ${cls}">${escapeHtml(status.replace("_", " "))}</span>`;
+    }
+
+    function strategyProviderCell(seq) {
+      const primary = providerById(seq.provider_id);
+      const overflow = seq.provider_overflow_id ? providerById(seq.provider_overflow_id) : null;
+      if (overflow) {
+        return `${escapeHtml(primary?.name || seq.provider_id)} <span class="section-cap">→ ${escapeHtml(overflow.name)}</span>`;
+      }
+      return escapeHtml(primary?.name || seq.provider_id);
+    }
+
+    function shippedProviderCell(seq) {
+      const shippedId = seq.deployed_via || seq.provider_id;
+      const shipped = providerById(shippedId);
+      const differs = seq.deployed_via && seq.deployed_via !== seq.provider_id;
+      const label = escapeHtml(shipped?.name || shippedId);
+      return differs ? `${label} <span class="section-cap">(interim)</span>` : label;
+    }
+
+    function capacityForProvider(id) {
+      return (snapshotData?.email_provider_capacity?.providers || []).find((p) => p.id === id);
+    }
+
+    function providerStatusClass(id) {
+      const cap = capacityForProvider(id);
+      if (!cap) return "";
+      return cap.status === "at_limit" ? "provider-at-limit" : cap.status === "near_limit" ? "provider-near-limit" : "";
+    }
+
+    async function copyToClipboard(text, btn) {
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        if (btn) {
+          const prev = btn.textContent;
+          btn.textContent = "Copied";
+          btn.classList.add("toast-copied");
+          setTimeout(() => {
+            btn.textContent = prev;
+            btn.classList.remove("toast-copied");
+          }, 1500);
+        }
+      } catch {
+        alert("Copy failed — select text manually.");
+      }
+    }
+
+    function copyButtonsHtml(seqId) {
+      const entry = copyManifest[seqId];
+      if (!entry) {
+        return `<span class="section-cap">Run build to generate copy manifest</span>`;
+      }
+      const plainBtn = entry.plain_text
+        ? `<button type="button" class="copy-btn" data-copy-kind="plain" data-seq="${escapeHtml(seqId)}">Copy plain text</button>`
+        : "";
+      return `<div class="copy-btn-row">
+        <button type="button" class="copy-btn" data-copy-kind="html" data-seq="${escapeHtml(seqId)}">Copy HTML</button>
+        ${plainBtn}
+      </div>`;
+    }
+
+    function bindCopyButtons() {
+      document.querySelectorAll(".copy-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const seqId = btn.getAttribute("data-seq");
+          const kind = btn.getAttribute("data-copy-kind");
+          const entry = copyManifest[seqId];
+          if (!entry) return;
+          const text = kind === "plain" ? entry.plain_text : entry.html;
+          copyToClipboard(text, btn);
+        });
+      });
+    }
+
+    function providerStatusPill(id) {
+      const cap = capacityForProvider(id);
+      if (!cap) return "";
+      return `<span class="status-pill status-${cap.status}">${escapeHtml(cap.status.replace("_", " "))}</span>`;
     }
 
     function previewIframe(path, title) {
@@ -122,6 +207,7 @@
       const subject = preview?.subject ? escapeHtml(preview.subject) : "Preview";
       return `<details class="email-preview preview-slot">
         <summary>${subject}</summary>
+        ${copyButtonsHtml(seq.id)}
         ${previewIframe(path, seq.name)}
       </details>`;
     }
@@ -139,7 +225,7 @@
             : "";
           return `<article class="preview-card" id="preview-${escapeHtml(seq.id)}">
             <div class="preview-meta">
-              <h3>${escapeHtml(seq.name)}${phaseBadge(seq.phase)}${deployedBadge(seq)}</h3>
+              <h3>${escapeHtml(seq.name)}${phaseBadge(seq.phase)} ${implementationStatusBadge(seq)}</h3>
               <p class="preview-subject">${escapeHtml(preview?.subject || "")}</p>
               <p class="preview-preheader">${escapeHtml(preview?.preheader || "")}</p>
               <p class="preview-from">${escapeHtml(preview?.from_name || "")} · ${escapeHtml(seq.trigger_when || "")}</p>
@@ -147,6 +233,7 @@
             </div>
             <details class="email-preview">
               <summary>Open full preview</summary>
+              ${copyButtonsHtml(seq.id)}
               ${previewIframe(path, seq.name)}
             </details>
             <p class="preview-source">${sourceLink}</p>
@@ -167,8 +254,8 @@
           const used = seqs
             .filter((s) => s.provider_id === p.id || s.provider_overflow_id === p.id)
             .map((s) => s.name);
-          return `<div class="provider-card" data-provider-id="${escapeHtml(p.id)}">
-            <h3>${escapeHtml(p.name)}</h3>
+          return `<div class="provider-card ${providerStatusClass(p.id)}" data-provider-id="${escapeHtml(p.id)}">
+            <h3>${escapeHtml(p.name)} ${providerStatusPill(p.id)}</h3>
             <div class="limits">${escapeHtml(formatLimits(p))}</div>
             <div class="constraints">${(p.constraints || []).map(escapeHtml).join(" · ")}</div>
             <div class="upgrade"><strong>Upgrade when:</strong> ${escapeHtml(p.upgrade_trigger || "—")}</div>
@@ -202,6 +289,58 @@
       </table>`;
     }
 
+    function renderProviderCapacity() {
+      const cap = snapshotData?.email_provider_capacity;
+      const providers = cap?.providers || [];
+      if (!providers.length) {
+        return `<section id="provider-capacity">
+          <h2>Provider capacity</h2>
+          <p class="section-cap">Near-limit tracking requires live snapshot. Open on Vercel or run <span class="code">vercel dev</span>.</p>
+        </section>`;
+      }
+      const alert = cap.any_near_limit
+        ? `<div class="banner banner-warn">${(providers.flatMap((p) => p.near_limit_errors || [])).map((e) => escapeHtml(e.message)).join(" · ")}</div>`
+        : `<div class="banner banner-live">All providers within free-tier headroom (80% threshold).</div>`;
+      const rows = providers
+        .map((p) => {
+          const contact = (p.metrics || []).find((m) => m.key === "contacts");
+          const monthly = (p.metrics || []).find((m) => m.key === "sends_monthly");
+          const daily = (p.metrics || []).find((m) => m.key === "sends_daily");
+          const fmt = (m) => (m ? `${m.used.toLocaleString()} / ${m.limit.toLocaleString()} (${Math.round(100 * m.pct)}%)` : "—");
+          return `<tr class="${providerStatusClass(p.id)}">
+            <td><strong>${escapeHtml(p.name)}</strong> ${providerStatusPill(p.id)}</td>
+            <td>${fmt(contact)}</td>
+            <td>${fmt(monthly)}</td>
+            <td>${fmt(daily)}</td>
+            <td>${p.runway_months != null ? `${p.runway_months} mo` : "—"}</td>
+            <td>${escapeHtml(p.status.replace("_", " "))}</td>
+          </tr>`;
+        })
+        .join("");
+      return `<section id="provider-capacity">
+        <h2>Provider capacity &amp; near-limit</h2>
+        <p class="section-cap">${escapeHtml(cap.estimation_note || "")} · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md#6-capacity-runway-and-upgrade-triggers">Proposal §6</a></p>
+        ${alert}
+        <table class="capacity-table">
+          <thead><tr><th>Provider</th><th>Contacts</th><th>Sends (mo)</th><th>Sends (day)</th><th>Runway</th><th>Status</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </section>`;
+    }
+
+    function renderCharterNav() {
+      return `<nav class="charter-toc" aria-label="Charter sections">
+        <a href="#overview">Charter</a>
+        <a href="#buckets">DAU buckets</a>
+        <a href="#sequences">Sequences</a>
+        <a href="#provider-capacity">Capacity</a>
+        <a href="#capacity">Cliffs</a>
+        <a href="#providers">Providers</a>
+        <a href="#preview-gallery">Previews</a>
+        <a href="#ops">Ops loop</a>
+      </nav>`;
+    }
+
     function renderCliffsTable() {
       return `<table class="cliffs-table">
         <thead><tr><th>Cliff</th><th>Provider</th><th>Trigger</th><th>Action</th></tr></thead>
@@ -223,19 +362,17 @@
       const rows = (emailData?.sequences || [])
         .map((seq) => {
           const primary = providerById(seq.provider_id);
-          const overflow = seq.provider_overflow_id
-            ? providerById(seq.provider_overflow_id)
-            : null;
-          const providerCell = overflow
-            ? `${escapeHtml(primary?.name || seq.provider_id)} <span class="section-cap">overflow → ${escapeHtml(overflow.name)}</span>`
-            : escapeHtml(primary?.name || seq.provider_id);
+          const shippedCell = shippedProviderCell(seq);
+          const statusCell = implementationStatusBadge(seq);
           const limitCell = `${escapeHtml(formatLimits(primary))}<br><span class="section-cap">${escapeHtml(seq.free_tier_runway || "")}</span>`;
           return `<tr class="seq-row" data-bucket="${escapeHtml((seq.buckets || []).join(","))}" data-provider="${escapeHtml(seq.provider_id)}" data-overflow="${escapeHtml(seq.provider_overflow_id || "")}" data-phase="${escapeHtml(seq.phase)}">
-            <td><strong>${escapeHtml(seq.name)}</strong>${phaseBadge(seq.phase)}${deployedBadge(seq)}</td>
+            <td><strong>${escapeHtml(seq.name)}</strong>${phaseBadge(seq.phase)}</td>
             <td>${bucketPills(seq.buckets)}</td>
             <td>${escapeHtml(seq.trigger_summary)}<br><span class="code">${escapeHtml(seq.trigger_implementation || "")}</span></td>
             <td>${escapeHtml(seq.trigger_when)}</td>
-            <td>${providerCell}</td>
+            <td>${strategyProviderCell(seq)}</td>
+            <td>${shippedCell}</td>
+            <td>${statusCell}</td>
             <td>${limitCell}</td>
             <td><span class="code">${escapeHtml(seq.dedup_trigger_name)}</span><br><span class="section-cap">outreach_log</span></td>
             <td>${metricLinks(seq)}</td>
@@ -247,7 +384,7 @@
         <table class="seq-table">
           <thead><tr>
             <th>Sequence</th><th>Bucket(s)</th><th>Trigger</th><th>When</th>
-            <th>Provider</th><th>Free tier</th><th>Dedup</th><th>Metrics</th><th>Preview</th>
+            <th>Strategy provider</th><th>Shipped</th><th>Status</th><th>Free tier</th><th>Dedup</th><th>Metrics</th><th>Preview</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -315,40 +452,50 @@
           <a href="/email-machine" aria-current="page">Email machine</a>
         </nav>
         <h1>User Email Machine</h1>
-        <p class="caption">Engineer reference — DAU buckets, triggers, free-tier providers, and sequence routing. Spec: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md">USER_EMAIL_MACHINE_PROPOSAL.md</a></p>
+        <p class="caption">Project charter &amp; engineer reference — multi-provider lifecycle email system. Spec: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md">USER_EMAIL_MACHINE_PROPOSAL.md</a> · Agent: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/PLAN.md">PLAN.md</a></p>
         ${liveBanner()}
+        ${renderCharterNav()}
         <section id="overview">
-          <h2>Overview</h2>
-          <p class="section-cap">Multi-provider free-tier stack in service of corporate goals: <strong>500 paid subscribers by Dec 31, 2026</strong>, <strong>4.5× DAU</strong> vs Product Hunt launch week, and <strong>80% gross margin</strong>. Each lifecycle stage maps to one provider until capacity triggers an upgrade or overflow.</p>
+          <h2>Charter overview</h2>
+          <p class="section-cap">Implementation guide for engineers wiring Oasis lifecycle email across five free-tier providers. Goals: <strong>500 paid subscribers by Dec 31, 2026</strong>, <strong>4.5× DAU</strong> vs Product Hunt launch week, <strong>80% gross margin</strong>.</p>
+          <div class="info">
+            <ul style="margin:0;padding-left:1.25rem">
+              <li><strong>Strategy provider</strong> — target routing per proposal (HubSpot welcome, Mailgun PMF, etc.)</li>
+              <li><strong>Shipped</strong> — what runs on Brevo today while multi-provider routing is built</li>
+              <li><strong>Near limit</strong> — alert at 80% of contacts/sends or &lt;2 months runway (<span class="code">email_provider_capacity</span> in snapshot)</li>
+              <li><strong>Dedup</strong> — all sends log to <span class="code">outreach_log</span> via <span class="code">dedup_trigger_name</span></li>
+            </ul>
+          </div>
           <div class="flow-diagram">
             <strong>DAU buckets (active):</strong> New + Current + Reactivated + Resurrected = DAU<br>
             <strong>Inactive:</strong> At-risk WAU → At-risk MAU → Dead → (Resurrection_Rate) → Resurrected<br>
-            <strong>Monetization cross-cuts:</strong> Limit hitters → Brevo upgrade · Stripe paid → OmniSend thank-you<br>
-            <strong>Acquisition funnel:</strong> PH teaser / launch emails (<span class="code">ph-waitlist/</span>) target new users and waitlist — reusable for future launches (Windows, Linux, mobile).
+            <strong>Monetization cross-cuts:</strong> Limit hitters → Brevo upgrade · Stripe paid → OmniSend thank-you (strategy)<br>
+            <strong>Acquisition funnel:</strong> PH teaser / launch (<span class="code">ph-waitlist/</span>) — reusable for future launches.
           </div>
         </section>
-        ${renderPreviewGallery()}
         <section id="buckets">
           <h2>DAU buckets</h2>
           <p class="section-cap">Classified daily from sessions ∪ llm_usage · same logic as <span class="code">reporting/dau_model.py</span></p>
           ${renderBucketsTable()}
+        </section>
+        <section id="sequences">
+          <h2>Sequence reference</h2>
+          <p class="section-cap">What fires, when, strategy vs shipped provider, and outreach_log dedup. Filter to find a cohort.</p>
+          ${renderFilters()}
+          ${renderSequenceTable()}
+        </section>
+        ${renderProviderCapacity()}
+        <section id="capacity">
+          <h2>Capacity cliffs</h2>
+          <p class="section-cap">When free tiers break — especially Product Hunt burst and OmniSend 250 paid cap vs 500 subs goal.</p>
+          ${renderCliffsTable()}
         </section>
         <section id="providers">
           <h2>Email providers (free tier)</h2>
           <p class="section-cap">Five providers; each sequence uses one primary and optional overflow.</p>
           <div class="provider-grid">${renderProviders()}</div>
         </section>
-        <section id="sequences">
-          <h2>Sequence reference</h2>
-          <p class="section-cap">What fires, when, which provider, and outreach_log dedup key. Filter to find a cohort.</p>
-          ${renderFilters()}
-          ${renderSequenceTable()}
-        </section>
-        <section id="capacity">
-          <h2>Capacity cliffs</h2>
-          <p class="section-cap">When free tiers break — especially Product Hunt burst and OmniSend 250 paid cap vs 500 subs goal.</p>
-          ${renderCliffsTable()}
-        </section>
+        ${renderPreviewGallery()}
         <section id="ops">
           <h2>Operational loop</h2>
           <div class="info">
@@ -368,6 +515,17 @@
         </footer>
       `;
       bindFilters();
+      bindCopyButtons();
+    }
+
+    async function loadCopyManifest() {
+      try {
+        const res = await fetch("/emails/copy_manifest.json", { cache: "no-store" });
+        if (!res.ok) throw new Error("missing");
+        copyManifest = await res.json();
+      } catch {
+        copyManifest = {};
+      }
     }
 
     async function loadSnapshot() {
@@ -388,6 +546,7 @@
         if (!res.ok) throw new Error("email_sequences.json missing");
         emailData = await res.json();
         await loadSnapshot();
+        await loadCopyManifest();
         renderPage();
       } catch (e) {
         document.getElementById("app").innerHTML = `<p class="err">Failed to load: ${escapeHtml(e.message)}</p>`;

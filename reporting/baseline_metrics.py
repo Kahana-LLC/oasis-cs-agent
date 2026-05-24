@@ -53,6 +53,7 @@ class BaselineSnapshot:
     key_insights: dict[str, Any] = field(default_factory=dict)
     metric_tooltips: dict[str, str] = field(default_factory=dict)
     corporate_goals: dict[str, Any] = field(default_factory=dict)
+    email_provider_capacity: dict[str, Any] = field(default_factory=dict)
     validation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

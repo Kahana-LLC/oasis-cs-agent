@@ -145,6 +145,29 @@ def _goal_gap_insights(
     return items
 
 
+def _email_provider_capacity_insights(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    """Near-limit alerts for free-tier email providers."""
+    items: list[dict[str, Any]] = []
+    cap = snapshot.get("email_provider_capacity") or {}
+    for prov in cap.get("providers") or []:
+        status = prov.get("status")
+        if status not in ("near_limit", "at_limit"):
+            continue
+        errors = prov.get("near_limit_errors") or []
+        detail = errors[0]["message"] if errors else f"{prov.get('name')} approaching free-tier cap."
+        severity = "high" if status == "at_limit" else "high"
+        _add_item(
+            items,
+            severity=severity,
+            title=f"Email provider near limit: {prov.get('name')}",
+            detail=detail + " See /email-machine#provider-capacity for capacity panel.",
+            lever="Upgrade provider, enable overflow routing, or prune contact lists before PH burst.",
+            metrics=["email_provider_capacity"],
+            anchor="/email-machine#provider-capacity",
+        )
+    return items
+
+
 def generate_key_insights(
     snapshot: dict[str, Any],
     deltas: dict[str, Any],
@@ -164,6 +187,7 @@ def generate_key_insights(
     items: list[dict[str, Any]] = _goal_gap_insights(
         snapshot, deltas, corporate_goals or {}, period
     )
+    items.extend(_email_provider_capacity_insights(snapshot))
     d_dead = _delta_metric(deltas, period, "bucket_dead")
     d_at_wau = _delta_metric(deltas, period, "bucket_at_risk_wau")
     d_at_mau = _delta_metric(deltas, period, "bucket_at_risk_mau")

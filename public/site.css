@@ -404,3 +404,138 @@ th {
 @media (max-width: 720px) {
   .seq-table { font-size: 0.75rem; }
 }
+
+.charter-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 1rem 0 1.5rem;
+  font-size: 0.82rem;
+}
+
+.charter-toc a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.charter-toc a:hover { text-decoration: underline; }
+
+.copy-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.copy-btn {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.copy-btn.toast-copied {
+  border-color: #3d8b6e;
+  color: #3d8b6e;
+}
+
+.status-pill {
+  display: inline-block;
+  font-size: 0.68rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.status-pill.status-ok,
+.status-pill.status-shipped { background: rgba(61, 139, 110, 0.2); color: #6dd4a8; }
+.status-pill.status-near_limit,
+.status-pill.status-planned { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
+.status-pill.status-at_limit,
+.status-pill.status-not-started { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
+
+.provider-card.provider-near-limit { border-color: #ffc107; }
+.provider-card.provider-at-limit { border-color: #ff6b6b; }
+
+.capacity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+}
+
+.capacity-table th,
+.capacity-table td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+
+.capacity-table th {
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.banner-warn {
+  background: rgba(255, 193, 7, 0.12);
+  border: 1px solid rgba(255, 193, 7, 0.35);
+  color: var(--text);
+}
+
+.capacity-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.capacity-kpi-card {
+  display: block;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+}
+
+.capacity-kpi-card:hover { border-color: var(--accent); }
+
+.capacity-kpi-card.status-near_limit { border-color: #ffc107; }
+.capacity-kpi-card.status-at_limit { border-color: #ff6b6b; }
+
+.capacity-kpi-name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.capacity-kpi-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.35rem;
+}
+
+.capacity-kpi-fill {
+  height: 100%;
+  background: #3d8b6e;
+  border-radius: 3px;
+}
+
+.capacity-kpi-fill.status-near_limit { background: #ffc107; }
+.capacity-kpi-fill.status-at_limit { background: #ff6b6b; }
+
+.capacity-kpi-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+}

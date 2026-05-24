@@ -23,9 +23,13 @@
    python reporting/build_static_site.py
    ```
 
-4. Open [`/email-machine`](../email-machine.html) — the preview gallery and sequence table load these files in sandboxed iframes.
+4. Open [`/email-machine`](../email-machine.html) — project charter with DAU buckets, sequence reference, capacity panel, preview gallery, and **Copy HTML** buttons (raw Brevo fragments from `copy_manifest.json`).
 
-`public/emails/*.html` is gitignored; Vercel runs the build on every deploy so previews never drift from source.
+`public/emails/*.html` and `copy_manifest.json` are gitignored; Vercel runs the build on every deploy so previews never drift from source.
+
+## Copy manifest
+
+`copy_manifest.json` maps sequence IDs to raw HTML (with Brevo merge tags intact) and optional plain text for clipboard copy on `/email-machine`. Generated alongside preview HTML by `sync_copy_manifest()` in [`reporting/sync_email_previews.py`](../../reporting/sync_email_previews.py).
 
 ## Shipped previews (6)
 

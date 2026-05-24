@@ -6,6 +6,12 @@
       "id": "hubspot",
       "name": "HubSpot",
       "free_limits": { "marketing_emails_per_month": 2000 },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
       "constraints": ["No custom HTML", "Built-in templates only"],
       "upgrade_trigger": "New signups consistently > 2,000/month",
       "notes": "PH high scenario (2,000 signups) can consume entire monthly cap in launch week."
@@ -14,6 +20,12 @@
       "id": "brevo",
       "name": "Brevo",
       "free_limits": { "emails_per_day": 300, "contacts": 2000 },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
       "constraints": ["Shared with CS agent transactional sends (PLAN.md)"],
       "upgrade_trigger": "Contacts > 2,000 or daily signups > 300/day sustained",
       "notes": "Use separate lists: transactional-agent, nps, limit-hitter. Lifecycle + PH templates deployed here."
@@ -22,6 +34,12 @@
       "id": "mailgun",
       "name": "Mailgun",
       "free_limits": { "emails_per_day": 100 },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
       "constraints": ["Transactional-oriented"],
       "upgrade_trigger": "Net new WAU/week > 100 sustained",
       "notes": "~3,000 emails/month theoretical max."
@@ -30,6 +48,12 @@
       "id": "omnisend",
       "name": "OmniSend",
       "free_limits": { "emails_per_month": 500, "contacts": 250 },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
       "constraints": ["250 contact cap below 500 subs year-end goal"],
       "upgrade_trigger": "paid_subscribers >= 250 ($5k MRR)",
       "notes": "Migrate upgrade thank-you to Brevo paid at 250 subs."
@@ -38,6 +62,12 @@
       "id": "mailerlite",
       "name": "MailerLite",
       "free_limits": { "emails_per_month": 12000, "contacts": 500 },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
       "constraints": ["Contact cap binds before send cap"],
       "upgrade_trigger": "Contacts > 400 or sustained PH growth",
       "notes": "Priority queue: at-risk WAU > MAU > dead resurrection."
@@ -146,6 +176,7 @@
       "provider_id": "brevo",
       "provider_overflow_id": null,
       "deployed_via": "brevo",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "ph_teaser_waitlist",
       "free_tier_runway": "Reusable template for future launches (Windows, Linux, mobile, etc.)",
@@ -173,6 +204,7 @@
       "provider_id": "brevo",
       "provider_overflow_id": null,
       "deployed_via": "brevo",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "ph_launch_waitlist",
       "free_tier_runway": "Reusable for future product launches and platform expansions",
@@ -200,6 +232,7 @@
       "provider_id": "hubspot",
       "provider_overflow_id": "brevo",
       "deployed_via": "brevo",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "welcome_email",
       "free_tier_runway": "Strategy: HubSpot until >2k/mo; shipped on Brevo",
@@ -227,6 +260,7 @@
       "provider_id": "brevo",
       "provider_overflow_id": null,
       "deployed_via": "brevo",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "nps_day3",
       "free_tier_runway": "Until daily signups > 300/day (~9k/mo send cap)",
@@ -254,6 +288,7 @@
       "provider_id": "mailgun",
       "provider_overflow_id": "brevo",
       "deployed_via": "brevo",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "pmf_day10",
       "free_tier_runway": "Strategy: Mailgun; shipped on Brevo",
@@ -281,6 +316,7 @@
       "provider_id": "omnisend",
       "provider_overflow_id": "brevo",
       "deployed_via": "brevo",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "upgrade_thank_you",
       "free_tier_runway": "Strategy: OmniSend until 250 paid; shipped on Brevo",
@@ -307,6 +343,7 @@
       "trigger_implementation": "bucket in (at_risk_wau, at_risk_mau)",
       "provider_id": "mailerlite",
       "provider_overflow_id": null,
+      "implementation_status": "planned",
       "cadence": "drip-2-4",
       "dedup_trigger_name": "at_risk_nurture",
       "free_tier_runway": "Until net dead inflow ~500/month OR contacts > 500",
@@ -326,6 +363,7 @@
       "trigger_implementation": "activation_24h cohort: users_with_first_prompt == false at T+24h",
       "provider_id": "hubspot",
       "provider_overflow_id": "brevo",
+      "implementation_status": "planned",
       "cadence": "one-time",
       "dedup_trigger_name": "activation_nudge_24h",
       "free_tier_runway": "Shares HubSpot monthly cap; overflow to Brevo",
@@ -345,6 +383,7 @@
       "trigger_implementation": "users_hit_limit AND user NOT IN paid_subscribers",
       "provider_id": "brevo",
       "provider_overflow_id": "mailgun",
+      "implementation_status": "planned",
       "cadence": "one-time-plus-d7",
       "dedup_trigger_name": "limit_hitter_upgrade",
       "free_tier_runway": "Brevo 300/day; use dedicated list separate from NPS",
@@ -364,6 +403,7 @@
       "trigger_implementation": "bucket=dead AND NOT emailed in 30d AND NOT 12mo absent",
       "provider_id": "mailerlite",
       "provider_overflow_id": null,
+      "implementation_status": "planned",
       "cadence": "campaign-2-touch",
       "dedup_trigger_name": "dead_resurrection",
       "free_tier_runway": "Lowest MailerLite priority after at-risk cohorts",
@@ -383,6 +423,7 @@
       "trigger_implementation": "bucket transition to reactivated OR resurrected",
       "provider_id": "mailerlite",
       "provider_overflow_id": null,
+      "implementation_status": "planned",
       "cadence": "one-time",
       "dedup_trigger_name": "return_reinforcement",
       "free_tier_runway": "Shares MailerLite contact cap with nurture/resurrection",
@@ -402,6 +443,7 @@
       "trigger_implementation": "cancelled_paid_subscribers increment",
       "provider_id": "brevo",
       "provider_overflow_id": null,
+      "implementation_status": "planned",
       "cadence": "one-time-plus-d14",
       "dedup_trigger_name": "cancelled_winback",
       "free_tier_runway": "Active after OmniSend free tier full (250 paid)",

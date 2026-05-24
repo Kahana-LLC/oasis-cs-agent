@@ -445,7 +445,9 @@
       }
       const rows = items
         .map((item) => {
-          const anchor = item.anchor ? `#${item.anchor}` : "#dau-model";
+          const anchor = item.anchor
+            ? (String(item.anchor).startsWith("/") ? item.anchor : `#${item.anchor}`)
+            : "#dau-model";
           const sev = item.severity || "info";
           return `<details class="insight-row severity-${sev}">
             <summary>
@@ -464,6 +466,43 @@
         <p class="section-cap">Churn &amp; dead-user focus — prioritized levers for resurrection and at-risk recovery</p>
         <p class="insights-summary">${escapeHtml(summary)}</p>
         <div class="insight-list">${rows}</div>
+      </section>`;
+    }
+
+    function renderEmailProviderCapacity(capacity) {
+      const providers = capacity?.providers || [];
+      if (!providers.length) {
+        return `<section id="email-provider-capacity">
+          <h2>Email provider capacity</h2>
+          <p class="section-cap">Free-tier usage estimates — run <span class="code">main.py --baseline</span> for live data. <a href="/email-machine">Email machine charter →</a></p>
+        </section>`;
+      }
+      const cards = providers
+        .map((p) => {
+          const status = p.status || "ok";
+          const primary = (p.metrics || []).find((m) => m.near_limit || m.at_limit) || (p.metrics || [])[0];
+          const pct = primary ? Math.min(100, Math.round(100 * primary.pct)) : 0;
+          const barLabel = primary
+            ? `${primary.key.replace("_", " ")} ${pct}%`
+            : p.runway_months != null
+              ? `runway ${p.runway_months} mo`
+              : "—";
+          return `<a class="capacity-kpi-card status-${status}" href="/email-machine#provider-capacity" title="${escapeHtml((p.near_limit_errors || []).map((e) => e.message).join(" · ") || p.name)}">
+            <span class="capacity-kpi-name">${escapeHtml(p.name)}</span>
+            <div class="capacity-kpi-bar"><div class="capacity-kpi-fill status-${status}" style="width:${pct}%"></div></div>
+            <span class="capacity-kpi-meta">${escapeHtml(barLabel)} · <span class="status-pill status-${status}">${escapeHtml(status.replace("_", " "))}</span></span>
+          </a>`;
+        })
+        .join("");
+      const alert =
+        capacity.any_near_limit
+          ? `<div class="banner banner-warn">One or more email providers are near free-tier limits. <a href="/email-machine#provider-capacity">View capacity panel →</a></div>`
+          : "";
+      return `<section id="email-provider-capacity">
+        <h2>Email provider capacity</h2>
+        <p class="section-cap">Free-tier headroom (v1 estimates from DAU buckets). Near limit at 80% of cap or &lt;2 months runway. <a href="/email-machine">Full charter →</a></p>
+        ${alert}
+        <div class="capacity-kpi-row">${cards}</div>
       </section>`;
     }
 
@@ -685,6 +724,8 @@
           </div>
           ${kpiTableRows(launch.kpi_rows || [])}
         </section>
+
+        ${renderEmailProviderCapacity(data.email_provider_capacity || {})}
 
         <section id="dau-model">
           <h2>Daily Active Users Model</h2>

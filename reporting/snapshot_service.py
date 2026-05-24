@@ -83,4 +83,8 @@ def build_snapshot_dict(
         )
         data.setdefault("metric_tooltips", {})
         data.setdefault("corporate_goals", {})
+        data.setdefault(
+            "email_provider_capacity",
+            {"providers": [], "any_near_limit": False},
+        )
     return data

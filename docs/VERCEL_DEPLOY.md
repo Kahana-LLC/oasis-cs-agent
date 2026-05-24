@@ -35,7 +35,7 @@ Streamlit (`main.py --baseline-view`) remains for local interactive use only.
 | **Build Command** | `python reporting/build_static_site.py` |
 | **Output Directory** | `public` |
 
-The build script copies `baseline_snapshot.json` into `public/` and **syncs email HTML previews**: for each sequence with `preview.source` in `email_sequences.json`, it wraps the Brevo fragment from `brevo-oasis-emails/` and writes `public/emails/<sequence_id>.html` (gitignored; regenerated every deploy).
+The build script copies `baseline_snapshot.json` into `public/` and **syncs email HTML previews**: for each sequence with `preview.source` in `email_sequences.json`, it wraps the Brevo fragment from `brevo-oasis-emails/` and writes `public/emails/<sequence_id>.html` (gitignored; regenerated every deploy). It also writes **`public/emails/copy_manifest.json`** (raw HTML/plain text for Copy buttons on `/email-machine`).
 
 [`vercel.json`](../vercel.json) sets these plus `maxDuration: 60` for the API.
 

@@ -22,6 +22,7 @@ reporting/sql_export.json
 
 # Generated email previews (built from brevo-oasis-emails/ via build_static_site.py)
 public/emails/*.html
+public/emails/copy_manifest.json
 
 # MCP config (contains access tokens)
 .mcp.json

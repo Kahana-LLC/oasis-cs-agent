@@ -426,7 +426,7 @@ The CS agent ([`PLAN.md`](../PLAN.md)) already uses **Brevo** for transactional 
 
 ## Shipped templates (Brevo)
 
-Live HTML previews: **[`/email-machine`](/email-machine)** (gallery built from [`brevo-oasis-emails/`](../brevo-oasis-emails/) on deploy).
+Live HTML previews and **project charter**: **[`/email-machine`](/email-machine)** (DAU buckets, strategy vs shipped providers, capacity panel, copy HTML).
 
 Where **deployed** Brevo automations differ from the multi-provider **strategy** below, the engineer reference shows both (`deployed_via: brevo` on shipped sequences).
 
@@ -439,6 +439,22 @@ Where **deployed** Brevo automations differ from the multi-provider **strategy**
 | PH teaser / launch | — (acquisition) | **Brevo** — `ph-waitlist/` | Waitlist / launch day (reusable funnel) |
 
 See [`brevo-oasis-emails/lifecycle/brevo-oasis-lifecycle-emails.md`](../brevo-oasis-emails/lifecycle/brevo-oasis-lifecycle-emails.md) for automation details.
+
+### Near-limit tracking (`email_provider_capacity`)
+
+The baseline snapshot includes **`email_provider_capacity`**: per-provider contact/send usage vs free-tier caps. Alerts fire at **80%** of limit or **&lt;2 months runway** (proposal §6).
+
+| Code | Meaning |
+|------|---------|
+| `NEAR_LIMIT_CONTACTS` | Marketing contacts ≥80% of provider cap |
+| `NEAR_LIMIT_SENDS_MONTHLY` | Projected monthly sends ≥80% of cap |
+| `NEAR_LIMIT_SENDS_DAILY` | Projected daily sends ≥80% of cap |
+| `NEAR_LIMIT_RUNWAY` | Runway &lt;2 months at current send rate |
+| `AT_LIMIT_*` | Same metrics at ≥100% |
+
+Surfaced on: main dashboard KPI row, Key insights, and [`/email-machine#provider-capacity`](/email-machine).
+
+v1 uses DAU bucket estimates; replace with `outreach_log` counts when CS agent Phase 4 ships.
 
 ---
 
