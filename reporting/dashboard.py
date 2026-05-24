@@ -46,10 +46,59 @@ def main() -> None:
     with st.sidebar:
         st.header("Refresh data")
         st.code(".venv/bin/python main.py --baseline", language="bash")
-        st.caption("Then use **Rerun** above or refresh the browser.")
+        st.caption(
+            "Run daily to populate `baseline_metric_history` in Supabase for KPI deltas."
+        )
         if st.button("Rerun dashboard"):
             st.cache_data.clear()
             st.rerun()
+        delta_period = st.radio(
+            "Delta comparison",
+            options=["daily", "weekly", "monthly"],
+            format_func=lambda p: {"daily": "vs 1d ago", "weekly": "vs 7d ago", "monthly": "vs 30d ago"}[p],
+            index=["daily", "weekly", "monthly"].index(
+                st.session_state.get("delta_period", "weekly")
+            ),
+            key="delta_period",
+        )
+
+    tooltips = data.get("metric_tooltips") or {}
+
+    def _help(key: str) -> str | None:
+        t = tooltips.get(key)
+        return t if t else None
+
+    def _delta_str(metric_key: str) -> str | None:
+        block = (data.get("deltas") or {}).get(delta_period) or {}
+        if not block.get("available"):
+            return None
+        d = (block.get("metrics") or {}).get(metric_key)
+        if not d or d.get("abs_change") is None:
+            return None
+        sign = "+" if d["abs_change"] > 0 else ""
+        suffix = " pp" if "_pct" in metric_key or metric_key.startswith("flow_") else ""
+        s = f"{sign}{d['abs_change']}{suffix}"
+        if d.get("pct_change") is not None and not metric_key.startswith("flow_"):
+            s += f" ({sign}{d['pct_change']}%)"
+        return s
+
+    insights = data.get("key_insights") or {}
+    if insights.get("summary") or insights.get("items"):
+        st.header("Key insights")
+        st.caption("Churn & dead-user focus — levers for resurrection and at-risk recovery")
+        st.info(insights.get("summary", ""))
+        for item in insights.get("items", [])[:6]:
+            sev = item.get("severity", "info")
+            with st.expander(f"[{sev}] {item.get('title', 'Insight')}", expanded=(sev == "high")):
+                st.write(item.get("detail", ""))
+                st.markdown(f"**Lever:** {item.get('lever', '')}")
+
+    deltas = data.get("deltas") or {}
+    if not (deltas.get(delta_period) or {}).get("available"):
+        st.caption(
+            "KPI deltas appear after daily `main.py --baseline` runs populate history "
+            "(7d for weekly, 30d for monthly)."
+        )
 
     with st.expander("Data limitations"):
         for note in data.get("limitations", []):
@@ -65,13 +114,43 @@ def main() -> None:
         )
         headlines = launch.get("headlines", {})
         h1, h2, h3, h4, h5, h6 = st.columns(6)
-        h1.metric("24h activation", _pct(headlines.get("activation_24h_pct")))
-        h2.metric("D7 retention", _pct(headlines.get("retention_d7_pct")))
-        h3.metric("Latest WAU", headlines.get("latest_wau", "—"))
-        h4.metric("Premium conversion", _pct(headlines.get("premium_conversion_pct")))
-        h5.metric("Feedback rate", _pct(headlines.get("feedback_submission_rate_pct")))
+        h1.metric(
+            "24h activation",
+            _pct(headlines.get("activation_24h_pct")),
+            delta=_delta_str("activation_24h_pct"),
+            help=_help("activation_24h"),
+        )
+        h2.metric(
+            "D7 retention",
+            _pct(headlines.get("retention_d7_pct")),
+            delta=_delta_str("retention_d7_pct"),
+            help=_help("retention_d7"),
+        )
+        h3.metric(
+            "Latest WAU",
+            headlines.get("latest_wau", "—"),
+            delta=_delta_str("latest_wau"),
+            help=_help("latest_wau"),
+        )
+        h4.metric(
+            "Premium conversion",
+            _pct(headlines.get("premium_conversion_pct")),
+            delta=_delta_str("premium_conversion_pct"),
+            help=_help("premium_conversion"),
+        )
+        h5.metric(
+            "Feedback rate",
+            _pct(headlines.get("feedback_submission_rate_pct")),
+            delta=_delta_str("feedback_submission_rate_pct"),
+            help=_help("feedback_rate"),
+        )
         arpu_net = headlines.get("arpu_net_usd")
-        h6.metric("Net ARPU", f"${arpu_net}" if arpu_net is not None else "—")
+        h6.metric(
+            "Net ARPU",
+            f"${arpu_net}" if arpu_net is not None else "—",
+            delta=_delta_str("arpu_net_usd"),
+            help=_help("arpu_net"),
+        )
 
         kpi_rows = launch.get("kpi_rows", [])
         if kpi_rows:
@@ -87,17 +166,21 @@ def main() -> None:
             f"{dau.get('flow_window_days', 7)}-day avg daily transitions"
         )
         c1, c2, c3 = st.columns(3)
-        c1.metric("DAU", totals.get("dau", "—"))
-        c2.metric("WAU", totals.get("wau", "—"))
-        c3.metric("MAU", totals.get("mau", "—"))
+        c1.metric("DAU", totals.get("dau", "—"), delta=_delta_str("dau"), help=_help("dau"))
+        c2.metric("WAU", totals.get("wau", "—"), delta=_delta_str("wau"), help=_help("wau"))
+        c3.metric("MAU", totals.get("mau", "—"), delta=_delta_str("mau"), help=_help("mau"))
 
         bucket_rows = dau.get("bucket_rows", [])
         if bucket_rows:
             cols = st.columns(4)
+            defs = dau.get("definitions") or {}
             for i, row in enumerate(bucket_rows):
+                key = row.get("key", "")
                 cols[i % 4].metric(
                     row["bucket"],
                     f"{row['users']} ({row['pct_of_total']}%)",
+                    delta=_delta_str(f"bucket_{key}") if key else None,
+                    help=defs.get(key) or _help(f"bucket_{key}"),
                 )
             df_buckets = pd.DataFrame(bucket_rows).set_index("bucket")[["users"]]
             st.subheader("User buckets")
@@ -172,9 +255,24 @@ def main() -> None:
 
     churn = ret.get("churn_pct", {})
     ch1, ch2, ch3 = st.columns(3)
-    ch1.metric("Churn 7d", _pct(churn.get("churn_7d_pct")))
-    ch2.metric("Churn 14d", _pct(churn.get("churn_14d_pct")))
-    ch3.metric("Churn 30d", _pct(churn.get("churn_30d_pct")))
+    ch1.metric(
+        "Churn 7d",
+        _pct(churn.get("churn_7d_pct")),
+        delta=_delta_str("churn_7d_pct"),
+        help=_help("churn_7d"),
+    )
+    ch2.metric(
+        "Churn 14d",
+        _pct(churn.get("churn_14d_pct")),
+        delta=_delta_str("churn_14d_pct"),
+        help=_help("churn_14d"),
+    )
+    ch3.metric(
+        "Churn 30d",
+        _pct(churn.get("churn_30d_pct")),
+        delta=_delta_str("churn_30d_pct"),
+        help=_help("churn_30d"),
+    )
 
     sess = ret.get("session_frequency_by_week", [])
     if sess:
@@ -186,9 +284,24 @@ def main() -> None:
     st.header("Monetization")
     mon = data.get("monetization", {})
     m1, m2, m3, m4, m5, m6 = st.columns(6)
-    m1.metric("Token limit hit rate", _pct(mon.get("token_limit_hit_rate_pct")))
-    m2.metric("Premium conversion", _pct(mon.get("premium_conversion_pct")))
-    m3.metric("Limit-hitter conversion", _pct(mon.get("premium_conversion_among_limit_hitters_pct")))
+    m1.metric(
+        "Token limit hit rate",
+        _pct(mon.get("token_limit_hit_rate_pct")),
+        delta=_delta_str("token_limit_hit_rate_pct"),
+        help=_help("token_limit_hit_rate"),
+    )
+    m2.metric(
+        "Premium conversion",
+        _pct(mon.get("premium_conversion_pct")),
+        delta=_delta_str("premium_conversion_pct"),
+        help=_help("premium_conversion"),
+    )
+    m3.metric(
+        "Limit-hitter conversion",
+        _pct(mon.get("premium_conversion_among_limit_hitters_pct")),
+        delta=_delta_str("limit_hitter_conversion_pct"),
+        help=_help("limit_hitter_conversion"),
+    )
     m4.metric("Median days to limit", mon.get("median_days_to_first_limit", "—"))
     m5.metric("Median hours to limit", mon.get("median_hours_to_first_limit", "—"))
     conv_vel = mon.get("conversion_velocity_hours") or {}

@@ -57,6 +57,12 @@ Redeploy after adding or changing env vars.
 
 **Gemini cost input:** The live dashboard lets viewers enter actual monthly Gemini spend from AI Studio. Values persist in the browser only (`localStorage` keys `oasis_gemini_monthly_usd`, `oasis_supabase_monthly_usd`); they are not stored in Supabase. Optional future: persist to a config table for shared defaults.
 
+### KPI history and deltas
+
+Apply migration [`supabase/migrations/20260524120000_baseline_metric_history.sql`](../supabase/migrations/20260524120000_baseline_metric_history.sql) (creates `baseline_metric_history`). Each baseline run or live API response upserts one compact JSON row per calendar day. The dashboard shows **Key insights**, metric **tooltips**, and **daily / weekly / monthly deltas** (including DAU buckets and flow rates).
+
+Until history accumulates, delta badges show “—”. Run `.venv/bin/python main.py --baseline` daily for best results. Optional: Vercel Cron hitting `/api/snapshot` once per day as a backup.
+
 ---
 
 ## Verification

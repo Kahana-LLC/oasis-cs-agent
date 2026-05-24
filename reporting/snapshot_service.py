@@ -63,6 +63,23 @@ def build_snapshot(today: date | None = None) -> BaselineSnapshot:
     )
 
 
-def build_snapshot_dict(today: date | None = None) -> dict[str, Any]:
-    """Return baseline snapshot as JSON-serializable dict."""
-    return build_snapshot(today=today).to_dict()
+def build_snapshot_dict(
+    today: date | None = None,
+    *,
+    persist_history: bool = True,
+) -> dict[str, Any]:
+    """Return baseline snapshot as JSON-serializable dict with deltas and insights."""
+    data = build_snapshot(today=today).to_dict()
+    try:
+        from reporting.snapshot_history import enrich_snapshot_with_history
+
+        enrich_snapshot_with_history(data, persist=persist_history)
+    except Exception as exc:
+        log.warning("snapshot history enrichment skipped: %s", exc)
+        data.setdefault("deltas", {})
+        data.setdefault(
+            "key_insights",
+            {"summary": "", "items": [], "focus_areas": []},
+        )
+        data.setdefault("metric_tooltips", {})
+    return data

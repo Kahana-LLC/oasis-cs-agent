@@ -43,6 +43,9 @@ class BaselineSnapshot:
     feedback: dict[str, Any]
     dau_model: dict[str, Any] = field(default_factory=dict)
     launch_kpis: dict[str, Any] = field(default_factory=dict)
+    deltas: dict[str, Any] = field(default_factory=dict)
+    key_insights: dict[str, Any] = field(default_factory=dict)
+    metric_tooltips: dict[str, str] = field(default_factory=dict)
     validation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:

@@ -20,7 +20,7 @@ import {
 } from "cursor/canvas";
 
 const BASELINE = {
-  "generated_at": "2026-05-24T17:12:20.426575Z",
+  "generated_at": "2026-05-24T17:23:05.364113Z",
   "snapshot_date": "2026-05-24",
   "total_users": 122,
   "active_users": 122,
@@ -506,14 +506,14 @@ const BASELINE = {
       {
         "week": "2026-05-18/2026-05-24",
         "week_start": "2026-05-18",
-        "wau": 16,
-        "wow_pct": 6.7
+        "wau": 17,
+        "wow_pct": 13.3
       }
     ],
     "churn_pct": {
-      "churn_7d_pct": 76.7,
-      "churn_14d_pct": 72.6,
-      "churn_30d_pct": 63.0
+      "churn_7d_pct": 75.3,
+      "churn_14d_pct": 71.2,
+      "churn_30d_pct": 61.6
     },
     "session_frequency_by_week": [
       {
@@ -546,7 +546,7 @@ const BASELINE = {
       },
       {
         "week": "2026-05-18/2026-05-24",
-        "sessions_per_active_user": 10.75
+        "sessions_per_active_user": 10.24
       }
     ]
   },
@@ -700,10 +700,10 @@ const BASELINE = {
       "new": 0,
       "current": 0,
       "reactivated": 0,
-      "resurrected": 0,
+      "resurrected": 1,
       "at_risk_wau": 16,
       "at_risk_mau": 10,
-      "dead": 96
+      "dead": 95
     },
     "bucket_rows": [
       {
@@ -727,8 +727,8 @@ const BASELINE = {
       {
         "bucket": "Resurrected users",
         "key": "resurrected",
-        "users": 0,
-        "pct_of_total": 0.0
+        "users": 1,
+        "pct_of_total": 0.8
       },
       {
         "bucket": "At-risk WAU",
@@ -745,14 +745,14 @@ const BASELINE = {
       {
         "bucket": "Dead users",
         "key": "dead",
-        "users": 96,
-        "pct_of_total": 78.7
+        "users": 95,
+        "pct_of_total": 77.9
       }
     ],
     "totals": {
-      "dau": 0,
-      "wau": 16,
-      "mau": 26,
+      "dau": 1,
+      "wau": 17,
+      "mau": 27,
       "total_users": 122
     },
     "flow_rates_pct": {
@@ -768,7 +768,7 @@ const BASELINE = {
       "WAU_Loss_Rate": 6.0,
       "iMAURR": 2.3,
       "MAU_Loss_Rate": 6.4,
-      "Resurrection_Rate": 0.2
+      "Resurrection_Rate": 0.3
     },
     "flow_rate_rows": [
       {
@@ -834,7 +834,7 @@ const BASELINE = {
       {
         "rate": "Resurrection_Rate",
         "transition": "Dead \u2192 Resurrected",
-        "pct": 0.2
+        "pct": 0.3
       }
     ],
     "flow_window_days": 7,
@@ -854,247 +854,305 @@ const BASELINE = {
         "category": "Activation",
         "metric": "AI activation rate (1h)",
         "value": "27.9%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
+        "metric_key": "activation_24h_pct"
       },
       {
         "category": "Activation",
         "metric": "AI activation rate (24h)",
         "value": "32.0%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
+        "metric_key": "activation_24h_pct"
       },
       {
         "category": "Activation",
         "metric": "AI activation rate (3d)",
         "value": "33.6%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
+        "metric_key": "activation_24h_pct"
       },
       {
         "category": "Activation",
         "metric": "AI activation rate (7d)",
         "value": "38.5%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
+        "metric_key": "activation_24h_pct"
       },
       {
         "category": "Activation",
         "metric": "Time to first AI command (median h)",
         "value": "5.07 h",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Median hours from account creation to first AI prompt."
       },
       {
         "category": "Activation",
         "metric": "Time to first AI command (mean h)",
         "value": "415.88 h",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Median hours from account creation to first AI prompt."
       },
       {
         "category": "Engagement",
         "metric": "Power users \u2014 10+ prompts day 0",
         "value": "7.4%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Engagement metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Engagement",
         "metric": "Power users \u2014 10+ prompts week 0",
         "value": "13.9%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Engagement metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Engagement",
         "metric": "Multi-day AI in first 7 days",
         "value": "12.3%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Engagement metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Engagement",
         "metric": "Avg prompts / active day (latest cohort)",
         "value": "3.0",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Engagement metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Retention",
         "metric": "D1 retention",
         "value": "10.7%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Share of users who came back on day 7 after signup (session or AI usage). A leading indicator of whether new users stick.",
+        "metric_key": "retention_d7_pct"
       },
       {
         "category": "Retention",
         "metric": "D3 retention",
         "value": "4.1%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Retention metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Retention",
         "metric": "D7 retention",
         "value": "11.8%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Share of users who came back on day 7 after signup (session or AI usage). A leading indicator of whether new users stick.",
+        "metric_key": "retention_d7_pct"
       },
       {
         "category": "Retention",
         "metric": "D14 retention",
         "value": "4.4%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Retention metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Retention",
         "metric": "D30 retention",
         "value": "2.8%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Retention metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Retention",
         "metric": "Latest WAU",
-        "value": "16 (6.7% WoW)",
-        "status": "live"
+        "value": "17 (13.3% WoW)",
+        "status": "live",
+        "tooltip": "Retention metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Retention",
         "metric": "Churn 7d (ever-active)",
-        "value": "76.7%",
-        "status": "live"
+        "value": "75.3%",
+        "status": "live",
+        "tooltip": "Among users who were ever active, the share with no return in the last 7 days. Lower is better \u2014 rising churn means more slipping away.",
+        "metric_key": "churn_7d_pct"
       },
       {
         "category": "Retention",
         "metric": "Churn 14d (ever-active)",
-        "value": "72.6%",
-        "status": "live"
+        "value": "71.2%",
+        "status": "live",
+        "tooltip": "Ever-active users with no activity in the last 14 days.",
+        "metric_key": "churn_14d_pct"
       },
       {
         "category": "Retention",
         "metric": "Churn 30d (ever-active)",
-        "value": "63.0%",
-        "status": "live"
+        "value": "61.6%",
+        "status": "live",
+        "tooltip": "Ever-active users with no activity in the last 30 days.",
+        "metric_key": "churn_30d_pct"
       },
       {
         "category": "Retention",
         "metric": "Sessions / active user (latest week)",
-        "value": "10.75",
-        "status": "live"
+        "value": "10.24",
+        "status": "live",
+        "tooltip": "Retention metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Monetization",
         "metric": "Token limit hit rate",
         "value": "4.5%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Share of users who hit the daily AI token cap at least once. Often signals power users who may upgrade.",
+        "metric_key": "token_limit_hit_rate_pct"
       },
       {
         "category": "Monetization",
         "metric": "Median days to first token limit",
         "value": "118 d",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Typical days from signup until a user first hits the token cap. Shorter often means heavy early usage.",
+        "metric_key": "median_days_to_first_limit"
       },
       {
         "category": "Monetization",
         "metric": "Median hours to first token limit",
         "value": "2832.0 h",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Monetization metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Monetization",
         "metric": "Premium conversion (all users)",
         "value": "8.2%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Share of all users on a paid Plus plan or active paid subscription. Overall monetization health.",
+        "metric_key": "premium_conversion_pct"
       },
       {
         "category": "Monetization",
         "metric": "Premium conversion (limit hitters)",
         "value": "100.0%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Of users who hit token limits, how many are on a paid plan. Measures whether limits drive upgrades.",
+        "metric_key": "limit_hitter_conversion_pct"
       },
       {
         "category": "Monetization",
         "metric": "Conversion velocity (median h to upgrade)",
         "value": "486.7 h",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Median hours from signup to first premium upgrade among paying users."
       },
       {
         "category": "Monetization",
         "metric": "ARPU gross",
         "value": "$1.34",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Monetization metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Monetization",
         "metric": "ARPU net (est. API cost)",
         "value": "$1.34",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Average revenue per user after subtracting estimated API costs. Net unit economics per user.",
+        "metric_key": "arpu_net_usd"
       },
       {
         "category": "Monetization",
         "metric": "Est. API cost (all-time model)",
         "value": "$0.38",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Monetization metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Monetization",
         "metric": "Projected monthly API cost (7d run-rate)",
         "value": "$0.43",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Monetization metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Monetization",
         "metric": "LTV proxy (12 mo, net ARPU)",
         "value": "$16.08",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Monetization metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Monetization",
         "metric": "CAC / LTV ratio",
         "value": "Unavailable \u2014 no acquisition spend in DB",
-        "status": "partial"
+        "status": "partial",
+        "tooltip": "Monetization metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Monetization",
         "metric": "Actual Gemini spend (monthly)",
         "value": "Enter in dashboard \u2014 AI Studio actuals",
-        "status": "manual"
+        "status": "manual",
+        "tooltip": "Monetization metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Feedback",
         "metric": "Feedback submission rate",
         "value": "24.6%",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Share of users who submitted at least one feedback/training event. Signals product involvement beyond passive use.",
+        "metric_key": "feedback_submission_rate_pct"
       },
       {
         "category": "Feedback",
         "metric": "Median hours to first feedback",
         "value": "622.45 h",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Feedback metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Feedback",
         "metric": "Anomalies (<15 min post-signup)",
         "value": "6",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Feedback metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "Feedback",
         "metric": "Manual review samples",
         "value": "8",
-        "status": "live"
+        "status": "live",
+        "tooltip": "Feedback metric tracked for Product Hunt launch. See section charts below for trend detail."
       },
       {
         "category": "DAU",
         "metric": "DAU (today)",
-        "value": "0",
-        "status": "live"
+        "value": "1",
+        "status": "live",
+        "tooltip": "Users engaged today: new, current, reactivated, or resurrected.",
+        "metric_key": "dau"
       },
       {
         "category": "DAU",
         "metric": "WAU (model)",
-        "value": "16",
-        "status": "live"
+        "value": "17",
+        "status": "live",
+        "tooltip": "DAU plus users at-risk WAU (active recently but not today).",
+        "metric_key": "wau"
       },
       {
         "category": "DAU",
         "metric": "MAU (model)",
-        "value": "26",
-        "status": "live"
+        "value": "27",
+        "status": "live",
+        "tooltip": "WAU plus users at-risk MAU (active 7\u201329 days ago, inactive lately).",
+        "metric_key": "mau"
       }
     ],
     "headlines": {
       "activation_24h_pct": 32.0,
       "retention_d7_pct": 11.8,
-      "latest_wau": 16,
+      "latest_wau": 17,
       "premium_conversion_pct": 8.2,
       "feedback_submission_rate_pct": 24.6,
       "arpu_net_usd": 1.34
@@ -1110,6 +1168,122 @@ const BASELINE = {
     },
     "premium_conversion_among_limit_hitters_pct": 100.0,
     "default_supabase_monthly_usd": 25
+  },
+  "deltas": {
+    "daily": {
+      "available": false,
+      "as_of": null,
+      "label": "vs 1d ago",
+      "metrics": {}
+    },
+    "weekly": {
+      "available": false,
+      "as_of": null,
+      "label": "vs 7d ago",
+      "metrics": {}
+    },
+    "monthly": {
+      "available": false,
+      "as_of": null,
+      "label": "vs 30d ago",
+      "metrics": {}
+    }
+  },
+  "key_insights": {
+    "summary": "77.9% of the base is dead. 26 users are at-risk (recoverable before 30d dead). Focus on at-risk WAU and resurrection levers.",
+    "items": [
+      {
+        "severity": "high",
+        "title": "Majority of users are dead",
+        "detail": "77.9% of users (95/122) have had no activity in 30+ days.",
+        "lever": "Prioritize resurrection email flows and at-risk prevention (iWAURR).",
+        "metrics": [
+          "bucket_dead"
+        ],
+        "anchor": "dau-model"
+      },
+      {
+        "severity": "medium",
+        "title": "Current users are slipping to at-risk",
+        "detail": "1-CURR 74.2% \u2014 habitual users missing days.",
+        "lever": "Habit loops, return triggers, and session reminders.",
+        "metrics": [
+          "flow_1-CURR",
+          "flow_CURR"
+        ],
+        "anchor": "dau-model"
+      },
+      {
+        "severity": "medium",
+        "title": "More users dying than resurrecting",
+        "detail": "Resurrection_Rate 0.3% vs MAU_Loss_Rate 6.4%.",
+        "lever": "Invest in dead \u2192 resurrected campaigns; test win-back offers.",
+        "metrics": [
+          "flow_Resurrection_Rate",
+          "flow_MAU_Loss_Rate"
+        ],
+        "anchor": "dau-model"
+      },
+      {
+        "severity": "info",
+        "title": "Low recovery from at-risk WAU",
+        "detail": "Only 18.8% of at-risk WAU return to Current today.",
+        "lever": "Test same-day or next-day re-engagement for users who missed one day.",
+        "metrics": [
+          "flow_iWAURR"
+        ],
+        "anchor": "dau-model"
+      }
+    ],
+    "focus_areas": [
+      "resurrection",
+      "at_risk_wau",
+      "at_risk_mau"
+    ],
+    "delta_period_used": "weekly"
+  },
+  "metric_tooltips": {
+    "activation_24h": "Share of all users who sent their first AI prompt within 24 hours of signing up. Higher means onboarding is working quickly.",
+    "retention_d7": "Share of users who came back on day 7 after signup (session or AI usage). A leading indicator of whether new users stick.",
+    "latest_wau": "Users active at least once in the last 7 days (sessions or AI prompts). Shows near-term engagement momentum.",
+    "premium_conversion": "Share of all users on a paid Plus plan or active paid subscription. Overall monetization health.",
+    "feedback_rate": "Share of users who submitted at least one feedback/training event. Signals product involvement beyond passive use.",
+    "arpu_net": "Average revenue per user after subtracting estimated API costs. Net unit economics per user.",
+    "churn_7d": "Among users who were ever active, the share with no return in the last 7 days. Lower is better \u2014 rising churn means more slipping away.",
+    "churn_14d": "Ever-active users with no activity in the last 14 days.",
+    "churn_30d": "Ever-active users with no activity in the last 30 days.",
+    "token_limit_hit_rate": "Share of users who hit the daily AI token cap at least once. Often signals power users who may upgrade.",
+    "limit_hitter_conversion": "Of users who hit token limits, how many are on a paid plan. Measures whether limits drive upgrades.",
+    "median_days_to_first_limit": "Typical days from signup until a user first hits the token cap. Shorter often means heavy early usage.",
+    "median_hours_to_first_limit": "Same as days to first limit, in hours.",
+    "conversion_velocity": "Median hours from signup to first premium upgrade among paying users.",
+    "dau": "Users engaged today: new, current, reactivated, or resurrected.",
+    "wau": "DAU plus users at-risk WAU (active recently but not today).",
+    "mau": "WAU plus users at-risk MAU (active 7\u201329 days ago, inactive lately).",
+    "time_to_first_prompt_median": "Median hours from account creation to first AI prompt.",
+    "power_users_day0": "Users with 10+ AI prompts on their signup day.",
+    "power_users_week0": "Users with 10+ AI prompts in their first 7 days.",
+    "multi_day_ai_7d": "Users who used AI on more than one day in their first week.",
+    "bucket_new": "New users: First day of engagement ever",
+    "bucket_current": "Current users: Active today and at least one other day in the prior 7 days",
+    "bucket_reactivated": "Reactivated users: First day back after 7\u201329 days away",
+    "bucket_resurrected": "Resurrected users: First day back after 30+ days away",
+    "bucket_at_risk_wau": "At-risk WAU: Inactive today, active on at least one of the prior 6 days",
+    "bucket_at_risk_mau": "At-risk MAU: Inactive today and prior 6 days, active 7\u201329 days ago",
+    "bucket_dead": "Dead users: No activity in the last 30 days",
+    "flow_NURR": "New \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_1-NURR": "New \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_CURR": "Current \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_1-CURR": "Current \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_RURR": "Reactivated \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_1-RURR": "Reactivated \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_SURR": "Resurrected \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_1-SURR": "Resurrected \u2192 At-risk WAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_iWAURR": "At-risk WAU \u2192 Current \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_WAU_Loss_Rate": "At-risk WAU \u2192 At-risk MAU \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_iMAURR": "At-risk MAU \u2192 Reactivated \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_MAU_Loss_Rate": "At-risk MAU \u2192 Dead \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users.",
+    "flow_Resurrection_Rate": "Dead \u2192 Resurrected \u2014 average daily % of users making this transition over the last 7 days. Higher resurrection and iWAURR/iMAURR help win back at-risk and dead users."
   },
   "validation": {
     "payments_success_count": 14,

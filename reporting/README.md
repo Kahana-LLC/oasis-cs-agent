@@ -54,6 +54,22 @@ The Vercel dashboard and snapshot JSON include **`dau_model`**: seven user bucke
 
 The dashboard includes **`launch_kpis`**: a scorecard mapped 1:1 to [`Launch KPIs.txt`](../Launch%20KPIs.txt) (activation, engagement, retention, monetization, feedback, DAU cross-links). The Vercel UI also provides editable **Gemini** and **Supabase** monthly cost inputs (stored in browser `localStorage` as `oasis_gemini_monthly_usd` / `oasis_supabase_monthly_usd`) to recalculate net ARPU and LTV proxy client-side. Server-side **`usage_cost_forecast`** extrapolates 7-day prompt volume and model-based API cost to a projected monthly figure.
 
+## Tooltips, insights, and KPI deltas
+
+- **`metric_glossary.py`** — plain-English definitions (hover `?` on Vercel, `help=` in Streamlit).
+- **`insights.py`** — rule-based **Key insights** at the top of the report (churn / dead-user levers).
+- **`metric_deltas.py`** — daily / weekly / monthly change vs prior snapshots.
+- **`snapshot_history.py`** — upserts compact metrics to Supabase table **`baseline_metric_history`** (migration in [`../supabase/migrations/`](../supabase/migrations/)).
+
+Run **`main.py --baseline` daily** (or rely on live `/api/snapshot` upserts) so deltas populate. Weekly deltas need 7 days of history; monthly needs 30.
+
+| Module | Purpose |
+|--------|---------|
+| `snapshot_history.py` | Extract, upsert, fetch history |
+| `metric_deltas.py` | Delta math + significance flags |
+| `insights.py` | Key insights cards |
+| `metric_glossary.py` | Tooltip copy |
+
 ## Optional: Cursor canvas
 
 See [`../canvases/README.md`](../canvases/README.md).

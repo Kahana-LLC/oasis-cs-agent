@@ -127,6 +127,82 @@
       margin-bottom: 0.75rem;
     }
     .kpi-table-wrap { max-height: 420px; overflow-y: auto; margin: 1rem 0; }
+    .delta-toggle { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .delta-toggle button {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .delta-toggle button.active { background: #243044; color: var(--text); border-color: var(--accent); }
+    .metric .delta-badge {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 500;
+      margin-top: 0.25rem;
+    }
+    .delta-up { color: #6bcba8; }
+    .delta-down { color: #f87171; }
+    .delta-flat { color: var(--muted); }
+    .delta-badge.significant { font-weight: 700; }
+    .label-with-tip { display: inline-flex; align-items: center; gap: 0.25rem; }
+    .tip-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #243044;
+      color: var(--accent);
+      font-size: 0.65rem;
+      cursor: help;
+      position: relative;
+    }
+    .tip-icon:hover .tip-text, .tip-icon:focus .tip-text { display: block; }
+    .tip-text {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: 120%;
+      z-index: 20;
+      width: 220px;
+      padding: 0.5rem 0.65rem;
+      background: #243044;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--text);
+      line-height: 1.4;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    }
+    .insights-summary {
+      background: #152238;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+    .insight-cards { display: grid; gap: 0.75rem; }
+    .insight-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      border-left: 4px solid var(--border);
+    }
+    .insight-card.severity-high { border-left-color: #f87171; }
+    .insight-card.severity-medium { border-left-color: #f0b429; }
+    .insight-card.severity-info { border-left-color: var(--accent); }
+    .insight-card h4 { margin: 0 0 0.35rem; font-size: 0.9rem; }
+    .insight-card p { margin: 0.25rem 0; font-size: 0.85rem; color: var(--muted); }
+    .insight-card .lever { color: var(--text); font-size: 0.85rem; margin-top: 0.5rem; }
+    .insight-card a { color: var(--accent); font-size: 0.8rem; }
   </style>
 </head>
 <body>
@@ -159,8 +235,105 @@
       return v == null ? "—" : `${v}%`;
     }
 
-    function metric(label, value) {
-      return `<div class="metric"><label>${label}</label><span>${value ?? "—"}</span></div>`;
+    let deltaPeriod = localStorage.getItem("oasis_delta_period") || "weekly";
+    let lastSourceLabel = "";
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function getDelta(metricKey) {
+      if (!metricKey || !snapshotData?.deltas) return null;
+      const block = snapshotData.deltas[deltaPeriod];
+      if (!block?.available) return null;
+      return block.metrics?.[metricKey] ?? null;
+    }
+
+    function formatDelta(d, metricKey) {
+      if (!d || d.abs_change == null) return "";
+      const sign = d.abs_change > 0 ? "+" : "";
+      const isRate = metricKey.includes("_pct") || metricKey.startsWith("flow_");
+      const suffix = isRate ? " pp" : "";
+      let text = `${sign}${d.abs_change}${suffix}`;
+      if (d.pct_change != null && !metricKey.startsWith("flow_")) {
+        text += ` (${sign}${d.pct_change}%)`;
+      }
+      const label = snapshotData.deltas[deltaPeriod]?.label || "";
+      return `${text} ${label}`;
+    }
+
+    function deltaBadge(metricKey) {
+      const d = getDelta(metricKey);
+      if (!d) return "";
+      const cls =
+        d.direction === "up" ? "delta-up" : d.direction === "down" ? "delta-down" : "delta-flat";
+      const sig = d.significant ? " significant" : "";
+      return `<small class="delta-badge ${cls}${sig}">${formatDelta(d, metricKey)}</small>`;
+    }
+
+    function labelWithTooltip(label, tooltip) {
+      if (!tooltip) return label;
+      return `<span class="label-with-tip">${label}<span class="tip-icon" tabindex="0" aria-label="Definition">?<span class="tip-text">${escapeHtml(tooltip)}</span></span></span>`;
+    }
+
+    function metric(label, value, opts = {}) {
+      const { tooltip, metricKey, extraClass = "" } = opts;
+      const lbl = labelWithTooltip(label, tooltip);
+      const delta = metricKey ? deltaBadge(metricKey) : "";
+      return `<div class="metric ${extraClass}"><label>${lbl}</label><span>${value ?? "—"}</span>${delta}</div>`;
+    }
+
+    function deltaToggleHtml() {
+      const periods = [
+        ["daily", "Daily"],
+        ["weekly", "Weekly"],
+        ["monthly", "Monthly"],
+      ];
+      const block = snapshotData?.deltas?.[deltaPeriod];
+      const hint = block?.available
+        ? ""
+        : `<span class="section-cap">Deltas appear after daily snapshots accumulate (7d for weekly, 30d for monthly).</span>`;
+      const buttons = periods
+        .map(
+          ([p, label]) =>
+            `<button type="button" data-period="${p}" class="${p === deltaPeriod ? "active" : ""}">${label}</button>`
+        )
+        .join("");
+      return `<div class="delta-toggle"><span class="section-cap" style="margin:0">Compare:</span>${buttons}${hint}</div>`;
+    }
+
+    function renderKeyInsights(insights) {
+      const items = insights?.items || [];
+      const summary = insights?.summary || "Review metrics below for churn and resurrection levers.";
+      if (!items.length) {
+        return `<section id="key-insights"><h2>Key insights</h2><p class="insights-summary">${escapeHtml(summary)}</p></section>`;
+      }
+      const cards = items
+        .map((item) => {
+          const anchor = item.anchor ? `#${item.anchor}` : "#dau-model";
+          return `<article class="insight-card severity-${item.severity || "info"}">
+            <h4>${escapeHtml(item.title)}</h4>
+            <p>${escapeHtml(item.detail)}</p>
+            <p class="lever"><strong>Lever:</strong> ${escapeHtml(item.lever)}</p>
+            <a href="${anchor}">Go to section →</a>
+          </article>`;
+        })
+        .join("");
+      return `<section id="key-insights">
+        <h2>Key insights</h2>
+        <p class="section-cap">Churn &amp; dead-user focus — prioritized levers for resurrection and at-risk recovery</p>
+        <p class="insights-summary">${escapeHtml(summary)}</p>
+        <div class="insight-cards">${cards}</div>
+      </section>`;
+    }
+
+    function getTooltip(key, fallbacks) {
+      const tips = snapshotData?.metric_tooltips || {};
+      return tips[key] || fallbacks || "";
     }
 
     function destroyCharts() {
@@ -231,11 +404,36 @@
 
     function kpiTableRows(rows) {
       if (!rows || !rows.length) return "<p class='section-cap'>No launch KPI data.</p>";
+      const periodLabel = snapshotData?.deltas?.[deltaPeriod]?.label || "change";
       const body = rows.map((r) => {
         const cls = r.status === "live" ? "status-live" : r.status === "partial" ? "status-partial" : "status-manual";
-        return `<tr><td>${r.category}</td><td>${r.metric}</td><td>${r.value}</td><td class="${cls}">${r.status}</td></tr>`;
+        const tipHtml = r.tooltip
+          ? labelWithTooltip(r.metric, r.tooltip)
+          : escapeHtml(r.metric);
+        const d = r.metric_key ? getDelta(r.metric_key) : null;
+        const deltaCell = d ? formatDelta(d, r.metric_key) : "—";
+        return `<tr><td>${r.category}</td><td>${tipHtml}</td><td>${r.value}</td><td>${deltaCell}</td><td class="${cls}">${r.status}</td></tr>`;
       }).join("");
-      return `<div class="kpi-table-wrap"><table><thead><tr><th>Category</th><th>Metric</th><th>Value</th><th>Status</th></tr></thead><tbody>${body}</tbody></table></div>`;
+      return `<div class="kpi-table-wrap"><table><thead><tr><th>Category</th><th>Metric</th><th>Value</th><th>${periodLabel}</th><th>Status</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    function flowTableRows(rows) {
+      if (!rows || !rows.length) return "";
+      const periodLabel = snapshotData?.deltas?.[deltaPeriod]?.label || "change";
+      const body = rows
+        .map((r) => {
+          const key = `flow_${r.rate}`;
+          const tipText = tipForKey(key, r.transition);
+          const d = getDelta(key);
+          const deltaCell = d ? formatDelta(d, key) : "—";
+          return `<tr><td>${labelWithTooltip(r.rate, tipText)}</td><td>${r.transition}</td><td>${r.pct != null ? r.pct + "%" : "—"}</td><td>${deltaCell}</td></tr>`;
+        })
+        .join("");
+      return `<div style="overflow-x:auto"><table><thead><tr><th>Rate</th><th>Transition</th><th>Value</th><th>${periodLabel}</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    function tipForKey(key, fallback) {
+      return (snapshotData?.metric_tooltips || {})[key] || fallback || "";
     }
 
     let snapshotData = null;
@@ -281,8 +479,19 @@
       `;
     }
 
+    function wireDeltaToggle() {
+      document.querySelectorAll(".delta-toggle button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          deltaPeriod = btn.dataset.period;
+          localStorage.setItem("oasis_delta_period", deltaPeriod);
+          render(snapshotData, lastSourceLabel);
+        });
+      });
+    }
+
     function render(data, sourceLabel) {
       snapshotData = data;
+      lastSourceLabel = sourceLabel;
       destroyCharts();
       const act = data.activation || {};
       const eng = data.engagement || {};
@@ -302,6 +511,8 @@
       const launch = data.launch_kpis || {};
       const headlines = launch.headlines || {};
       const costDefaults = loadCostDefaults(mon, launch);
+      const insights = data.key_insights || {};
+      const dauDefs = dau.definitions || {};
 
       let chartId = 0;
       const nextId = () => `chart-${chartId++}`;
@@ -312,6 +523,8 @@
         <p class="caption">Snapshot ${data.snapshot_date || "—"} · ${data.total_users || 0} users (${data.active_users || 0} active)</p>
         <p class="data-source ${String(sourceLabel).includes("live") ? "live" : ""}">Last updated: ${data.generated_at || "—"} · Source: ${sourceLabel}</p>
         <div class="banner">Early-stage sample — treat percentages as directional, not statistically stable. Reload the page for latest Supabase metrics.</div>
+        ${deltaToggleHtml()}
+        ${renderKeyInsights(insights)}
         <details>
           <summary>Data limitations</summary>
           <ul class="limitations">${limitations}</ul>
@@ -321,42 +534,46 @@
           <h2>Product Hunt Launch KPIs</h2>
           <p class="section-cap">At-a-glance scorecard mapped to Launch KPIs.txt · status: live (from DB), partial (proxy), manual (enter in dashboard)</p>
           <div class="metrics">
-            ${metric("24h activation", pct(headlines.activation_24h_pct))}
-            ${metric("D7 retention", pct(headlines.retention_d7_pct))}
-            ${metric("Latest WAU", headlines.latest_wau ?? "—")}
-            ${metric("Premium conversion", pct(headlines.premium_conversion_pct))}
-            ${metric("Feedback rate", pct(headlines.feedback_submission_rate_pct))}
-            ${metric("Net ARPU", headlines.arpu_net_usd != null ? "$" + headlines.arpu_net_usd : "—")}
+            ${metric("24h activation", pct(headlines.activation_24h_pct), { metricKey: "activation_24h_pct", tooltip: getTooltip("activation_24h") })}
+            ${metric("D7 retention", pct(headlines.retention_d7_pct), { metricKey: "retention_d7_pct", tooltip: getTooltip("retention_d7") })}
+            ${metric("Latest WAU", headlines.latest_wau ?? "—", { metricKey: "latest_wau", tooltip: getTooltip("latest_wau") })}
+            ${metric("Premium conversion", pct(headlines.premium_conversion_pct), { metricKey: "premium_conversion_pct", tooltip: getTooltip("premium_conversion") })}
+            ${metric("Feedback rate", pct(headlines.feedback_submission_rate_pct), { metricKey: "feedback_submission_rate_pct", tooltip: getTooltip("feedback_rate") })}
+            ${metric("Net ARPU", headlines.arpu_net_usd != null ? "$" + headlines.arpu_net_usd : "—", { metricKey: "arpu_net_usd", tooltip: getTooltip("arpu_net") })}
           </div>
           ${kpiTableRows(launch.kpi_rows || [])}
         </section>
 
-        <section>
+        <section id="dau-model">
           <h2>Daily Active Users Model</h2>
           <p class="section-cap">As of ${dau.as_of || data.snapshot_date || "—"} · engagement = session or llm_usage · flow rates = ${dau.flow_window_days || 7}-day avg daily transitions</p>
           <div class="metrics">
-            ${metric("DAU", dauTotals.dau ?? "—")}
-            ${metric("WAU", dauTotals.wau ?? "—")}
-            ${metric("MAU", dauTotals.mau ?? "—")}
+            ${metric("DAU", dauTotals.dau ?? "—", { metricKey: "dau", tooltip: getTooltip("dau") })}
+            ${metric("WAU", dauTotals.wau ?? "—", { metricKey: "wau", tooltip: getTooltip("wau") })}
+            ${metric("MAU", dauTotals.mau ?? "—", { metricKey: "mau", tooltip: getTooltip("mau") })}
           </div>
           <div class="metrics">
             ${DAU_BUCKET_ORDER.map(([key, label]) => {
               const n = dauBuckets[key] ?? 0;
               const p = totalUsers ? ((100 * n / totalUsers).toFixed(1)) : "—";
-              return `<div class="metric bucket-${key}"><label>${label}</label><span>${n}</span><small style="color:var(--muted);font-size:0.75rem">${p}%</small></div>`;
+              return metric(label, `${n}`, {
+                metricKey: `bucket_${key}`,
+                tooltip: dauDefs[key] || getTooltip(`bucket_${key}`),
+                extraClass: `bucket-${key}`,
+              }) + `<small style="color:var(--muted);font-size:0.75rem;display:block;margin:-0.5rem 0 0.5rem 1rem">${p}% of users</small>`;
             }).join("")}
           </div>
           <div class="chart-box"><h3>User buckets</h3><canvas id="${nextId()}"></canvas></div>
           <h3 style="font-size:0.95rem">Flow rates</h3>
-          ${tableFromRows(dauFlow.map((r) => ({ rate: r.rate, transition: r.transition, pct: r.pct != null ? r.pct + "%" : "—" })), "rate")}
+          ${flowTableRows(dauFlow)}
         </section>
 
-        <section>
+        <section id="activation">
           <h2>Activation</h2>
           <p class="section-cap">Source: users.created_at + first llm_usage row</p>
           <div class="metrics">
-            ${metric("Median time to first prompt", `${ttf.median ?? "—"} h`)}
-            ${metric("Mean time to first prompt", `${ttf.mean ?? "—"} h`)}
+            ${metric("Median time to first prompt", `${ttf.median ?? "—"} h`, { tooltip: getTooltip("time_to_first_prompt_median") })}
+            ${metric("Mean time to first prompt", `${ttf.mean ?? "—"} h`, { tooltip: getTooltip("time_to_first_prompt_median") })}
             ${metric("Users with ≥1 prompt", act.users_with_first_prompt)}
           </div>
           <div class="chart-box"><h3>AI activation rate (%)</h3><canvas id="${nextId()}"></canvas></div>
@@ -365,14 +582,14 @@
         <section>
           <h2>Engagement</h2>
           <div class="metrics">
-            ${metric("10+ prompts (day 0)", pct(eng.power_users_day0_pct))}
-            ${metric("10+ prompts (week 0)", pct(eng.power_users_week0_pct))}
-            ${metric("Multi-day AI (first 7d)", pct(eng.multi_day_ai_first_7d_pct))}
+            ${metric("10+ prompts (day 0)", pct(eng.power_users_day0_pct), { tooltip: getTooltip("power_users_day0") })}
+            ${metric("10+ prompts (week 0)", pct(eng.power_users_week0_pct), { tooltip: getTooltip("power_users_week0") })}
+            ${metric("Multi-day AI (first 7d)", pct(eng.multi_day_ai_first_7d_pct), { tooltip: getTooltip("multi_day_ai_7d") })}
           </div>
           <div class="chart-box"><h3>Avg prompts per active day (last 12 cohorts)</h3><canvas id="${nextId()}"></canvas></div>
         </section>
 
-        <section>
+        <section id="retention">
           <h2>Retention &amp; churn</h2>
           <p class="section-cap">Return = session or llm_usage on calendar day signup+N</p>
           <div class="chart-box"><h3>Overall retention</h3><canvas id="${nextId()}"></canvas></div>
@@ -380,22 +597,22 @@
           ${tableFromRows((ret.cohort_retention || []).slice(-8), "cohort")}
           <div class="chart-box"><h3>Weekly active users (WAU)</h3><canvas id="${nextId()}"></canvas></div>
           <div class="metrics">
-            ${metric("Churn 7d", pct(churn.churn_7d_pct))}
-            ${metric("Churn 14d", pct(churn.churn_14d_pct))}
-            ${metric("Churn 30d", pct(churn.churn_30d_pct))}
+            ${metric("Churn 7d", pct(churn.churn_7d_pct), { metricKey: "churn_7d_pct", tooltip: getTooltip("churn_7d") })}
+            ${metric("Churn 14d", pct(churn.churn_14d_pct), { metricKey: "churn_14d_pct", tooltip: getTooltip("churn_14d") })}
+            ${metric("Churn 30d", pct(churn.churn_30d_pct), { metricKey: "churn_30d_pct", tooltip: getTooltip("churn_30d") })}
           </div>
           <div class="chart-box"><h3>Sessions per active user per week</h3><canvas id="${nextId()}"></canvas></div>
         </section>
 
-        <section>
+        <section id="monetization">
           <h2>Monetization</h2>
           <div class="metrics">
-            ${metric("Token limit hit rate", pct(mon.token_limit_hit_rate_pct))}
-            ${metric("Premium conversion", pct(mon.premium_conversion_pct))}
-            ${metric("Conversion among limit-hitters", pct(mon.premium_conversion_among_limit_hitters_pct))}
-            ${metric("Median days to first limit", mon.median_days_to_first_limit != null ? mon.median_days_to_first_limit + " d" : "—")}
-            ${metric("Median hours to first limit", mon.median_hours_to_first_limit != null ? mon.median_hours_to_first_limit + " h" : "—")}
-            ${metric("Conversion velocity", (mon.conversion_velocity_hours && mon.conversion_velocity_hours.median != null) ? mon.conversion_velocity_hours.median + " h" : "—")}
+            ${metric("Token limit hit rate", pct(mon.token_limit_hit_rate_pct), { metricKey: "token_limit_hit_rate_pct", tooltip: getTooltip("token_limit_hit_rate") })}
+            ${metric("Premium conversion", pct(mon.premium_conversion_pct), { metricKey: "premium_conversion_pct", tooltip: getTooltip("premium_conversion") })}
+            ${metric("Conversion among limit-hitters", pct(mon.premium_conversion_among_limit_hitters_pct), { metricKey: "limit_hitter_conversion_pct", tooltip: getTooltip("limit_hitter_conversion") })}
+            ${metric("Median days to first limit", mon.median_days_to_first_limit != null ? mon.median_days_to_first_limit + " d" : "—", { metricKey: "median_days_to_first_limit", tooltip: getTooltip("median_days_to_first_limit") })}
+            ${metric("Median hours to first limit", mon.median_hours_to_first_limit != null ? mon.median_hours_to_first_limit + " h" : "—", { tooltip: getTooltip("median_hours_to_first_limit") })}
+            ${metric("Conversion velocity", (mon.conversion_velocity_hours && mon.conversion_velocity_hours.median != null) ? mon.conversion_velocity_hours.median + " h" : "—", { tooltip: getTooltip("conversion_velocity") })}
           </div>
           <div class="metrics">
             ${metric("ARPU (gross)", `$${mon.arpu_gross_usd ?? "—"}`)}
@@ -468,6 +685,7 @@
       updateCostMetrics();
       document.getElementById("gemini-cost-input")?.addEventListener("input", updateCostMetrics);
       document.getElementById("supabase-cost-input")?.addEventListener("input", updateCostMetrics);
+      wireDeltaToggle();
     }
 
     async function fetchSnapshot() {

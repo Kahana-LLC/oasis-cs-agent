@@ -365,21 +365,20 @@ def run(canvas_only: bool = False) -> dict:
         _write_canvas(data)
         log.info("canvas regenerated from existing snapshot")
         return data  # type: ignore[return-value]
-    from reporting.snapshot_service import build_snapshot
+    from reporting.snapshot_service import build_snapshot_dict
 
-    snapshot = build_snapshot(today=date.today())
-    data = snapshot.to_dict()
+    data = build_snapshot_dict(today=date.today(), persist_history=True)
     SNAPSHOT_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
     log.info("snapshot written: %s", SNAPSHOT_PATH)
 
     _write_canvas(data)
 
-    v = snapshot.validation
+    v = data.get("validation") or {}
     log.info("validation: revenue=$%s limit_hit_days=%s plus_users=%s",
              v.get("payments_revenue_usd"), v.get("limit_hit_days"), v.get("plus_users"))
     log.info("View dashboard: .venv/bin/python main.py --baseline-view")
 
-    return snapshot
+    return data
 
 
 def main() -> None:

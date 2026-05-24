@@ -251,3 +251,20 @@ def compute_launch_kpis(
         "premium_conversion_among_limit_hitters_pct": limit_hitter_conv,
         "default_supabase_monthly_usd": 25,
     }
+
+
+def attach_tooltips_to_kpi_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Add plain-English tooltip and metric_key for delta lookup."""
+    from reporting.metric_glossary import kpi_metric_key, tooltip_for_kpi_row
+
+    out: list[dict[str, str]] = []
+    for row in rows:
+        enriched = dict(row)
+        cat = row.get("category", "")
+        met = row.get("metric", "")
+        enriched["tooltip"] = tooltip_for_kpi_row(cat, met)
+        key = kpi_metric_key(cat, met)
+        if key:
+            enriched["metric_key"] = key
+        out.append(enriched)
+    return out

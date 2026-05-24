@@ -267,7 +267,7 @@ Do not maintain chart logic in both places — inject `__SNAPSHOT_JSON__` into a
 |------|----------|
 | New metric | Add to `baseline_metrics.py` + one dashboard section |
 | Daily automation | GitHub Action cron: `--baseline`, upload JSON artifact |
-| Compare weeks | Write `baseline_snapshot_YYYY-MM-DD.json`; add date picker in Streamlit |
+| Compare weeks | Supabase `baseline_metric_history` + daily `--baseline` (see `reporting/snapshot_history.py`) |
 | Production hosting | Deploy Streamlit Cloud **or** export static HTML; keep compute job separate |
 | Live DB in UI | Avoid for ops dashboards; use snapshot for auditability |
 
