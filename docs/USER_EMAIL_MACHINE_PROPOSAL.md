@@ -148,20 +148,25 @@ flowchart TB
 
 This is **not** the same as sequence `implementation_status` (automation shipped vs `needs_implementation`). Account setup tracks whether you can log in, verify domain, and use API keys today.
 
-| Provider | Account status | Notes |
-|----------|----------------|-------|
-| **Beehiiv** | Ready | API key configured |
-| **HubSpot** | Ready | Phase 3 terminal CRM |
-| **Brevo** | Ready | 300 emails/day; PH interim + CS agent |
-| **EmailOctopus** | Ready | API key; 2,500 subs · 10k/mo |
-| **Resend** | Ready | Operational primary |
-| **Loops** | Ready | Lifecycle fallback (not operational) |
-| **Amazon SES** | Sandbox | 200/day until production access approved |
-| **OmniSend** | Pending verification | Domain DNS in progress; 500/mo |
-| **MailerLite** | Account recovery | Regain login before pool use |
-| **Mailgun** | Access blocked | Resolve account or defer paid path to HubSpot interim |
+| Provider | Account status | API key | Notes |
+|----------|----------------|---------|-------|
+| **Beehiiv** | Ready | Yes | Phase 1 primary |
+| **Brevo** | Ready | Yes (+ MCP token) | 300 emails/day; PH interim + CS agent |
+| **EmailOctopus** | Ready | Yes | 2,500 subs · 10k/mo |
+| **Resend** | Ready | Yes | Operational primary |
+| **HubSpot** | Ready | — | Phase 3 terminal CRM (portal) |
+| **Loops** | Ready | Yes | Lifecycle fallback (not operational) |
+| **Amazon SES** | Sandbox | Yes (AWS) | 200/day until production access approved |
+| **OmniSend** | Pending verification | — | Domain DNS in progress; 500/mo |
+| **MailerLite** | Account recovery | — | Regain login before pool use |
+| **Mailgun** | Access blocked | — | Resolve account or defer paid path to HubSpot interim |
 
-**Beehiiv MCP** (separate from API): [beehiiv MCP announcement](https://product.beehiiv.com/p/beehiiv-mcp) — connector `https://mcp.beehiiv.com/mcp`, OAuth in the AI client, v1 **read-only**, paid-plan early access. Use for analytics and ops in Cursor/Claude; write access is planned for v2.
+**API keys in env (not in git):** `BEEHIIV_API_KEY`, `BREVO_API_KEY`, `EMAILOCTOPUS_API_KEY`, `RESEND_API_KEY` — see `.env.example`.
+
+**MCP in Cursor:**
+
+- **Beehiiv** — [announcement](https://product.beehiiv.com/p/beehiiv-mcp) · `https://mcp.beehiiv.com/mcp` · OAuth · v1 read-only.
+- **Brevo** — [MCP docs](https://developers.brevo.com/docs/mcp-protocol) · `https://mcp.brevo.com/v1/brevo/mcp` · Bearer `BREVO_MCP_TOKEN` (MCP-capable key from Brevo → SMTP & API → API Keys).
 
 ### 3b. Operational & broadcast email (legal, privacy, outage)
 

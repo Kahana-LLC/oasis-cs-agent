@@ -55,5 +55,9 @@
 | `cancelled_winback_d0.html`, `d14.html` | cancelled win-back | `lifecycle/brevo-oasis-cancelled-winback-*.html` |
 | `enterprise_founder_d55.html` | enterprise founder | `enterprise/brevo-oasis-enterprise-founder.html` |
 | `enterprise_expansion_d85.html` | enterprise expansion | `enterprise/brevo-oasis-enterprise-expansion.html` |
+| `legal_notice.html` | legal notice | `operational/brevo-oasis-legal-notice.html` |
+| `incident_notice.html` | incident notice | `operational/brevo-oasis-incident-notice.html` |
+
+Operational HTML is deployed via **Resend/SES** (`scripts/send_operational.py`), not lifecycle ESP automations.
 
 Sequences without `preview.source` show a placeholder on `/email-machine` until a Brevo template exists. Use the **Missing template** inventory filter to QA gaps.

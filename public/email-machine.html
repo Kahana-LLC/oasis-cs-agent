@@ -472,6 +472,29 @@
       return "—";
     }
 
+    function renderMcpCard(provider) {
+      const mcp = provider?.mcp;
+      if (!mcp) return "";
+      const anchor = `${provider.id}-mcp`;
+      const connector = mcp.connector_url || "";
+      const title = `${provider.name} MCP`;
+      const authNote =
+        mcp.auth === "bearer_mcp_token"
+          ? `<p class="section-cap"><strong>Auth:</strong> Bearer token via <span class="code">${escapeHtml(mcp.env_var || "BREVO_MCP_TOKEN")}</span> in <span class="code">.env</span> (MCP-capable API key from Brevo dashboard — not committed to git).</p>`
+          : `<p class="section-cap">OAuth in browser after adding the connector URL (paid-plan early access).</p>`;
+      const docLink = mcp.announcement_url
+        ? `<a href="${escapeHtml(mcp.announcement_url)}" target="_blank" rel="noopener">Documentation</a>`
+        : "";
+      return `<div class="setup-mcp-card" id="${escapeHtml(anchor)}">
+          <h3>${escapeHtml(title)} <span class="routing-pill">AI connector</span></h3>
+          <p class="section-cap">Separate from REST API keys where applicable. ${docLink}${mcp.capabilities ? ` · ${escapeHtml(String(mcp.capabilities).replace(/_/g, " "))}` : ""}</p>
+          ${connector ? `<p class="section-cap"><strong>Connector URL:</strong> <code class="setup-mcp-url">${escapeHtml(connector)}</code>
+            <button type="button" class="copy-btn" data-copy-inline="${escapeHtml(connector)}">Copy URL</button></p>` : ""}
+          ${authNote}
+          <p class="section-cap"><strong>Cursor:</strong> ${escapeHtml(mcp.cursor_steps || "Add MCP server in Settings → MCP.")}</p>
+        </div>`;
+    }
+
     function renderProviderSetup() {
       const providers = (emailData?.providers || []).filter((p) => p.account_setup);
       const meta = emailData?.provider_setup_meta || {};
@@ -488,6 +511,14 @@
       if (blocked) countParts.push(`${blocked} need action`);
       const summaryLine = countParts.length ? countParts.join(" · ") : "No setup data";
       const asOf = meta.as_of ? ` · as of ${escapeHtml(meta.as_of)}` : "";
+      const apiKeyIds = meta.api_keys_ready || [];
+      const apiKeyBanner = apiKeyIds.length
+        ? `<div class="banner banner-live"><strong>API keys configured:</strong> ${apiKeyIds.map((id) => escapeHtml(providerDisplayName(id))).join(" · ")} (stored in env — not in this repo).</div>`
+        : "";
+      const mcpIds = meta.mcp_ready || [];
+      const mcpBanner = mcpIds.length
+        ? `<p class="section-cap"><strong>MCP in Cursor:</strong> ${mcpIds.map((id) => `<a href="#${escapeHtml(id)}-mcp">${escapeHtml(providerDisplayName(id))}</a>`).join(" · ")} — see connector cards below.</p>`
+        : "";
 
       const rows = providers
         .map((p) => {
@@ -512,23 +543,13 @@
         )
         .join("");
 
-      const beehiiv = providerById("beehiiv");
-      const mcp = beehiiv?.mcp;
-      let mcpBlock = "";
-      if (mcp) {
-        const connector = mcp.connector_url || "";
-        mcpBlock = `<div class="setup-mcp-card" id="beehiiv-mcp">
-          <h3>Beehiiv MCP <span class="routing-pill">AI connector</span></h3>
-          <p class="section-cap">Separate from the Beehiiv API key — connects Claude, Cursor, or other MCP clients to your account (v1 read-only). <a href="${escapeHtml(mcp.announcement_url)}" target="_blank" rel="noopener">Product announcement</a> · paid-plan early access.</p>
-          <p class="section-cap"><strong>Connector URL:</strong> <code class="setup-mcp-url">${escapeHtml(connector)}</code>
-            <button type="button" class="copy-btn" data-copy-inline="${escapeHtml(connector)}">Copy URL</button></p>
-          <p class="section-cap"><strong>Cursor:</strong> ${escapeHtml(mcp.cursor_steps || "Add MCP server with connector URL, then complete OAuth in the browser.")}</p>
-        </div>`;
-      }
+      const mcpBlock = providers.filter((p) => p.mcp).map((p) => renderMcpCard(p)).join("");
 
       return `<section id="provider-setup">
         <h2>Provider account setup (live)</h2>
         <p class="section-cap">${escapeHtml(meta.summary || "Account and API readiness — distinct from sequence automation status.")}${asOf} · <strong>${summaryLine}</strong></p>
+        ${apiKeyBanner}
+        ${mcpBanner}
         ${blockers}
         <table class="setup-table">
           <thead><tr><th>Provider</th><th>Role</th><th>Account</th><th>API key</th><th>Domain</th><th>Next action</th></tr></thead>
@@ -733,10 +754,7 @@
         : setup?.notes && setup.status === "ready"
           ? `<div class="section-cap">${escapeHtml(setup.notes)}</div>`
           : "";
-      const mcpLink =
-        p.id === "beehiiv" && p.mcp
-          ? ` · <a href="#beehiiv-mcp">Connect MCP</a>`
-          : "";
+      const mcpLink = p.mcp ? ` · <a href="#${escapeHtml(p.id)}-mcp">MCP</a>` : "";
       return `<div class="provider-card ${providerStatusClass(p.id)}" data-provider-id="${escapeHtml(p.id)}">
             <h3>${nameHtml} ${roleLabel} ${phTag} ${setupStatusPill(p)} ${providerStatusPill(p.id)}${deprecated}${mcpLink}</h3>
             <div class="limits">${escapeHtml(formatLimits(p))}</div>
