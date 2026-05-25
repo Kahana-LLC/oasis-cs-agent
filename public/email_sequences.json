@@ -1,9 +1,9 @@
 {
-  "version": 5,
+  "version": 6,
   "doc_ref": "docs/USER_EMAIL_MACHINE_PROPOSAL.md",
   "provider_setup_meta": {
     "as_of": "2026-05-25",
-    "summary": "Mailgun blocked — Resend interim Phase 2 paid + fallback pool; SES operational primary (sandbox until production)",
+    "summary": "Phase 1 primary = Brevo (free automations); Beehiiv archived (Scale required for journeys). Resend = Phase 2 paid + lifecycle overflow; SES operational.",
     "api_keys_ready": [
       "beehiiv",
       "brevo",
@@ -49,7 +49,8 @@
     {
       "id": "beehiiv",
       "name": "Beehiiv",
-      "funnel_role": "phase_1_primary",
+      "funnel_role": "archived",
+      "status": "deprecated",
       "pricing_url": "https://www.beehiiv.com/pricing",
       "free_limits": {
         "contacts": 2500
@@ -61,13 +62,12 @@
         "runway_months_min": 2
       },
       "constraints": [
-        "Launch plan $0/mo",
-        "Unlimited email sends",
-        "No Send API on free tier",
-        "2,500 subscriber cap"
+        "Archived — Launch lacks multi-step Email Automations (Scale $49+ required)",
+        "Unlimited sends on Launch do not replace automation builder",
+        "MCP v1 read-only — does not send lifecycle mail"
       ],
-      "upgrade_trigger": "Contacts > 2,000 — prune users by graduated readiness or time-on-list; fallback pool or Phase 2",
-      "notes": "Phase 1 primary — nurture on Beehiiv while list headroom exists; track readiness milestones until upgrade or contact prune.",
+      "upgrade_trigger": "N/A — use Brevo for Phase 1",
+      "notes": "Deprecated for lifecycle. Account/API/MCP may remain for optional newsletter; Phase 1 moved to Brevo on free tier.",
       "account_setup": {
         "status": "ready",
         "api_key_configured": true,
@@ -85,9 +85,9 @@
     {
       "id": "brevo",
       "name": "Brevo",
-      "funnel_role": "fallback",
+      "funnel_role": "phase_1_primary",
       "funnel_tags": [
-        "ph_interim",
+        "phase_1_primary",
         "transactional",
         "cs_agent"
       ],
@@ -103,10 +103,12 @@
         "runway_months_min": 2
       },
       "constraints": [
-        "Shared with CS agent transactional sends (PLAN.md)"
+        "300 emails/day (reserve ~50/day for CS agent)",
+        "2,000 unique contacts in active automations (free)",
+        "Shared daily quota with operational emergency sends"
       ],
-      "upgrade_trigger": "Pool aggregate > 80% — any member may absorb overflow from any phase",
-      "notes": "Fallback pool member — interchangeable with other pool providers. Used when primary provider hits cap or errors.",
+      "upgrade_trigger": "Automation entrants > 1,600 or daily sends > 240 — route overflow to fallback pool (Loops, Resend, OmniSend)",
+      "notes": "Phase 1 primary — welcome, NPS, PMF, activation automations; HTML in brevo-oasis-emails/. Overflow to fallback pool on cap.",
       "paid_tier": {
         "name": "Starter",
         "pricing_url": "https://www.brevo.com/pricing/",
@@ -254,6 +256,7 @@
       "funnel_role": "phase_2_paid",
       "funnel_tags": [
         "lifecycle_fallback",
+        "phase_1_overflow",
         "paid_transactional"
       ],
       "pricing_url": "https://resend.com/pricing",
@@ -273,7 +276,7 @@
         "Ticket support on free tier"
       ],
       "upgrade_trigger": "Paid + fallback daily > 80 — spill to Brevo or Loops",
-      "notes": "Phase 2 paid primary (interim) + fallback pool. Paid Zen welcome, cancelled win-back. API sends via RESEND_API_KEY.",
+      "notes": "Phase 2 paid primary (interim) + Phase 1 send overflow when Brevo nears 300/day or 3k/mo. Paid Zen welcome, cancelled win-back. API via RESEND_API_KEY.",
       "account_setup": {
         "status": "ready",
         "api_key_configured": true,
@@ -305,7 +308,7 @@
         "Marketing / product-help fallback only — not legal or outage"
       ],
       "upgrade_trigger": "Pool aggregate > 80% or contacts > 800",
-      "notes": "Lifecycle fallback pool member for nurture overflow when Beehiiv/EmailOctopus at cap.",
+      "notes": "Lifecycle fallback pool — nurture overflow when Brevo or EmailOctopus at cap.",
       "account_setup": {
         "status": "ready",
         "api_key_configured": true,
@@ -544,29 +547,30 @@
   "routing_rules": [
     {
       "id": "ph_week_brevo_primary",
-      "label": "PH week: Brevo interim",
+      "label": "PH week: Brevo peak sends",
       "trigger": "launch_week mode",
       "sequences": [
         "welcome",
-        "activation_nudge"
+        "activation_nudge",
+        "nps_day3"
       ],
       "provider_id": "brevo",
-      "notes": "Until Beehiiv automations live."
+      "notes": "Scenario planner accounts for PH signup spikes on Brevo (reserve CS agent daily budget)."
     },
     {
       "id": "fallback_pool",
       "label": "Fallback pool",
-      "trigger": "Any primary provider (Beehiiv, EmailOctopus, Mailgun) > 80% cap",
+      "trigger": "Any primary provider (Brevo, EmailOctopus, Resend) > 80% cap",
       "sequences": [
         "*"
       ],
       "provider_id": "fallback_pool",
-      "notes": "Fallback pool — used only when a primary provider hits a cap or errors. Route to whichever member (MailerLite / OmniSend / Brevo) has headroom. When fallback fires: migrate users to next phase OR upgrade constrained provider tier."
+      "notes": "Fallback pool — used when Brevo, EmailOctopus, or Resend hits cap. Route to Loops, Resend, OmniSend, or MailerLite by headroom. Migrate users to next phase OR upgrade tier when pool aggregate > 80%."
     },
     {
-      "id": "beehiiv_prune_to_phase2",
-      "label": "Beehiiv prune → Phase 2",
-      "trigger": "user received 4–7 Phase 1 emails AND beehiiv contacts > 2,000",
+      "id": "brevo_automation_prune_to_phase2",
+      "label": "Brevo automation prune → Phase 2",
+      "trigger": "user received 4–7 Phase 1 emails AND Brevo automation entrants > 1,600",
       "sequences": [
         "welcome",
         "activation_nudge",
@@ -689,15 +693,15 @@
   ],
   "capacity_cliffs": [
     {
-      "id": "beehiiv_2500",
-      "provider_id": "beehiiv",
-      "trigger": "Beehiiv contacts > 2,000",
-      "action": "Prune users with 4–7 Phase 1 emails; route overflow to fallback pool or Phase 2"
+      "id": "brevo_automation_2000",
+      "provider_id": "brevo",
+      "trigger": "Brevo automation entrants > 1,600 (80% of 2,000)",
+      "action": "Prune users with 4–7 Phase 1 emails; route overflow to fallback pool (Loops, Resend) or Phase 2"
     },
     {
       "id": "fallback_pool_aggregate",
       "provider_id": "fallback_pool",
-      "trigger": "Pool aggregate contacts > 3,000 (80% of 3,750)",
+      "trigger": "Pool aggregate contacts > 1,400 (80% of 1,750)",
       "action": "Route to fallback member with most headroom (prefer Loops for marketing sequences); evaluate phase migration or provider upgrade"
     },
     {
@@ -710,7 +714,7 @@
       "id": "loops_fallback_cap",
       "provider_id": "loops",
       "trigger": "Loops contacts > 800 (80% of 1,000)",
-      "action": "Use MailerLite or Brevo for marketing fallback overflow"
+      "action": "Use MailerLite or Resend for marketing fallback overflow"
     },
     {
       "id": "resend_paid_daily",
@@ -733,8 +737,8 @@
     {
       "id": "brevo_launch_peak",
       "provider_id": "brevo",
-      "trigger": "PH interim peak > 240/day",
-      "action": "Migrate to Beehiiv post-PH"
+      "trigger": "Brevo peak > 240/day (80% of 300)",
+      "action": "Route Phase 1 overflow to fallback pool (Loops, Resend); defer non-urgent sends to next day"
     },
     {
       "id": "brevo_agent",
@@ -865,13 +869,13 @@
       "trigger_summary": "Account created — welcome + orient to onboarding (import from prior browser, first AI command)",
       "trigger_when": "Immediately on signup",
       "trigger_implementation": "Brevo automation: new Oasis user signup",
-      "provider_id": "beehiiv",
+      "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
       "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
       "dedup_trigger_name": "welcome_email",
-      "free_tier_runway": "Strategy: EmailOctopus (2,500 contacts · 10k/mo); PH interim shipped on Brevo",
+      "free_tier_runway": "Brevo primary · 300/day · 2k automation entrants; fallback pool on cap",
       "dashboard_metrics": [
         "activation_24h_pct",
         "flow_NURR",
@@ -900,13 +904,12 @@
           "name": "Welcome",
           "day_offset": 0,
           "trigger_when": "Immediately on signup — welcome + browser import onboarding steps",
-          "primary_provider_id": "beehiiv",
+          "primary_provider_id": "brevo",
           "fallback": {
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "welcome_email",
-          "counts_toward_phase_budget": true,
-          "interim_provider_id": "brevo"
+          "counts_toward_phase_budget": true
         }
       ]
     },
@@ -921,7 +924,7 @@
       "trigger_summary": "NPS survey after a few days with the product",
       "trigger_when": "3 days after signup",
       "trigger_implementation": "Brevo automation: lifecycle_day == 3",
-      "provider_id": "beehiiv",
+      "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
       "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
@@ -951,13 +954,12 @@
           "name": "NPS",
           "day_offset": 3,
           "trigger_when": "3 days after signup",
-          "primary_provider_id": "beehiiv",
+          "primary_provider_id": "brevo",
           "fallback": {
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "nps_day3",
-          "counts_toward_phase_budget": true,
-          "interim_provider_id": "brevo"
+          "counts_toward_phase_budget": true
         }
       ]
     },
@@ -972,7 +974,7 @@
       "trigger_summary": "Product-market fit survey",
       "trigger_when": "10 days after signup",
       "trigger_implementation": "Brevo automation: lifecycle_day == 10",
-      "provider_id": "beehiiv",
+      "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
       "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
@@ -1005,13 +1007,12 @@
           "name": "PMF survey",
           "day_offset": 10,
           "trigger_when": "10 days after signup",
-          "primary_provider_id": "beehiiv",
+          "primary_provider_id": "brevo",
           "fallback": {
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "pmf_day10",
-          "counts_toward_phase_budget": true,
-          "interim_provider_id": "brevo"
+          "counts_toward_phase_budget": true
         }
       ]
     },
@@ -1213,7 +1214,7 @@
       "trigger_summary": "No first AI command within 24h — nudge browser import (Chrome, Safari, Brave, Edge)",
       "trigger_when": "24h after signup if zero llm_usage rows; remind import from prior browser",
       "trigger_implementation": "activation_24h cohort: users_with_first_prompt == false at T+24h",
-      "provider_id": "beehiiv",
+      "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
       "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
@@ -1239,7 +1240,7 @@
         "preheader": "Import from Chrome, Safari, Brave, or Edge — then ask the assistant anything.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
-        "deploy_provider": "beehiiv"
+        "deploy_provider": "brevo"
       },
       "funnel_phase": "phase_1_activation",
       "touches": [
@@ -1249,13 +1250,12 @@
           "name": "Activation nudge",
           "day_offset": 1,
           "trigger_when": "24h after signup if zero llm_usage — nudge import from Chrome, Safari, Brave, or Edge",
-          "primary_provider_id": "beehiiv",
+          "primary_provider_id": "brevo",
           "fallback": {
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "activation_nudge_24h",
           "counts_toward_phase_budget": true,
-          "interim_provider_id": "brevo",
           "preview": {
             "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge.html",
             "path": "/emails/activation_nudge_d1.html",
@@ -1263,7 +1263,7 @@
             "preheader": "Import from Chrome, Safari, Brave, or Edge — then ask the assistant anything.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
-            "deploy_provider": "beehiiv"
+            "deploy_provider": "brevo"
           }
         }
       ]
@@ -1279,7 +1279,7 @@
       "trigger_summary": "Low engagement after activation nudge — founder/CS personal outreach; mention training assistant (+1,000 tokens)",
       "trigger_when": "48–72h post-signup if still no llm_usage, no feedback_events training, or low engagement",
       "trigger_implementation": "activation_cs_calendar: users_with_first_prompt == false at T+48h OR opened nudge but no usage",
-      "provider_id": "beehiiv",
+      "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
@@ -1304,7 +1304,7 @@
         "preheader": "Book time with me — train the assistant for 1,000 bonus tokens.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar-plain-text.txt",
-        "deploy_provider": "beehiiv"
+        "deploy_provider": "brevo"
       },
       "funnel_phase": "phase_1_activation",
       "touches": [
@@ -1314,7 +1314,7 @@
           "name": "Activation CS outreach (calendar)",
           "day_offset": 3,
           "trigger_when": "48–72h post-signup if still no llm_usage or training (feedback_events); nudge training assistant for 1,000-token reward",
-          "primary_provider_id": "beehiiv",
+          "primary_provider_id": "brevo",
           "fallback": {
             "type": "fallback_pool"
           },
@@ -1327,7 +1327,7 @@
             "preheader": "Book time with me — train the assistant for 1,000 bonus tokens.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar-plain-text.txt",
-            "deploy_provider": "beehiiv"
+            "deploy_provider": "brevo"
           }
         }
       ]
@@ -1343,12 +1343,12 @@
       "trigger_summary": "Onboarded + activated user hits daily token cap — upgrade inflection",
       "trigger_when": "First limit hit; optional D7 reminder if still free",
       "trigger_implementation": "users_hit_limit AND user NOT IN paid_subscribers",
-      "provider_id": "beehiiv",
+      "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
       "implementation_status": "needs_implementation",
       "cadence": "one-time-plus-d7",
       "dedup_trigger_name": "limit_hitter_upgrade",
-      "free_tier_runway": "Beehiiv unlimited sends within 2k contacts; strong upgrade signal before Phase 2 fork",
+      "free_tier_runway": "Brevo primary; strong upgrade signal before Phase 2 fork",
       "dashboard_metrics": [
         "limit_hitter_conversion_pct",
         "token_limit_hit_rate_pct",
@@ -1368,7 +1368,7 @@
         "preheader": "Oasis Zen removes the cap ($20/mo, 1M tokens/day).",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-plain-text.txt",
-        "deploy_provider": "beehiiv"
+        "deploy_provider": "brevo"
       },
       "touches": [
         {
@@ -1377,7 +1377,7 @@
           "name": "Limit-hitter upgrade",
           "day_offset": 0,
           "trigger_when": "First daily token cap hit (onboarded + activated user)",
-          "primary_provider_id": "beehiiv",
+          "primary_provider_id": "brevo",
           "fallback": {
             "type": "fallback_pool"
           },
@@ -1390,7 +1390,7 @@
             "preheader": "Oasis Zen removes the cap ($20/mo, 1M tokens/day).",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-plain-text.txt",
-            "deploy_provider": "beehiiv"
+            "deploy_provider": "brevo"
           }
         },
         {
@@ -1399,7 +1399,7 @@
           "name": "Limit-hitter D7 reminder",
           "day_offset": 7,
           "trigger_when": "7 days after first limit hit if still free",
-          "primary_provider_id": "beehiiv",
+          "primary_provider_id": "brevo",
           "fallback": {
             "type": "fallback_pool"
           },
@@ -1412,7 +1412,7 @@
             "preheader": "Reminder: Oasis Zen gives you unlimited daily AI.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-d7-plain-text.txt",
-            "deploy_provider": "beehiiv"
+            "deploy_provider": "brevo"
           }
         }
       ],
@@ -1943,7 +1943,7 @@
     {
       "id": "phase_1_activation",
       "label": "Phase 1 — Welcome / onboarding / activation",
-      "primary_provider_id": "beehiiv",
+      "primary_provider_id": "brevo",
       "sequences": [
         "welcome",
         "activation_nudge",
@@ -1957,7 +1957,7 @@
         "Complete onboarding — import data from prior browser (Chrome, Safari, Brave, Edge, Firefox)",
         "Run first AI command (llm_usage row)",
         "Train AI assistant at least once (feedback_events; earns 1,000 tokens)",
-        "Continue nurture on Beehiiv while capacity allows"
+        "Continue nurture on Brevo while automation capacity allows"
       ],
       "phase_2_readiness_milestones": [
         {
@@ -2001,11 +2001,11 @@
         }
       ],
       "readiness_model": "Graduated readiness — more milestones = riper for Phase 2. Training (feedback_events) signals deep unique-feature adoption beyond a first prompt. No single milestone triggers Phase 2 alone.",
-      "prune_override": "When Beehiiv nears 2,500 subs: prune users who received most Phase 1 emails and sufficient days on list, even if product milestones are incomplete, to free contacts for new signups.",
+      "prune_override": "When Brevo nears 2,000 automation entrants: prune users who received most Phase 1 emails and sufficient days on list, even if product milestones are incomplete, to free automation slots for new signups.",
       "exit_triggers": [
         "User upgrades (Stripe) → Phase 2 paid immediately",
         "Graduated readiness — most milestones met (especially limit hit, training, core emails) → Phase 2 fork evaluation",
-        "Beehiiv contacts ≥2,000 — prune users with most Phase 1 emails + sufficient days, even if milestones incomplete"
+        "Brevo automation entrants ≥1,600 — prune users with most Phase 1 emails + sufficient days, even if milestones incomplete"
       ],
       "kpis": [
         {
@@ -2034,11 +2034,11 @@
           "anchor": "feedback"
         }
       ],
-      "nurture_model": "Stay on Beehiiv while list headroom exists; track readiness milestones — do not cap nurture artificially at 4–7 if user has not reached strong readiness.",
+      "nurture_model": "Stay on Brevo while daily and automation headroom exist; track readiness milestones — do not cap nurture artificially at 4–7 if user has not reached strong readiness.",
       "emails_per_user_min": 4,
       "emails_per_user_max": 7,
-      "exit": "Phase 1 ends on upgrade, graduated readiness (most milestones), or Beehiiv prune — not a fixed email count or single milestone.",
-      "notes": "Beehiiv 2,500 subs · unlimited sends. Activation = welcome + browser import + first AI + training. Training = sticky deep-feature signal; limit hit = upgrade inflection.",
+      "exit": "Phase 1 ends on upgrade, graduated readiness (most milestones), or Brevo automation prune — not a fixed email count or single milestone.",
+      "notes": "Brevo free: 300/day · 2k automation entrants. Overflow → Loops, Resend, OmniSend. Activation = welcome + browser import + first AI + training.",
       "fallback_pool": true
     },
     {
@@ -2115,12 +2115,11 @@
     "provider_ids": [
       "mailerlite",
       "omnisend",
-      "brevo",
       "loops",
       "resend"
     ],
     "model": "redundant_parallel",
-    "notes": "Fallback pool — lifecycle nurture overflow only. Route to whichever member has headroom (Brevo, Loops, Resend 100/day). Never legal or incident (SES). When fallback fires: migrate users to next phase OR upgrade constrained provider tier.",
+    "notes": "Fallback pool — Phase 1/2 overflow when Brevo, EmailOctopus, or Resend at cap. Route to Loops, Resend (100/day), OmniSend, or MailerLite by headroom. Never legal or incident (SES). Brevo is Phase 1 primary, not a pool member.",
     "member_limits": {
       "mailerlite": {
         "contacts": 500,
@@ -2129,10 +2128,6 @@
       "omnisend": {
         "contacts": 250,
         "emails_per_month": 500
-      },
-      "brevo": {
-        "contacts": 2000,
-        "emails_per_day": 300
       },
       "loops": {
         "contacts": 1000,
@@ -2144,9 +2139,9 @@
       }
     },
     "aggregate_free_limits": {
-      "contacts": 3750,
-      "sends_per_month": 20500,
-      "sends_per_day": 300
+      "contacts": 1750,
+      "sends_per_month": 19500,
+      "sends_per_day": 100
     }
   },
   "operational_pool": {

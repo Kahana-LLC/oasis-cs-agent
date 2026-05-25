@@ -24,11 +24,10 @@ CADENCE = {
 FAILURE_PRIORITY = {"launch_peak": 0, "daily": 1, "monthly": 2, "contacts": 3}
 
 PHASE1_SEQ_IDS = frozenset({"welcome", "activation_nudge", "activation_cs_calendar", "nps_day3", "pmf_day10"})
-FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo", "loops"})
+FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "loops", "resend"})
 FALLBACK_CONTACT_CAPS = {
     "mailerlite": 500,
     "omnisend": 250,
-    "brevo": 2000,
     "loops": 1000,
 }
 OPERATIONAL_PROVIDER_IDS = frozenset({"resend", "ses"})
@@ -60,10 +59,11 @@ class SimContext:
 
 
 def _compute_daily_peaks(ctx: SimContext) -> dict[str, float]:
-    nps_daily_peak = round((ctx.new_users_month / 30) * 1.5) if "ph_week_brevo_primary" in ctx.active_rules else 0
+    nps_daily_peak = round((ctx.new_users_month / 30) * 1.5)
     peaks: dict[str, float] = {}
     peaks["brevo"] = (
-        (ctx.new_users_day + round(ctx.new_users_day * (1 - ctx.activation_pct)) if "ph_week_brevo_primary" in ctx.active_rules else 0)
+        ctx.new_users_day
+        + round(ctx.new_users_day * (1 - ctx.activation_pct))
         + nps_daily_peak
         + (ctx.launch_audience / 2 / ctx.launch_days if ctx.mode == "launch_week" else 0)
         + ctx.agent_reserve
@@ -208,9 +208,7 @@ def _conversion_contact_demand(ctx: SimContext) -> int:
 
 def _pool_overflow_demand(ctx: SimContext) -> int:
     """Total contacts that need fallback pool from any phase."""
-    demand = 0
-    if "ph_week_brevo_primary" not in ctx.active_rules:
-        demand += max(0, ctx.signup_vol - 2000)
+    demand = max(0, ctx.signup_vol + ctx.limit_hitters - 2000)
     demand += _conversion_contact_demand(ctx)
     return demand
 
@@ -232,13 +230,14 @@ def _distribute_pool_overflow(total_overflow: int) -> dict[str, int]:
 
 def _pool_provider_with_headroom(pool_alloc: dict[str, int]) -> str:
     headroom = {pid: FALLBACK_CONTACT_CAPS[pid] - pool_alloc.get(pid, 0) for pid in FALLBACK_CONTACT_CAPS}
-    return max(headroom, key=headroom.get)
+    pid = max(headroom, key=headroom.get)
+    if headroom[pid] <= 0:
+        return "resend"
+    return pid
 
 
-def _phase1_beehiiv_contacts(ctx: SimContext) -> int:
-    if "ph_week_brevo_primary" in ctx.active_rules:
-        return 0
-    return min(ctx.signup_vol, 2000)
+def _phase1_brevo_automation_contacts(ctx: SimContext) -> int:
+    return min(ctx.signup_vol + ctx.limit_hitters, 2000)
 
 
 def _provider_contacts(
@@ -249,27 +248,24 @@ def _provider_contacts(
 ) -> int:
     pool_alloc = pool_alloc or _distribute_pool_overflow(_pool_overflow_demand(ctx))
     signup_vol = ctx.signup_vol
-    if pid == "beehiiv":
-        return min(_phase1_beehiiv_contacts(ctx) + ctx.limit_hitters, 2500)
+    if pid == "brevo":
+        base = _phase1_brevo_automation_contacts(ctx)
+        base += ctx.cancelled_paid
+        if ctx.mode == "launch_week":
+            base += min(ctx.launch_audience, 500)
+        return min(ctx.total_users, base)
     if pid in FALLBACK_CONTACT_CAPS:
-        base = pool_alloc.get(pid, 0)
-        if pid == "brevo":
-            base += ctx.cancelled_paid
-            if ctx.mode == "launch_week":
-                base += ctx.launch_audience
-            if "ph_week_brevo_primary" in ctx.active_rules:
-                base += signup_vol + round(signup_vol * (1 - ctx.activation_pct))
-        return min(ctx.total_users, base) if pid == "brevo" else base
+        return pool_alloc.get(pid, 0)
+    if pid == "resend":
+        return pool_alloc.get("resend", 0) + ctx.paid_subs + ctx.cancelled_paid
     if pid == "hubspot":
         return ctx.company_email_users + ctx.paid_subs
-    if pid == "resend":
-        return ctx.paid_subs + ctx.cancelled_paid
     if pid == "emailoctopus":
         conv = ctx.bucket_counts.get("at_risk_wau", 0) + ctx.bucket_counts.get("at_risk_mau", 0)
         conv += min(ctx.bucket_counts.get("dead", 0), ctx.dead_cap)
         conv += ctx.bucket_counts.get("reactivated", 0) + ctx.bucket_counts.get("resurrected", 0)
         return min(conv, 2500)
-    if pid == "resend" or pid == "ses":
+    if pid == "ses":
         return ctx.total_users
     return ctx.total_users
 
@@ -281,8 +277,6 @@ def _effective_provider(
 ) -> str:
     pid = seq["provider_id"]
     sid = seq["id"]
-    if "ph_week_brevo_primary" in active_rules and sid in ("welcome", "activation_nudge"):
-        return "brevo"
     needs_pool = (
         "fallback_pool" in active_rules
         and (
@@ -373,14 +367,14 @@ def simulate_scenario(
     limits = {p["id"]: p.get("free_limits") or {} for p in manifest.get("providers") or []}
     pool_demand = _pool_overflow_demand(ctx)
     pool_alloc = _distribute_pool_overflow(pool_demand)
-    beehiiv_contacts = _provider_contacts("beehiiv", ctx, limits, pool_alloc)
+    brevo_automation_contacts = _provider_contacts("brevo", ctx, limits, pool_alloc)
     eo_contacts = _provider_contacts("emailoctopus", ctx, limits, pool_alloc)
     pool_contacts_used = sum(_provider_contacts(pid, ctx, limits, pool_alloc) for pid in FALLBACK_CONTACT_CAPS)
 
-    if pool_demand > 0 or beehiiv_contacts >= 2000:
+    if pool_demand > 0 or brevo_automation_contacts >= 1600:
         active_rules.append("fallback_pool")
-    if beehiiv_contacts >= 2000:
-        active_rules.append("beehiiv_prune_to_phase2")
+    if brevo_automation_contacts >= 1600:
+        active_rules.append("brevo_automation_prune_to_phase2")
     if eo_contacts >= 2000:
         active_rules.append("emailoctopus_cap")
         ctx.dead_cap = 10
@@ -398,6 +392,8 @@ def simulate_scenario(
             by_provider[spill_pid] = by_provider.get(spill_pid, 0) + sends * 0.15
 
     daily_peaks = _compute_daily_peaks(ctx)
+    if daily_peaks.get("brevo", 0) > 240:
+        active_rules.append("fallback_pool")
     if daily_peaks.get("resend", 0) > 80:
         active_rules.append("fallback_pool")
     if company_email_users >= 1:
@@ -491,7 +487,7 @@ def simulate_scenario(
         if cid == "brevo_launch_peak":
             fire = daily_peaks.get("brevo", 0) > 240
         elif cid == "fallback_pool_aggregate":
-            fire = pool_contacts_used > 3000
+            fire = pool_contacts_used > 1400
         elif cid == "operational_resend_daily":
             fire = total_users > RESEND_DAILY_CAP
         elif cid == "ses_sandbox":
@@ -503,8 +499,8 @@ def simulate_scenario(
         elif cid == "hubspot_send_budget":
             hs_row = next((p for p in provider_rows if p["id"] == "hubspot"), None)
             fire = bool(hs_row and hs_row.get("monthly_sends", 0) > 1600)
-        elif cid == "beehiiv_2500":
-            fire = beehiiv_contacts >= 2000
+        elif cid == "brevo_automation_2000":
+            fire = brevo_automation_contacts >= 1600
         elif cid == "emailoctopus_2500":
             fire = eo_contacts >= 2000
         elif cid == "resend_paid_daily":

@@ -12,7 +12,7 @@
 
 Oasis can run a **multi-provider, free-tier email stack** that maps each lifecycle stage to the cheapest provider with capacity left — stretching runway while we pursue **500 paid subscribers by Dec 31, 2026**, **4.5× DAU vs Product Hunt launch week**, and **80% gross margin**.
 
-Adam’s initial five-sequence split is the right foundation, now mapped to a **three-phase Beehiiv funnel** with a **redundant fallback pool** (MailerLite + OmniSend + Brevo — interchangeable, not sequential). **Phase 1** activation on Beehiiv (welcome, browser import, first AI command, AI assistant training — graduated readiness milestones before Phase 2 fork); **Phase 2** forks to Resend + HubSpot (paid interim; replaces blocked Mailgun) or EmailOctopus (3–4 emails, non-upgraders); **Phase 3** terminal — paid in HubSpot or perpetual free (Google sheet + Supabase, 6mo inactive → delete). This proposal **preserves Adam’s five sequences** and adds dashboard-driven gaps:
+Adam’s initial five-sequence split is the right foundation, now mapped to a **three-phase Brevo funnel** (free tier) with a **redundant fallback pool** (Loops + Resend + OmniSend + MailerLite — interchangeable, not sequential). **Phase 1** activation on **Brevo** (welcome, browser import, first AI command, AI assistant training — graduated readiness milestones before Phase 2 fork); **Phase 2** forks to Resend + HubSpot (paid interim; replaces blocked Mailgun) or EmailOctopus (3–4 emails, non-upgraders); **Phase 3** terminal — paid in HubSpot or perpetual free (Google sheet + Supabase, 6mo inactive → delete). **Beehiiv** is archived (Launch lacks multi-step automations without Scale). This proposal **preserves Adam’s five sequences** and adds dashboard-driven gaps:
 
 - **Activation nudges** (32% 24h activation today — room to improve NURR before PH)
 - **Limit-hitter upgrade** (direct path to paid subs; currently 0% limit-hitter conversion)
@@ -98,15 +98,15 @@ These rates appear on the dashboard and in Key insights. Moving them grows DAU c
 
 ## 3. Provider stack — three phases + universal fallback pool
 
-Lifecycle email routes through **three phases**. **MailerLite, OmniSend, Brevo, and Loops** form a shared **fallback pool** usable by any phase when a primary provider hits its cap — easier to visualize and plan capacity. See `funnel_phases`, `fallback_pool`, `operational_pool`, and `routing_rules` in `email_sequences.json`.
+Lifecycle email routes through **three phases**. **Loops, Resend, OmniSend, and MailerLite** form a shared **fallback pool** when **Brevo** (Phase 1), **EmailOctopus** (Phase 2 conversion), or **Resend** (Phase 2 paid) hits cap. See `funnel_phases`, `fallback_pool`, `operational_pool`, and `routing_rules` in `email_sequences.json`.
 
 ```mermaid
 flowchart TB
-  signup[Signup] --> p1[Phase 1 Beehiiv]
-  p1 -->|"4–7 emails, list full"| fork{Upgraded?}
+  signup[Signup] --> p1[Phase 1 Brevo]
+  p1 -->|"4–7 emails, automation cap"| fork{Upgraded?}
   fork -->|Yes| p2p[Phase 2 Paid]
   fork -->|No| p2c[Phase 2 Conversion]
-  p2p --> MG[Mailgun 100/day]
+  p2p --> RS[Resend 100/day · 3k/mo]
   p2p --> HS[HubSpot 1M contacts]
   p2c --> EO[EmailOctopus 2.5k · 10k/mo]
   p2c -->|"3–4 more emails"| p3f[Phase 3 Perpetual free]
@@ -114,29 +114,32 @@ flowchart TB
   p2c -->|Upgrade| p2p
   company[Company email] --> HS
 
-  subgraph spill [Fallback pool — redundant, any phase]
-    ML[MailerLite 500]
-    OS[OmniSend 250]
-    BR[Brevo 2k · 300/day]
+  subgraph spill [Fallback pool — redundant overflow]
     LP[Loops 1k · 4k/mo]
+    RS2[Resend overflow]
+    OS[OmniSend 250]
+    ML[MailerLite 500]
   end
 
-  p1 -.->|cap hit| spill
+  p1 -.->|300/day or 2k automations| spill
   p2c -.->|cap hit| spill
   p2p -.->|100/day| spill
 ```
 
 ### Universal fallback pool (redundant)
 
-**MailerLite, OmniSend, and Brevo** are not a waterfall — they function as **one redundant pool**. When any primary provider (Beehiiv, EmailOctopus, Mailgun) hits its cap, route overflow to **whichever pool member has headroom**. Any of the three can absorb spill from any phase.
+**Loops, Resend, OmniSend, and MailerLite** are not a waterfall — they function as **one redundant pool**. When **Brevo** (Phase 1), **EmailOctopus**, or **Resend** hits its cap, route overflow to **whichever pool member has headroom**.
 
 | Provider | Free limit | Pool role |
 |----------|------------|-----------|
-| **MailerLite** | 12,000/mo · **500 contacts** | Pool member — interchangeable |
-| **OmniSend** | 500/mo · **250 contacts** | Pool member — interchangeable |
-| **Brevo** | 300/day · **2,000 contacts** | Pool member — interchangeable; also PH interim + limit-hitter + CS agent |
+| **Loops** | 4,000/mo · **1,000 contacts** | Pool member — marketing / product-help overflow |
+| **Resend** | 100/day · **3,000/mo** | Pool member — API overflow when Brevo daily/monthly full |
+| **OmniSend** | 500/mo · **250 contacts** | Pool member — emergency only |
+| **MailerLite** | 12,000/mo · **500 contacts** | Pool member — if account recovered |
 
-**Aggregate pool headroom:** ~3,750 contacts · ~17,500 sends/mo (includes **Loops**). Scenario planner shows combined **fallback pool** KPI — think of it as one bucket with four redundant backends.
+**Brevo (Phase 1 primary):** 300/day · **2,000 automation entrants** · reserve ~50/day for CS agent (not in fallback pool).
+
+**Aggregate pool headroom:** ~1,750 contacts · ~19,500 sends/mo. Scenario planner shows combined **fallback pool** KPI.
 
 | Provider | Free limit | Pool role |
 |----------|------------|-----------|
@@ -150,8 +153,8 @@ This is **not** the same as sequence `implementation_status` (automation shipped
 
 | Provider | Account status | API key | Notes |
 |----------|----------------|---------|-------|
-| **Beehiiv** | Ready | Yes | Phase 1 primary |
-| **Brevo** | Ready | Yes (+ MCP token) | 300 emails/day; PH interim + CS agent |
+| **Brevo** | Ready | Yes (+ MCP token) | **Phase 1 primary** — 300/day · 2k automation entrants |
+| **Beehiiv** | Deprecated | Yes | Archived — Scale required for journeys; MCP read-only |
 | **EmailOctopus** | Ready | Yes | 2,500 subs · 10k/mo |
 | **Resend** | Ready | Yes | Phase 2 paid interim (replaces Mailgun) + fallback pool |
 | **HubSpot** | Ready | — | Phase 3 terminal CRM (portal) |
@@ -184,15 +187,15 @@ Separate from lifecycle nurture and from the marketing fallback pool.
 
 **Capacity (illustrative):** At 122 users, one SES blast fits in sandbox (200/day). At 2,000 users, plan multi-day sends until production access removes sandbox limits.
 
-**Anti-patterns:** No Beehiiv/Loops/Resend for outages; no Supabase query at send time during incidents; Resend is paid lifecycle + fallback only.
+**Anti-patterns:** No Beehiiv/Loops/Resend for outages; no Supabase query at send time during incidents; Resend is Phase 2 paid + Phase 1 overflow only (not legal/outage).
 
-### Phase 1 — Welcome / onboarding / activation (Beehiiv)
+### Phase 1 — Welcome / onboarding / activation (Brevo)
 
 | Provider | Free limit | Role |
 |----------|------------|------|
-| **Beehiiv** Launch | **2,500 subscribers** · **unlimited sends** | **Primary** — welcome, browser import onboarding, first AI command, AI training, NPS, PMF, limit-hitter |
+| **Brevo** Free | **300 emails/day** · **2,000 automation entrants** | **Primary** — welcome, browser import onboarding, first AI command, AI training, NPS, PMF, limit-hitter |
 
-**Activation milestones:** welcome and orient to Oasis → complete onboarding by importing data from a prior browser (Chrome, Safari, Brave, Edge, Firefox) → run first AI command (`llm_usage` row) → train the AI assistant at least once (`feedback_events`; earns **1,000 tokens** — sticky deep-feature signal). Continue nurture on Beehiiv **while list headroom exists**.
+**Activation milestones:** welcome and orient to Oasis → complete onboarding by importing data from a prior browser (Chrome, Safari, Brave, Edge, Firefox) → run first AI command (`llm_usage` row) → train the AI assistant at least once (`feedback_events`; earns **1,000 tokens** — sticky deep-feature signal). Continue nurture on Brevo **while daily and automation headroom exist**; overflow to **Loops / Resend** when near cap.
 
 **Phase 2 readiness milestones** (graduated — more met = riper for fork; **no hard AND rule**, no single milestone alone triggers Phase 2):
 
@@ -208,13 +211,13 @@ Separate from lifecycle nurture and from the marketing fallback pool.
 **Move to Phase 2 when:**
 - **User upgrades (Stripe)** → Phase 2 paid immediately
 - **Strong readiness** — most milestones met (especially limit hit, training, core emails) → evaluate Phase 2 fork
-- **Capacity prune** — received most Phase 1 emails + sufficient days on Beehiiv → move even if product milestones incomplete, to free contacts for new signups
+- **Capacity prune** — received most Phase 1 emails + sufficient days on Brevo → move even if product milestones incomplete, to free automation slots for new signups
 
 The **4–7 email range** is a **lifecycle budget** toward perpetual free (Phase 3), not a hard Phase 1 stop.
 
 **Major KPIs:** `token_limit_hit_rate_pct`, speed to first limit hit / first prompt, `limit_hitter_conversion_pct`, `activation_24h_pct`, `feedback_submission_rate_pct` (% who trained AI assistant), median hours to first training/feedback.
 
-**PH interim:** Welcome + activation still **deployed on Brevo** until Beehiiv automations live.
+**Deploy:** Welcome + activation templates in `brevo-oasis-emails/`; build Brevo automations (D0 / D3 / D10 / conditional nudges). Reserve ~50 sends/day for CS agent.
 
 ### Phase 2 — Fork after Phase 1
 
@@ -247,8 +250,8 @@ If user upgrades during conversion → redirect to **Mailgun + HubSpot** (Phase 
 
 | Layer | Best for | Watch out for |
 |-------|----------|---------------|
-| Beehiiv Phase 1 | Unlimited activation sends; graduated readiness scoring | 2,500 sub cliff — tune prune policy (emails sent + days); no hard milestone AND gate |
-| Fallback pool | One redundant bucket — pick any member with headroom | Track aggregate utilization, not tier order |
+| Brevo Phase 1 | Free automations + existing HTML; 300/day | 2k automation entrants — prune at ~1,600; daily overflow → Resend/Loops |
+| Fallback pool | One redundant bucket — Loops, Resend, OmniSend, MailerLite | Track aggregate utilization; Brevo is primary not pool |
 | Mailgun + HubSpot | Paid path; no Mailgun contact cap | 100/day Mailgun; HubSpot 2k sends/mo |
 | EmailOctopus | Last-chance conversion | 3–4 emails then exit; 2,500 contact cliff |
 | Phase 3 perpetual free | Clean list hygiene | 6mo inactive deletion policy |
@@ -261,9 +264,9 @@ Adam’s five sequences are **Phase 1 — approved draft**. Five additional sequ
 
 | # | Sequence | Provider | Audience | Trigger | Cadence | Adam’s capacity runway |
 |---|----------|----------|----------|---------|---------|------------------------|
-| 1 | **Welcome** | Beehiiv (fallback pool) | All new signups | Account created / first bucket = new | One-time | Readiness milestone; transfer when graduated readiness or prune |
-| 2 | **NPS** | Beehiiv | All new users | Day 3 post-signup | One-time | Phase 2 readiness milestone (D3) |
-| 3 | **PMF survey** | Beehiiv | New signups | Day 10 post-signup | One-time | Phase 2 readiness milestone (D10) |
+| 1 | **Welcome** | Brevo (fallback pool) | All new signups | Account created / first bucket = new | One-time | Readiness milestone; transfer when graduated readiness or prune |
+| 2 | **NPS** | Brevo | All new users | Day 3 post-signup | One-time | Phase 2 readiness milestone (D3) |
+| 3 | **PMF survey** | Brevo | New signups | Day 10 post-signup | One-time | Phase 2 readiness milestone (D10) |
 | 4 | **Upgrade thank-you** | Mailgun (fallback pool) | Stripe upgrades | New `user_plans` row | One-time | No contact cap; 100/day |
 | 5 | **At-risk nurture** | EmailOctopus (Phase 2 conversion) | Non-upgraders after Phase 1 | At-risk WAU/MAU | Drip (**3–4 emails**) | **7–11 total** then Phase 3 perpetual free |
 
@@ -271,8 +274,8 @@ Adam’s five sequences are **Phase 1 — approved draft**. Five additional sequ
 
 | # | Sequence | Provider | Audience | Trigger | Cadence | Primary goal |
 |---|----------|----------|----------|---------|---------|--------------|
-| 6 | **Activation nudge** | Beehiiv (fallback pool) | Signups with no AI prompt in 24h | No `llm_usage` in first 24h | One-time | Drives first prompt readiness milestone |
-| 7 | **Limit-hitter upgrade** | Beehiiv (fallback pool) | Free users who hit token cap | `users_hit_limit` + not in `paid_subscribers` | One-time + D7 reminder | **500 subs** · `limit_hitter_conversion_pct` |
+| 6 | **Activation nudge** | Brevo (fallback pool) | Signups with no AI prompt in 24h | No `llm_usage` in first 24h | One-time | Drives first prompt readiness milestone |
+| 7 | **Limit-hitter upgrade** | Brevo (fallback pool) | Free users who hit token cap | `users_hit_limit` + not in `paid_subscribers` | One-time + D7 reminder | **500 subs** · `limit_hitter_conversion_pct` |
 | 8 | **Dead resurrection** | EmailOctopus (Phase 2 conversion) | Dead bucket non-upgraders | `bucket=dead` | 2-touch | Counts toward 3–4 Phase 2 emails |
 | 9 | **Return reinforcement** | EmailOctopus (Phase 2 conversion) | Reactivated / resurrected | First day in bucket | One-time | RURR · SURR · prevent 1-RURR / 1-SURR |
 | 11 | **Enterprise founder** | HubSpot | Company email · session_count ≥ 8 | Day 55 post-signup | One-time | B2B pipeline |
@@ -284,22 +287,22 @@ Adam’s five sequences are **Phase 1 — approved draft**. Five additional sequ
 
 Each sequence should log to CS agent `outreach_log` (see [`PLAN.md`](../PLAN.md)) with `{user_id, trigger_name, channel: "email", provider}` to prevent duplicate sends.
 
-#### 1. Welcome (Beehiiv) — Adam
+#### 1. Welcome (Brevo) — Adam
 
 - **Audience:** Every new signup (including PH waitlist converts).
 - **Send:** Within 1 hour of signup.
 - **Success metrics:** `activation_24h_pct`, `flow_NURR`, `time_to_first_hours.median`.
 - **Dedup:** Once per user (`trigger_name: welcome_email`).
 
-#### 2. NPS (Beehiiv) — Adam
+#### 2. NPS (Brevo) — Adam
 
 - **Audience:** All users day 7 post-signup who received welcome.
 - **Success metrics:** Feedback submission rate; qualitative NPS trend.
 - **Dedup:** Once per user (`nps_day7`).
 
-#### 3. PMF survey (Beehiiv) — Adam
+#### 3. PMF survey (Brevo) — Adam
 
-- **Audience:** All signups day 10 post-signup (same Beehiiv list as welcome/NPS).
+- **Audience:** All signups day 10 post-signup (same Brevo automation as welcome/NPS).
 - **Success metrics:** `latest_wau`, `multi_day_ai_first_7d_pct`.
 - **Dedup:** Once per user (`pmf_wau_week1`).
 
@@ -319,19 +322,19 @@ Each sequence should log to CS agent `outreach_log` (see [`PLAN.md`](../PLAN.md)
 #### 6a. Activation nudge (automated)
 
 - **Audience:** Signups with zero `llm_usage` after 24h.
-- **Provider:** Beehiiv Phase 1; PH interim on Brevo.
+- **Provider:** Brevo Phase 1; fallback pool on cap.
 
 #### 6b. Activation CS outreach (calendar) — new
 
 - **Audience:** 48–72h post-signup if still no `llm_usage` or low engagement after nudge.
 - **Message:** Direct founder/CS email with calendar link.
-- **Provider:** Beehiiv; fallback pool on cap.
+- **Provider:** Brevo; fallback pool on cap.
 
 #### 6. Activation nudge (new)
 
 - **Why:** Only **32%** of users activate within 24h today; PH may add 200–2,000 signups in ~3 days.
 - **Audience:** Signups with zero `llm_usage` after 24h (and optional 72h follow-up).
-- **Provider:** Beehiiv Phase 1; PH interim on Brevo (`ph_week_brevo_primary`).
+- **Provider:** Brevo Phase 1 (`ph_week_brevo_primary` = peak send accounting in scenario planner).
 - **Success metrics:** `activation.activation_rate_pct.24h`, `flow_NURR`, `flow_1-NURR` (lower is better).
 
 #### 7. Limit-hitter upgrade (new) — critical for 500 subs
@@ -339,7 +342,7 @@ Each sequence should log to CS agent `outreach_log` (see [`PLAN.md`](../PLAN.md)
 - **Why:** `premium_conversion_among_limit_hitters_pct` = **0%** at baseline; limit hitters are the highest-intent free users.
 - **Audience:** Users in `users_hit_limit` who are not counted in `paid_subscribers`.
 - **Message:** $20/mo value prop at moment of cap hit; optional D7 reminder if still free.
-- **Provider:** Beehiiv Phase 1 (unlimited sends within 2k contacts; fallback pool on cap). Upgrade inflection — user has onboarded and activated.
+- **Provider:** Brevo Phase 1 (300/day · 2k automation entrants; fallback pool on cap). Upgrade inflection — user has onboarded and activated.
 - **Success metrics:** `limit_hitter_conversion_pct`, `paid_subscribers` vs `month_target` (~17 in May 2026).
 
 #### 8. Dead resurrection (new)
@@ -376,7 +379,7 @@ Each sequence should log to CS agent `outreach_log` (see [`PLAN.md`](../PLAN.md)
 | Dead | Dead resurrection | EmailOctopus (capped) | Resurrection_Rate ↑ |
 | Reactivated | Return reinforcement | EmailOctopus | RURR ↑ 1-RURR ↓ |
 | Resurrected | Return reinforcement | EmailOctopus | SURR ↑ 1-SURR ↓ |
-| Limit hitters (cross-bucket) | Limit-hitter upgrade | Beehiiv (fallback pool) | limit_hitter_conversion_pct ↑ |
+| Limit hitters (cross-bucket) | Limit-hitter upgrade | Brevo (fallback pool) | limit_hitter_conversion_pct ↑ |
 | Paid (Stripe) | Upgrade thank-you | OmniSend → Brevo | paid_subscribers vs month_target |
 | Cancelled paid | Cancelled win-back | Brevo (post-250) | active_paid_subscribers ↑ |
 

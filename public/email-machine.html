@@ -203,8 +203,8 @@
       if (lim.contacts != null) {
         parts.push(`${lim.contacts.toLocaleString()} contacts`);
       }
-      if (p.id === "beehiiv" && !lim.emails_per_month && !lim.emails_per_day) {
-        parts.push("unlimited sends");
+      if (p.status === "deprecated") {
+        parts.push("archived");
       }
       return parts.join(" · ") || "—";
     }
@@ -971,10 +971,10 @@
     }
 
     const PHASE1_SEQ_IDS = new Set(["welcome", "activation_nudge", "activation_cs_calendar", "nps_day3", "pmf_day10"]);
-    const FALLBACK_PROVIDER_IDS = new Set(["mailerlite", "omnisend", "brevo"]);
+    const FALLBACK_PROVIDER_IDS = new Set(["mailerlite", "omnisend", "loops", "resend"]);
     const PAID_SEQ_IDS = new Set(["upgrade_thank_you", "cancelled_winback"]);
 
-    const FALLBACK_CAPS = { mailerlite: 500, omnisend: 250, brevo: 2000, loops: 1000 };
+    const FALLBACK_CAPS = { mailerlite: 500, omnisend: 250, loops: 1000 };
     const RESEND_DAILY_CAP = 100;
 
     function conversionContactDemand(ctx) {
@@ -988,22 +988,19 @@
     }
 
     function poolOverflowDemand(ctx) {
-      let demand = 0;
-      if (!ctx.activeRules.includes("ph_week_brevo_primary")) {
-        demand += Math.max(0, ctx.signupVol - 2000);
-      }
+      let demand = Math.max(0, ctx.signupVol + ctx.limitHitters - 2000);
       demand += conversionContactDemand(ctx);
       return demand;
     }
 
     function distributePoolOverflow(totalOverflow) {
-      const assigned = { mailerlite: 0, omnisend: 0, brevo: 0 };
+      const assigned = { mailerlite: 0, omnisend: 0, loops: 0 };
       let remaining = Math.max(0, totalOverflow);
       while (remaining > 0) {
         const headroom = {
           mailerlite: FALLBACK_CAPS.mailerlite - assigned.mailerlite,
           omnisend: FALLBACK_CAPS.omnisend - assigned.omnisend,
-          brevo: FALLBACK_CAPS.brevo - assigned.brevo,
+          loops: FALLBACK_CAPS.loops - assigned.loops,
         };
         const pid = Object.keys(headroom).reduce((a, b) => (headroom[a] >= headroom[b] ? a : b));
         if (headroom[pid] <= 0) break;
@@ -1018,31 +1015,25 @@
       const headroom = {
         mailerlite: FALLBACK_CAPS.mailerlite - (poolAlloc.mailerlite || 0),
         omnisend: FALLBACK_CAPS.omnisend - (poolAlloc.omnisend || 0),
-        brevo: FALLBACK_CAPS.brevo - (poolAlloc.brevo || 0),
+        loops: FALLBACK_CAPS.loops - (poolAlloc.loops || 0),
       };
-      return Object.keys(headroom).reduce((a, b) => (headroom[a] >= headroom[b] ? a : b));
+      const best = Object.keys(headroom).reduce((a, b) => (headroom[a] >= headroom[b] ? a : b));
+      return headroom[best] > 0 ? best : "resend";
     }
 
     function providerContactsSim(pid, ctx, poolAlloc) {
       const alloc = poolAlloc || distributePoolOverflow(poolOverflowDemand(ctx));
-      if (pid === "beehiiv") {
-        if (ctx.activeRules.includes("ph_week_brevo_primary")) return 0;
-        return Math.min(ctx.signupVol + ctx.limitHitters, 2500);
+      if (pid === "brevo") {
+        let base = Math.min(ctx.signupVol + ctx.limitHitters, 2000);
+        base += ctx.cancelledPaid;
+        if (ctx.mode === "launch_week") base += Math.min(ctx.launchAudience, 500);
+        return Math.min(ctx.totalUsers, base);
       }
       if (pid in FALLBACK_CAPS) {
-        let base = alloc[pid] || 0;
-        if (pid === "brevo") {
-          base += ctx.cancelledPaid;
-          if (ctx.mode === "launch_week") base += ctx.launchAudience;
-          if (ctx.activeRules.includes("ph_week_brevo_primary")) {
-            base += ctx.signupVol + Math.round(ctx.signupVol * (1 - ctx.activationPct));
-          }
-          return Math.min(ctx.totalUsers, base);
-        }
-        return base;
+        return alloc[pid] || 0;
       }
       if (pid === "hubspot") return ctx.companyEmailUsers + ctx.paidSubs;
-      if (pid === "resend") return ctx.paidSubs + ctx.cancelledPaid;
+      if (pid === "resend") return (alloc.resend || 0) + ctx.paidSubs + ctx.cancelledPaid;
       if (pid === "emailoctopus") {
         const conv =
           (ctx.bucketCounts.at_risk_wau || 0) +
@@ -1057,11 +1048,12 @@
 
     function computeDailyPeaks(ctx) {
       const { newUsersDay, newUsersMonth, mode, launchAudience, launchDays, activationPct, agentReserve, activeRules, paidSubs, cancelledPaid, limitHitters } = ctx;
-      const npsDailyPeak = activeRules.includes("ph_week_brevo_primary") ? Math.round((newUsersMonth / 30) * 1.5) : 0;
+      const npsDailyPeak = Math.round((newUsersMonth / 30) * 1.5);
       const launchBrevo = mode === "launch_week" ? launchAudience / 2 / launchDays : 0;
       const peaks = {};
       peaks.brevo =
-        (activeRules.includes("ph_week_brevo_primary") ? newUsersDay + Math.round(newUsersDay * (1 - activationPct)) : 0) +
+        newUsersDay +
+        Math.round(newUsersDay * (1 - activationPct)) +
         npsDailyPeak +
         launchBrevo +
         agentReserve;
@@ -1146,16 +1138,15 @@
 
       const poolDemand = poolOverflowDemand(ctx);
       const poolAlloc = distributePoolOverflow(poolDemand);
-      const beehiivContacts = providerContactsSim("beehiiv", ctx, poolAlloc);
+      const brevoAutomationContacts = providerContactsSim("brevo", ctx, poolAlloc);
       const eoContacts = providerContactsSim("emailoctopus", ctx, poolAlloc);
       const poolContactsUsed =
         providerContactsSim("mailerlite", ctx, poolAlloc) +
         providerContactsSim("omnisend", ctx, poolAlloc) +
-        providerContactsSim("brevo", ctx, poolAlloc) +
         providerContactsSim("loops", ctx, poolAlloc);
 
-      if (poolDemand > 0 || beehiivContacts >= 2000) activeRules.push("fallback_pool");
-      if (beehiivContacts >= 2000) activeRules.push("beehiiv_prune_to_phase2");
+      if (poolDemand > 0 || brevoAutomationContacts >= 1600) activeRules.push("fallback_pool");
+      if (brevoAutomationContacts >= 1600) activeRules.push("brevo_automation_prune_to_phase2");
       if (eoContacts >= 2000) {
         activeRules.push("emailoctopus_cap");
         ctx.deadCap = 10;
@@ -1164,9 +1155,6 @@
 
       function effectiveProvider(seq) {
         let pid = seq.provider_id;
-        if (activeRules.includes("ph_week_brevo_primary") && ["welcome", "activation_nudge"].includes(seq.id)) {
-          pid = "brevo";
-        }
         const needsPool =
           activeRules.includes("fallback_pool") &&
           (PHASE1_SEQ_IDS.has(seq.id) ||
@@ -1189,6 +1177,7 @@
       }
 
       const dailyPeaks = computeDailyPeaks(ctx);
+      if (dailyPeaks.brevo > 240) activeRules.push("fallback_pool");
       if (dailyPeaks.resend > 80) activeRules.push("fallback_pool");
       if (companyEmailUsers >= 1) activeRules.push("company_email_hubspot_sync");
       ctx.activeRules = activeRules;
@@ -1273,14 +1262,14 @@
       for (const cliff of emailData?.capacity_cliffs || []) {
         let fire = false;
         if (cliff.id === "fallback_pool_aggregate") {
-          fire = poolContactsUsed > 3000;
+          fire = poolContactsUsed > 1400;
         } else if (cliff.id === "brevo_launch_peak") {
           fire = dailyPeaks.brevo > 240;
         } else if (cliff.id === "hubspot_send_budget") {
           const hsRow = providerRows.find((p) => p.id === "hubspot");
           fire = (hsRow?.monthly || 0) > 1600;
-        } else if (cliff.id === "beehiiv_2500") {
-          fire = beehiivContacts >= 2000;
+        } else if (cliff.id === "brevo_automation_2000") {
+          fire = brevoAutomationContacts >= 1600;
         } else if (cliff.id === "resend_paid_daily") {
           fire = dailyPeaks.resend > 80;
         } else if (cliff.id === "emailoctopus_2500") {
@@ -1580,13 +1569,13 @@
       const p3 = phases.find((f) => f.id === "phase_3_terminal");
       const pool = emailData?.fallback_pool || {};
       const cap = snapshotData?.email_provider_capacity?.pool_aggregate;
-      const beehiiv = providerById("beehiiv");
-      const ascii = `Signup → Beehiiv Phase 1 nurture
+      const brevo = providerById("brevo");
+      const ascii = `Signup → Brevo Phase 1 automations
          ├─ track milestones (welcome · prompt · limit · training · NPS · PMF)
          ├─ ripe enough? → Phase 2 fork
-         ├─ upgraded? → Phase 2 paid (Mailgun + HubSpot)
-         └─ Beehiiv full / enough days? → prune to Phase 2
-Any phase cap hit → Fallback pool (MailerLite | OmniSend | Brevo)`;
+         ├─ upgraded? → Phase 2 paid (Resend + HubSpot)
+         └─ Brevo automation full / enough days? → prune to Phase 2
+Brevo or Resend cap hit → Fallback pool (Loops | Resend | OmniSend | MailerLite)`;
       const poolMembers = (pool.provider_ids || [])
         .map((id) => {
           const p = providerById(id);
@@ -1607,7 +1596,7 @@ Any phase cap hit → Fallback pool (MailerLite | OmniSend | Brevo)`;
         <div class="funnel-grid">
           <div class="funnel-phase-card phase-1">
             <h3>${escapeHtml(p1?.label || "Phase 1")}</h3>
-            <p><strong>${escapeHtml(beehiiv?.name || "Beehiiv")}</strong> · nurture while list capacity allows · ${p1?.emails_per_user_min}–${p1?.emails_per_user_max} emails toward lifecycle cap</p>
+            <p><strong>${escapeHtml(brevo?.name || "Brevo")}</strong> · 300/day · 2k automation entrants · ${p1?.emails_per_user_min}–${p1?.emails_per_user_max} emails toward lifecycle cap</p>
             <p class="section-cap">${escapeHtml(p1?.notes || "")}</p>
             ${funnelPhaseGoalsList(p1)}
             ${funnelPhaseReadinessList(p1)}
@@ -1672,8 +1661,8 @@ Any phase cap hit → Fallback pool (MailerLite | OmniSend | Brevo)`;
         )
         .join("");
       const states = [
-        ["phase_1_beehiiv", "Signup", "Graduated readiness (6 milestones) OR upgrade OR Beehiiv prune (time + emails sent)", "Phase 2 fork"],
-        ["phase_2_paid", "Stripe upgrade / company email", "Paid lifecycle on Mailgun", "Phase 3 HubSpot CRM"],
+        ["phase_1_brevo", "Signup", "Graduated readiness (6 milestones) OR upgrade OR Brevo automation prune (time + emails sent)", "Phase 2 fork"],
+        ["phase_2_paid", "Stripe upgrade / company email", "Paid lifecycle on Resend (interim)", "Phase 3 HubSpot CRM"],
         ["phase_2_conversion", "Phase 1 readiness met or pruned, no upgrade", "3–4 conversion emails", "Phase 3 perpetual free or upgrade"],
         ["phase_3_perpetual_free", `${cc.total_emails_before_perpetual_free_min}–${cc.total_emails_before_perpetual_free_max} emails, no upgrade`, "No more marketing email", "Google sheet + Supabase flag"],
         ["phase_3_paid_crm", "Paid subscriber", "HubSpot CRM", "Ongoing paid comms"],
@@ -1689,21 +1678,21 @@ milestones = count_met(user_id, phase_2_readiness_milestones)
 # email: welcome_email, nps_day3, pmf_day10 (cs_outreach_log)
 # product: llm_usage, llm_daily_usage limit hit, feedback_events training
 emails_sent = lifecycle_emails_sent(user_id)
-days_on_beehiiv = days_since_signup(user_id)
+days_on_brevo = days_since_signup(user_id)
 if upgraded(user_id):
     → phase_2_paid
-elif milestones >= STRONG_THRESHOLD or (emails_sent >= PRUNE_EMAIL_MIN and days_on_beehiiv >= PRUNE_DAYS_MIN):
+elif milestones >= STRONG_THRESHOLD or (emails_sent >= PRUNE_EMAIL_MIN and days_on_brevo >= PRUNE_DAYS_MIN):
     → phase_2_fork  # paid or conversion path
-elif beehiiv_at_capacity():
+elif brevo_automation_at_capacity():
     → prune_to_phase_2`;
       const spillCode = `# Pick pool member with most contact headroom (triggers/evaluate.py)
-pool_ids = fallback_pool["provider_ids"]  # mailerlite, omnisend, brevo
+pool_ids = fallback_pool["provider_ids"]  # mailerlite, omnisend, loops, resend
 headroom = {pid: caps[pid] - used[pid] for pid in pool_ids}
 provider = max(headroom, key=headroom.get)`;
       return `<section id="implementation">
         <h2>Implementation guide</h2>
         <p class="section-cap">Wiring spec for CS agent + Supabase. <strong>${stats.pending} of ${stats.total} sequences</strong> need implementation (${stats.shipped} shipped).</p>
-        <div class="banner banner-info"><strong>PH interim:</strong> Welcome + activation ship on <strong>Brevo</strong> until Beehiiv automations live (<span class="code">ph_week_brevo_primary</span>). Target provider in sequence table is Beehiiv.</div>
+        <div class="banner banner-info"><strong>Phase 1 primary:</strong> All welcome / activation / NPS / PMF automations on <strong>Brevo</strong> (free). Overflow → <span class="code">fallback_pool</span> (Loops, Resend, OmniSend, MailerLite). Beehiiv archived (Scale required for journeys).</div>
         <h3>User lifecycle states</h3>
         <table class="impl-state-table">
           <thead><tr><th>State</th><th>Entry</th><th>Exit condition</th><th>Next</th></tr></thead>
@@ -1712,7 +1701,7 @@ provider = max(headroom, key=headroom.get)`;
         <h3>Supabase fields</h3>
         <div class="impl-code-block">${escapeHtml(`email_funnel_status  — phase_1 | phase_2_paid | phase_2_conversion | perpetual_free
 lifecycle_emails_sent — counter toward ${cc.total_emails_before_perpetual_free_min}–${cc.total_emails_before_perpetual_free_max} cap
-email_provider        — beehiiv | emailoctopus | mailgun | mailerlite | omnisend | brevo
+email_provider        — brevo | resend | loops | emailoctopus | mailerlite | omnisend
 dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)}</div>
         <h3>Readiness evaluation</h3>
         <div class="impl-code-block">${escapeHtml(readinessCode)}</div>
@@ -1935,7 +1924,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         ${renderProviderSetup()}
         <section id="providers">
           <h2>Email providers (free tier)</h2>
-          <p class="section-cap"><strong>Phase 1</strong> Beehiiv · <strong>Phase 2 paid</strong> Resend (interim, replaces Mailgun) + HubSpot · <strong>Phase 2 conversion</strong> EmailOctopus · <strong>Phase 3</strong> terminal · <strong>Fallback pool</strong> = MailerLite + OmniSend + Brevo + Loops + Resend · <strong>Operational</strong> = SES. See <a href="#provider-setup">account setup</a>.</p>
+          <p class="section-cap"><strong>Phase 1</strong> Brevo · <strong>Phase 2 paid</strong> Resend (interim) + HubSpot · <strong>Phase 2 conversion</strong> EmailOctopus · <strong>Phase 3</strong> terminal · <strong>Fallback pool</strong> = Loops + Resend + OmniSend + MailerLite · <strong>Operational</strong> = SES · <strong>Beehiiv</strong> archived. See <a href="#provider-setup">account setup</a>.</p>
           ${renderProvidersGrouped()}
           ${renderProviderCandidates()}
         </section>

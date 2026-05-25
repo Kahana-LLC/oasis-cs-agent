@@ -25,7 +25,7 @@ DEFAULT_NEAR_LIMIT = {
     "runway_months_min": 2,
 }
 
-FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo", "loops", "resend"})
+FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "loops", "resend"})
 OPERATIONAL_PROVIDER_IDS = frozenset({"ses"})
 
 
@@ -212,7 +212,7 @@ def _contact_usage(
     bucket_counts: dict[str, int],
 ) -> int:
     if provider_id == "beehiiv":
-        return total_users
+        return 0
     if provider_id == "omnisend":
         return 0
     if provider_id == "hubspot":
@@ -230,7 +230,7 @@ def _contact_usage(
             monetization.get("cancelled_paid_subscribers") or 0
         )
     if provider_id == "brevo":
-        return min(total_users, total_users)
+        return min(total_users, 2000)
     if provider_id in OPERATIONAL_PROVIDER_IDS:
         return total_users
     if provider_id == "loops":
@@ -442,8 +442,8 @@ def compute_email_provider_capacity(
         "ses_sandbox": ses_sandbox,
         "any_near_limit": any_near_limit,
         "estimation_note": (
-            "v1 estimates: Beehiiv Phase 1 contacts; EmailOctopus Phase 2 conversion; "
-            "fallback pool = MailerLite + OmniSend + Brevo + Loops; "
-            "operational pool = SES (legal/incident); Resend = Phase 2 paid interim + fallback; HubSpot = paid + company email."
+            "v1 estimates: Brevo Phase 1 (2k automation entrants · 300/day); EmailOctopus Phase 2 conversion; "
+            "fallback pool = MailerLite + OmniSend + Loops + Resend; "
+            "operational pool = SES (legal/incident); HubSpot = paid + company email."
         ),
     }

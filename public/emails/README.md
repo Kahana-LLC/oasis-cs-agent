@@ -15,7 +15,7 @@
      "preheader": "Docs, Slack, and support links to get started.",
      "from_name": "Adam from Oasis",
      "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-welcome-plain-text.txt",
-     "deploy_provider": "beehiiv"
+     "deploy_provider": "brevo"
    }
    ```
 
