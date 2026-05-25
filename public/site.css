@@ -67,6 +67,30 @@ section {
   color: var(--ok);
 }
 
+.launch-plan-card {
+  background: var(--card);
+  border: 1px solid #1e4d3a;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.launch-plan-card h2 {
+  margin-top: 0;
+  font-size: 1.15rem;
+}
+
+.launch-plan-why {
+  margin: 0.75rem 0;
+  padding-left: 1.25rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.launch-plan-why li {
+  margin-bottom: 0.35rem;
+}
+
 .err { color: var(--danger); padding: 2rem; text-align: center; }
 
 footer {

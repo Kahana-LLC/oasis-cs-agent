@@ -175,25 +175,26 @@ This is **not** the same as sequence `implementation_status` (automation shipped
 
 Separate from lifecycle nurture and from the marketing fallback pool.
 
-| Provider | Free limit | Role |
-|----------|------------|------|
-| **Amazon SES** | 200/day (sandbox until production) | **Primary** operational — policy updates, incidents |
-| **Brevo** | 300/day (emergency) | Last resort in operational pool |
-| **Resend** | 3,000/mo · **100/day** | Phase 2 paid interim + lifecycle fallback — **not** legal/outage |
+| Provider | Limit | Role |
+|----------|-------|------|
+| **Amazon SES** | 200/day (sandbox until production) | **Primary** operational when `production_pending=false` |
+| **Resend Pro** | **~$20/mo** · **50,000/mo** · no daily cap | **Backup** for legal/incident while SES sandbox — default in `send_operational.py` |
+| **Resend free** | 3,000/mo · 100/day | Lifecycle only (Phase 2 paid + fallback pool) — not full-list operational |
 
 **Sequences:** `legal_notice`, `incident_notice` in `email_sequences.json` (`funnel_phase: operational`). Do not count toward Phase 1’s 4–7 email budget.
 
-**Audience:** All `users` with `status = active` → list `oasis-operational-all`, synced nightly (see [`docs/OPERATIONAL_EMAIL_RUNBOOK.md`](OPERATIONAL_EMAIL_RUNBOOK.md)).
+**Audience:** All `users` with `status = active` → CSV via `sync_operational_contacts.py` (see [`docs/OPERATIONAL_EMAIL_RUNBOOK.md`](OPERATIONAL_EMAIL_RUNBOOK.md)).
 
-**Capacity (illustrative):** At 122 users, one SES blast fits in sandbox (200/day). At 2,000 users, plan multi-day sends until production access removes sandbox limits.
+**Capacity (illustrative):** At 122 users today, one Resend Pro blast is a rounding error. At 50k users you are still within 50k/mo for a single all-user notice. Operational and lifecycle Resend sends **share one account quota**.
 
-**Anti-patterns:** No Beehiiv/Loops/Resend for outages; no Supabase query at send time during incidents; Resend is Phase 2 paid + Phase 1 overflow only (not legal/outage).
+**Anti-patterns:** No Brevo/Loops/Beehiiv for outages; no Supabase query at send time during incidents; no Resend **free tier** for full-list blasts.
 
 ### Phase 1 — Welcome / onboarding / activation (Brevo)
 
 | Provider | Free limit | Role |
 |----------|------------|------|
-| **Brevo** Free | **300 emails/day** · **2,000 automation entrants** | **Primary** — welcome, browser import onboarding, first AI command, AI training, NPS, PMF, limit-hitter |
+| **Brevo** Free | **300 emails/day** · **2,000 automation entrants** | Pre-launch / low volume only |
+| **Brevo Starter** | **$29/mo** · **20,000 emails/mo** · **500,000 contacts** | **Recommended for PH launch** — welcome, browser import, first AI command, AI training, NPS, PMF, limit-hitter |
 
 **Activation milestones:** welcome and orient to Oasis → complete onboarding by importing data from a prior browser (Chrome, Safari, Brave, Edge, Firefox) → run first AI command (`llm_usage` row) → train the AI assistant at least once (`feedback_events`; earns **1,000 tokens** — sticky deep-feature signal). Continue nurture on Brevo **while daily and automation headroom exist**; overflow to **Loops / Resend** when near cap.
 
@@ -217,7 +218,9 @@ The **4–7 email range** is a **lifecycle budget** toward perpetual free (Phase
 
 **Major KPIs:** `token_limit_hit_rate_pct`, speed to first limit hit / first prompt, `limit_hitter_conversion_pct`, `activation_24h_pct`, `feedback_submission_rate_pct` (% who trained AI assistant), median hours to first training/feedback.
 
-**Deploy:** Welcome + activation templates in `brevo-oasis-emails/`; build Brevo automations (D0 / D3 / D10 / conditional nudges). Reserve ~50 sends/day for CS agent.
+**Launch (recommended):** Upgrade **Brevo Starter** ($29/mo · 20k sends/mo · 500k contacts) before Product Hunt — free tier’s **300/day** breaks when welcome + nudge + NPS stack in launch week. If signups taper post-PH, revisit downgrade; if volume stays high, more users to convert is the win. Keep **Loops + Resend** for spikes above 20k/mo.
+
+**Deploy:** Welcome + activation templates in `brevo-oasis-emails/`; build Brevo automations (D0 / D3 / D10 / conditional nudges). Reserve ~50 sends/day for CS agent on the same Brevo account.
 
 ### Phase 2 — Fork after Phase 1
 
@@ -411,7 +414,7 @@ MailerLite remains viable until inflow approaches **500/month** — i.e. ~10× c
 
 **Launch audience (Brevo):** 222 recipients on PH teaser + launch — **175 waitlist + 47 internal team**. This is separate from organic PH signups and counts toward Brevo daily peak and contacts.
 
-Use the interactive **[`/email-machine#capacity-scenarios`](/email-machine#capacity-scenarios)** planner to model any signup volume. Presets below match `scenario_presets` in `email_sequences.json`. **Default: Brevo free tier** (300/day · 2k contacts); toggle Starter to compare post-upgrade headroom.
+Use the interactive **[`/email-machine#launch-brevo`](/email-machine#launch-brevo)** section and **[`/email-machine#capacity-scenarios`](/email-machine#capacity-scenarios)** planner. Presets match `scenario_presets` in `email_sequences.json`. **Default: Brevo Starter** ($29/mo · 20k/mo · 500k contacts) for launch planning; uncheck in the planner to compare free tier (not recommended for PH week).
 
 #### A. Baseline (May 24 — pre-PH)
 

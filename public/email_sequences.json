@@ -3,7 +3,7 @@
   "doc_ref": "docs/USER_EMAIL_MACHINE_PROPOSAL.md",
   "provider_setup_meta": {
     "as_of": "2026-05-25",
-    "summary": "Phase 1 primary = Brevo (free automations); Beehiiv archived (Scale required for journeys). Resend = Phase 2 paid + lifecycle overflow; SES operational.",
+    "summary": "Phase 1 = Brevo Starter for launch. Operational = SES primary; Resend Pro ($20/mo) backup until SES production. Resend also Phase 2 paid + lifecycle overflow.",
     "api_keys_ready": [
       "beehiiv",
       "brevo",
@@ -105,10 +105,10 @@
       "constraints": [
         "300 emails/day (reserve ~50/day for CS agent)",
         "2,000 unique contacts in active automations (free)",
-        "Shared daily quota with operational emergency sends"
+        "Reserve ~50 sends/day for CS agent (separate from operational Resend/SES lane)"
       ],
-      "upgrade_trigger": "Automation entrants > 1,600 or daily sends > 240 — route overflow to fallback pool (Loops, Resend, OmniSend)",
-      "notes": "Phase 1 primary — welcome, NPS, PMF, activation automations; HTML in brevo-oasis-emails/. Overflow to fallback pool on cap.",
+      "upgrade_trigger": "Launch: upgrade to Starter before PH. Steady state: monthly sends > 16k or downgrade if signups taper.",
+      "notes": "Phase 1 primary — welcome, NPS, PMF, activation. Recommend Brevo Starter ($29/mo) for launch week spike; overflow to Loops/Resend if above 20k/mo.",
       "paid_tier": {
         "name": "Starter",
         "pricing_url": "https://www.brevo.com/pricing/",
@@ -121,14 +121,15 @@
         "replaces_providers": [
           "omnisend"
         ],
-        "notes": "Removes free-tier 300/day and 2,000 contact caps. Replaces OmniSend for paid lifecycle; keep Mailgun/EmailOctopus on free tiers."
+        "notes": "Recommended for Product Hunt launch — removes 300/day and 2k automation cliffs. Can downgrade later if volume tapers; high volume = more users to convert."
       },
       "account_setup": {
         "status": "ready",
         "api_key_configured": true,
         "mcp_token_configured": true,
         "domain_verified": true,
-        "notes": "API key created (REST + transactional) — 300 emails/day; PH interim and CS agent. MCP-capable key for Cursor."
+        "notes": "Upgrade to Starter ($29/mo · 20k/mo · 500k contacts) before PH — free tier risks 300/day cap on welcome + nudge + NPS same week.",
+        "launch_action": "Subscribe to Brevo Starter before Product Hunt; build Phase 1 automations on paid tier."
       },
       "mcp": {
         "announcement_url": "https://developers.brevo.com/docs/mcp-protocol",
@@ -257,7 +258,8 @@
       "funnel_tags": [
         "lifecycle_fallback",
         "phase_1_overflow",
-        "paid_transactional"
+        "paid_transactional",
+        "operational_failover"
       ],
       "pricing_url": "https://resend.com/pricing",
       "free_limits": {
@@ -271,17 +273,27 @@
         "runway_months_min": 2
       },
       "constraints": [
-        "Interim replacement for Mailgun (100/day · 3,000/mo)",
-        "Also fallback pool member — not for legal/outage (use SES)",
-        "Ticket support on free tier"
+        "Lifecycle free: 100/day · 3,000/mo (Phase 2 paid + fallback pool)",
+        "Operational backup (when SES sandbox): Resend Pro ~$20/mo · 50,000/mo · no daily cap",
+        "Operational + lifecycle share the same Resend account quota"
       ],
-      "upgrade_trigger": "Paid + fallback daily > 80 — spill to Brevo or Loops",
-      "notes": "Phase 2 paid primary (interim) + Phase 1 send overflow when Brevo nears 300/day or 3k/mo. Paid Zen welcome, cancelled win-back. API via RESEND_API_KEY.",
+      "upgrade_trigger": "Lifecycle: daily > 80 or monthly > 80% on free. Operational: subscribe Resend Pro if SES not production-ready.",
+      "notes": "Phase 2 paid + Phase 1 overflow on free tier. Full-list legal/incident via Resend Pro when SES unavailable.",
+      "operational_tier": {
+        "name": "Pro",
+        "pricing_url": "https://resend.com/pricing",
+        "price_usd_monthly": 20,
+        "limits": {
+          "emails_per_month": 50000
+        },
+        "notes": "Recommended operational backup until AWS SES production access. Enough for full userbase blast until ~50k active users."
+      },
       "account_setup": {
         "status": "ready",
         "api_key_configured": true,
         "domain_verified": true,
-        "notes": "API key created — Phase 2 paid interim (replaces Mailgun) and lifecycle fallback overflow."
+        "notes": "Upgrade to Resend Pro ($20/mo) for operational backup while SES is in sandbox; same API key.",
+        "launch_action": "Resend Pro if sending legal/outage before SES production approval."
       }
     },
     {
@@ -513,7 +525,20 @@
     "default_new_users_per_month_max": 200,
     "slider_day_max": 1000,
     "slider_month_max": 3000,
-    "brevo_starter_default": false,
+    "brevo_starter_default": true,
+    "brevo_launch_plan": {
+      "recommended_tier": "starter",
+      "price_usd_monthly": 29,
+      "limits_summary": "20,000 emails/mo · 500,000 contacts",
+      "headline": "Brevo Starter before Product Hunt launch",
+      "why": [
+        "Launch can spike far above free tier’s 300 emails/day (welcome + activation nudge + NPS stack the same week).",
+        "500k contacts removes the 2,000 automation-entrant prune while new signups are pouring in.",
+        "One ESP for Phase 1 + CS agent — simpler than routing overflow APIs during launch week."
+      ],
+      "after_launch": "If signups taper after PH, revisit downgrade to free. If volume stays high, keeping Starter supports conversion at scale — more users is the problem you want.",
+      "overflow_note": "Keep Loops + Resend in the fallback pool for extreme spikes above ~20k Brevo sends/mo."
+    },
     "company_email_pct": 0.15,
     "consumer_email_domains": [
       "gmail.com",
@@ -646,7 +671,18 @@
         "incident_notice"
       ],
       "provider_id": "ses",
-      "notes": "Use SES for full-list blasts. Sandbox until production_pending=false; Brevo operational pool last resort only."
+      "notes": "Full-list blasts when production_pending=false on ses provider."
+    },
+    {
+      "id": "operational_resend_failover",
+      "label": "Operational — Resend backup (SES not ready)",
+      "trigger": "ses.production_pending=true OR SES sandbox blocks bulk",
+      "sequences": [
+        "legal_notice",
+        "incident_notice"
+      ],
+      "provider_id": "resend",
+      "notes": "Resend Pro ($20/mo · 50k/mo · no daily cap). send_operational.py uses this path until SES production. Not free-tier 100/day."
     }
   ],
   "scenario_presets": [
@@ -708,7 +744,7 @@
       "id": "ses_sandbox",
       "provider_id": "ses",
       "trigger": "ses.production_pending=true",
-      "action": "Block automated bulk; verified-email test sends only (--allow-sandbox)"
+      "action": "Route legal/incident to Resend Pro backup (send_operational.py); request SES production for long-term primary"
     },
     {
       "id": "loops_fallback_cap",
@@ -2038,7 +2074,7 @@
       "emails_per_user_min": 4,
       "emails_per_user_max": 7,
       "exit": "Phase 1 ends on upgrade, graduated readiness (most milestones), or Brevo automation prune — not a fixed email count or single milestone.",
-      "notes": "Brevo free: 300/day · 2k automation entrants. Overflow → Loops, Resend, OmniSend. Activation = welcome + browser import + first AI + training.",
+      "notes": "Recommend Brevo Starter ($29/mo) for PH launch; free tier = 300/day · 2k automation entrants. Overflow → Loops, Resend, OmniSend.",
       "fallback_pool": true
     },
     {
@@ -2082,7 +2118,7 @@
         "incident_notice"
       ],
       "trigger": "Manual engineer broadcast — not lifecycle automation",
-      "notes": "All active users via operational sync. SES primary (sandbox until production). Brevo last resort in operational_pool. Not nurture.",
+      "notes": "All active users via operational sync. SES primary when production-ready; Resend Pro backup until then. Not nurture.",
       "operational_pool": true
     },
     {
@@ -2119,7 +2155,7 @@
       "resend"
     ],
     "model": "redundant_parallel",
-    "notes": "Fallback pool — Phase 1/2 overflow when Brevo, EmailOctopus, or Resend at cap. Route to Loops, Resend (100/day), OmniSend, or MailerLite by headroom. Never legal or incident (SES). Brevo is Phase 1 primary, not a pool member.",
+    "notes": "Lifecycle overflow only — never legal/incident (use operational_pool: SES → Resend Pro). Route to Loops, Resend free tier, OmniSend, or MailerLite by headroom.",
     "member_limits": {
       "mailerlite": {
         "contacts": 500,
@@ -2147,25 +2183,30 @@
   "operational_pool": {
     "provider_ids": [
       "ses",
-      "brevo"
+      "resend"
     ],
     "model": "priority_failover",
     "primary_provider_id": "ses",
-    "notes": "Legal, privacy, outage only. SES primary; sandbox 200/day until production. Brevo emergency last resort — separate list; do not steal CS agent daily budget without review.",
+    "failover_provider_id": "resend",
+    "notes": "Legal, privacy, outage only. SES primary when production-approved. Until then: Resend Pro ($20/mo · 50k/mo · no daily cap) — enough for full active userbase for years at current scale.",
     "member_limits": {
       "ses": {
         "emails_per_day": 200,
         "sandbox": true,
         "production_pending": true
       },
-      "brevo": {
-        "emails_per_day": 300,
-        "contacts": 2000
+      "resend": {
+        "tier": "pro",
+        "price_usd_monthly": 20,
+        "emails_per_month": 50000,
+        "emails_per_day": null,
+        "notes": "Operational backup only on Pro — not free-tier 100/day"
       }
     },
-    "aggregate_free_limits": {
-      "sends_per_day": 200,
-      "sandbox": true
+    "aggregate_limits": {
+      "ses_sandbox_sends_per_day": 200,
+      "resend_pro_sends_per_month": 50000,
+      "production_pending": true
     }
   },
   "scenario_presets_operational": [

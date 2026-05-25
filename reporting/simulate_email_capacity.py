@@ -297,7 +297,7 @@ def simulate_scenario(
     new_users_per_month_max: int | None = None,
     mode: str = "launch_week",
     paid_override: int | None = None,
-    brevo_starter: bool = False,
+    brevo_starter: bool | None = None,
     company_email_pct: float | None = None,
     snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -400,7 +400,8 @@ def simulate_scenario(
         active_rules.append("company_email_hubspot_sync")
     ctx.active_rules = active_rules
 
-    use_brevo_starter = brevo_starter is True
+    starter_default = lc.get("brevo_starter_default", True)
+    use_brevo_starter = starter_default if brevo_starter is None else brevo_starter is True
 
     failures: list[dict[str, Any]] = []
     provider_rows: list[dict[str, Any]] = []

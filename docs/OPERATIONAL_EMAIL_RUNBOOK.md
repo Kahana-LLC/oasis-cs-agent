@@ -6,19 +6,22 @@ Legal/policy updates and service incidents — **not** lifecycle nurture (welcom
 
 | Lane | Providers | Use |
 |------|-----------|-----|
-| **Operational pool** | **Amazon SES** (primary) → Brevo (emergency) | Privacy/terms, security, **outage** |
-| **Lifecycle fallback** | MailerLite, OmniSend, Brevo, **Loops**, **Resend** | Nurture overflow + Phase 2 paid interim (replaces Mailgun) |
+| **Operational pool** | **Amazon SES** (primary when production-ready) → **Resend Pro** (backup) | Privacy/terms, security, **outage** |
+| **Lifecycle fallback** | Loops, Resend free tier, OmniSend, MailerLite | Nurture overflow + Phase 2 paid interim |
 
 Manifest: [`public/email_sequences.json`](../public/email_sequences.json) → `operational_pool`, sequences `legal_notice`, `incident_notice`.
 
+**Until SES production access:** use **Resend Pro** (~**$20/mo** · **50,000 emails/mo** · **no daily cap**) for full-list legal/incident blasts. At ~122 users today, one blast is trivial; runway to tens of thousands of users before you outgrow 50k/mo on operational alone.
+
 ## Before any blast
 
-1. Sync audience: `python reporting/sync_operational_contacts.py` (writes CSV for SES send).
+1. Sync audience: `python reporting/sync_operational_contacts.py` (writes `data/operational_contacts.csv`).
 2. Confirm dedup key in `outreach_log` (see [PLAN.md](../PLAN.md)).
 3. Edit template in [`brevo-oasis-emails/operational/`](../brevo-oasis-emails/operational/) — copy HTML on `/email-machine`.
-4. Check capacity on `/email-machine#provider-capacity` (SES sandbox 200/day until production).
+4. Check capacity on `/email-machine#provider-capacity`.
+5. Ensure **Resend account is on Pro** (or higher) if SES is still in sandbox — same `RESEND_API_KEY` as lifecycle.
 
-**Supabase is source of truth; ESP list is send-time source.** If Supabase is down, use the last exported CSV from sync.
+**Supabase is source of truth; CSV is send-time source.** If Supabase is down, use the last exported CSV from sync.
 
 ## Legal / privacy policy update
 
@@ -48,18 +51,26 @@ Dedup pattern: `legal_{policy_slug}_{effective_date}`.
 
 ## Provider notes
 
-**Account setup (2026-05-25):** **SES** is operational primary (sandbox until production). **Resend** is Phase 2 paid interim + fallback pool; **Loops** has API key for marketing fallback — not for legal/outage. See [account setup](https://oasis-analytics.vercel.app/email-machine#provider-setup).
+**Account setup:** **SES** sandbox until production. **Resend Pro** is the operational backup (not Brevo — avoid stealing Phase 1 / CS agent quota). See [account setup](https://oasis-analytics.vercel.app/email-machine#provider-setup).
 
-### Amazon SES (primary)
+### Amazon SES (primary — when approved)
 
-- **Sandbox:** 200 emails / 24h; recipients must be verified. Automated bulk is **blocked** until production access.
+- **Sandbox today:** 200 emails / 24h; automated bulk to full list is **blocked** until production access.
 - After approval: set `production_pending: false` on the `ses` provider in `email_sequences.json`.
 - Merge tags in repo use Brevo syntax (`{{ contact.FIRSTNAME }}`); map when sending via SES API.
 
-### Resend (lifecycle only — not operational)
+### Resend Pro (operational backup — default while SES sandbox)
 
-- Use for **paid Zen welcome**, **cancelled win-back**, and fallback overflow — replaces blocked Mailgun.
-- Do **not** use for legal/incident blasts (100/day is too low at scale).
+- **~$20/mo** · **50,000 emails/month** · **no daily send cap** on Pro (per charter / pricing plan).
+- `scripts/send_operational.py` **defaults to Resend** when `ses.production_pending` is true.
+- **Same Resend account** as Phase 2 paid and lifecycle fallback — operational blasts share the monthly quota with lifecycle sends; plan headroom accordingly.
+- Do **not** use **free-tier** Resend (100/day) for full-list legal/outage — pass `--free-tier-resend` only for small tests.
+- Refuse Resend backup (SES only): `--require-ses`.
+
+### Resend (lifecycle — free tier on same account)
+
+- Phase 2 paid welcome, win-back, and Phase 1 overflow: **100/day · 3,000/mo** on free tier modeling.
+- Upgrading to Pro for operational also removes the daily cap for lifecycle API sends on that account.
 
 ### SES production access
 
@@ -72,15 +83,15 @@ When AWS requests more information, include:
 - **Identity:** Sending domain `kahana.co` (or your verified domain) with SPF, DKIM, DMARC configured.
 - **Sample:** Link to `brevo-oasis-incident-notice.html` or plain operational template (no marketing).
 
-### Loops / Resend (lifecycle fallback)
+### Loops (lifecycle fallback only)
 
-- **Loops:** marketing/product-help overflow — never legal or incident.
-- **Resend:** Phase 2 paid + pool overflow (100/day · 3k/mo) — never legal or incident.
+- Marketing/product-help overflow — never legal or incident.
 
 ## Anti-patterns
 
 - Do not send outages through Beehiiv, EmailOctopus, or Loops nurture lists.
-- Do not use Loops for legal/privacy notices (footer + wrong list semantics).
+- Do not use **Brevo** for full-list operational blasts (shares 300/day with Phase 1 + CS agent).
+- Do not use **Resend free tier** for full-list legal/outage (100/day).
 - Do not query Supabase at send time during an outage — use pre-synced list or CSV.
 - Do not reuse lifecycle `dedup_trigger_name` keys for operational sends.
 

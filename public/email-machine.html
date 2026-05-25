@@ -60,10 +60,19 @@
       return `<span class="funnel-phase-badge ${cls}">${escapeHtml(label)}</span>`;
     }
 
+    function fallbackPoolMemberLabel() {
+      const ids = emailData?.fallback_pool?.provider_ids || [];
+      const short = { mailerlite: "ML", omnisend: "OS", loops: "Loops", resend: "Resend" };
+      return ids.map((id) => short[id] || providerById(id)?.name || id).join(" · ");
+    }
+
     function providerDisplayName(id) {
       if (!id) return "Supabase / sheet";
-      if (id === "fallback_pool") return "Fallback pool (ML · OS · Brevo · Loops · Resend)";
-      if (id === "operational_pool") return "Operational pool (SES)";
+      if (id === "fallback_pool") {
+        const members = fallbackPoolMemberLabel();
+        return members ? `Fallback pool (${members})` : "Fallback pool";
+      }
+      if (id === "operational_pool") return "Operational pool (SES → Resend Pro)";
       const p = providerById(id);
       return p?.name || id;
     }
@@ -85,7 +94,8 @@
       if (fb.type === "provider" && fb.provider_id) {
         return escapeHtml(providerDisplayName(fb.provider_id));
       }
-      return '<span class="routing-pill" title="When primary at cap — ops: migrate phase or upgrade tier">Fallback pool (ML · OS · Brevo · Loops · Resend)</span>';
+      const members = fallbackPoolMemberLabel();
+      return `<span class="routing-pill" title="When Brevo, EmailOctopus, or Resend at cap — route to pool with headroom">Fallback pool${members ? ` (${members})` : ""}</span>`;
     }
 
     function primaryTouchCell(touch, seq) {
@@ -498,6 +508,21 @@
         </div>`;
     }
 
+    function renderBrevoLaunchPlan() {
+      const plan = emailData?.launch_config?.brevo_launch_plan;
+      if (!plan) return "";
+      const why = (plan.why || []).map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+      const price = plan.price_usd_monthly != null ? `$${plan.price_usd_monthly}/mo` : "$29/mo";
+      const limits = escapeHtml(plan.limits_summary || "20,000 emails/mo · 500,000 contacts");
+      return `<section id="launch-brevo" class="launch-plan-card">
+        <h2>${escapeHtml(plan.headline || "Brevo Starter for launch")}</h2>
+        <p class="section-cap"><strong>Charter default for Product Hunt:</strong> upgrade Phase 1 primary <strong>Brevo</strong> to <strong>Starter</strong> (${escapeHtml(price)} · ${limits}) before launch week. Scenario planner below models this tier by default.</p>
+        <ul class="launch-plan-why">${why}</ul>
+        <p class="section-cap"><strong>After launch:</strong> ${escapeHtml(plan.after_launch || "")}</p>
+        <p class="section-cap">${escapeHtml(plan.overflow_note || "")} · <a href="#capacity-scenarios">Stress-test volume</a> · <a href="https://www.brevo.com/pricing" target="_blank" rel="noopener noreferrer">Brevo pricing</a></p>
+      </section>`;
+    }
+
     function renderProviderSetup() {
       const providers = (emailData?.providers || []).filter((p) => p.account_setup);
       const meta = emailData?.provider_setup_meta || {};
@@ -746,6 +771,10 @@
       const phTag = (p.funnel_tags || []).includes("ph_interim")
         ? `<span class="routing-pill">PH interim</span>`
         : "";
+      const launchTag =
+        p.id === "brevo" && emailData?.launch_config?.brevo_launch_plan
+          ? `<span class="routing-pill" title="Recommended before Product Hunt">Launch: Starter $29</span>`
+          : "";
       const deprecated = p.status === "deprecated" ? `<span class="section-cap"> (deprecated)</span>` : "";
       const setup = p.account_setup;
       const nextAction =
@@ -759,7 +788,7 @@
           : "";
       const mcpLink = p.mcp ? ` · <a href="#${escapeHtml(p.id)}-mcp">MCP</a>` : "";
       return `<div class="provider-card ${providerStatusClass(p.id)}" data-provider-id="${escapeHtml(p.id)}">
-            <h3>${nameHtml} ${roleLabel} ${phTag} ${setupStatusPill(p)} ${providerStatusPill(p.id)}${deprecated}${mcpLink}</h3>
+            <h3>${nameHtml} ${roleLabel} ${launchTag} ${phTag} ${setupStatusPill(p)} ${providerStatusPill(p.id)}${deprecated}${mcpLink}</h3>
             <div class="limits">${escapeHtml(formatLimits(p))}</div>
             <div class="constraints">${(p.constraints || []).map(escapeHtml).join(" · ")}</div>
             <div class="upgrade"><strong>Upgrade when:</strong> ${escapeHtml(p.upgrade_trigger || "—")}</div>
@@ -773,7 +802,7 @@
       const seqs = emailData?.sequences || [];
       const providers = emailData?.providers || [];
       const pool = emailData?.fallback_pool || {};
-      const poolIds = new Set(pool.provider_ids || ["mailerlite", "omnisend", "brevo"]);
+      const poolIds = new Set(pool.provider_ids || ["mailerlite", "omnisend", "loops", "resend"]);
       const primaryRoles = new Set(["phase_1_primary", "phase_2_paid", "phase_2_conversion", "phase_3_terminal"]);
       const primary = providers.filter((p) => primaryRoles.has(p.funnel_role));
       const fallbackMembers = providers.filter((p) => poolIds.has(p.id));
@@ -795,7 +824,8 @@
         })
         .join("");
       const opPool = emailData?.operational_pool || {};
-      const operationalMembers = providers.filter((p) => p.funnel_role === "operational");
+      const opPoolIds = new Set(opPool.provider_ids || ["ses", "resend"]);
+      const operationalMembers = providers.filter((p) => opPoolIds.has(p.id));
       const opCap = snapshotData?.email_provider_capacity?.operational_pool_aggregate;
       const opLive = opCap?.provider_count
         ? `<p class="section-cap"><strong>Live operational usage:</strong> ${Number(opCap.daily_used || 0).toLocaleString()} / ${Number(opCap.daily_cap || 100).toLocaleString()} sends/day est.</p>`
@@ -811,8 +841,9 @@
           <div class="provider-grid">${fallbackMembers.map((p) => renderProviderCard(p, seqs)).join("")}</div>
         </div>
         <div class="operational-pool-card">
-          <h3>Operational pool <span class="routing-pill">SES primary</span></h3>
+          <h3>Operational pool <span class="routing-pill">SES → Resend Pro</span></h3>
           <p class="section-cap">${escapeHtml(opPool.notes || "")}</p>
+          <p class="section-cap"><strong>While SES sandbox:</strong> upgrade <strong>Resend Pro</strong> (~$20/mo · 50k/mo · no daily cap) and run <span class="code">send_operational.py</span> — enough for full active userbase until ~50k users.</p>
           ${opLive}
           <div class="provider-grid">${operationalMembers.map((p) => renderProviderCard(p, seqs)).join("")}</div>
         </div>
@@ -892,10 +923,11 @@
         ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Number(pool.send_used).toLocaleString()} / ${Number(pool.send_cap).toLocaleString()} sends/mo · ${Number(pool.contact_used).toLocaleString()} / ${Number(pool.contact_cap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo + Loops + Resend).</p>`
         : "";
       const sesBanner = cap.ses_sandbox
-        ? `<div class="banner banner-warn"><strong>Amazon SES sandbox:</strong> Automated operational blasts blocked until production access is approved. Test sends to verified emails only. See <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/OPERATIONAL_EMAIL_RUNBOOK.md#ses-production-access">OPERATIONAL_EMAIL_RUNBOOK.md</a>.</div>`
+        ? `<div class="banner banner-warn"><strong>Amazon SES sandbox:</strong> Full-list blasts use <strong>Resend Pro backup</strong> ($20/mo · 50k/mo · no daily cap) via <span class="code">send_operational.py</span>. Request SES production for long-term primary. <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/OPERATIONAL_EMAIL_RUNBOOK.md">Runbook</a>.</div>`
         : "";
+      const opCapMo = opPool?.send_cap ? Math.round(opPool.send_cap).toLocaleString() : "50,000";
       const opBanner = opPool?.provider_count
-        ? `<p class="section-cap"><strong>Operational pool (SES primary):</strong> ${Number(opPool.daily_used || 0).toLocaleString()} / ${Number(opPool.daily_cap || 200).toLocaleString()} sends/day est. — legal &amp; incident only.</p>`
+        ? `<p class="section-cap"><strong>Operational pool:</strong> ${cap.ses_sandbox ? `Resend Pro backup · ${opCapMo} sends/mo est. cap` : `SES primary · ${Number(opPool.daily_used || 0).toLocaleString()} / ${Number(opPool.daily_cap || 200).toLocaleString()} sends/day est.`} — legal &amp; incident only.</p>`
         : "";
       return `<section id="provider-capacity">
         <h2>Provider capacity &amp; near-limit</h2>
@@ -1281,8 +1313,8 @@
       }
 
       const goalsNote = useBrevoStarter
-        ? "Brevo Starter ($29/mo · 20k sends/mo · 500k contacts): OmniSend deprecated; watch 20k/month ceiling."
-        : "Free Brevo (300/day · 2k contacts). Toggle Starter above to model post-upgrade headroom.";
+        ? "Brevo Starter (launch default): 20k/mo · 500k contacts — watch monthly ceiling; Loops/Resend for extreme overflow."
+        : "Free Brevo (300/day · 2k automation entrants) — not recommended for PH launch; enable Starter tier above.";
 
       const poolAggregate = computePoolAggregate(providerRows, emailData?.providers);
 
@@ -1315,6 +1347,7 @@
       const monthMax = lc.slider_month_max ?? 3000;
       const dayDefault = lc.default_new_users_per_day_max ?? 7;
       const monthDefault = lc.default_new_users_per_month_max ?? 200;
+      const starterDefault = lc.brevo_starter_default !== false;
       const presetBtns = presets
         .map(
           (p) =>
@@ -1323,7 +1356,7 @@
         .join("");
       return `<section id="capacity-scenarios">
         <h2>PH scenario planner</h2>
-        <p class="section-cap">Set max new-user rates to see where free tiers break. Launch audience: <strong>${audience}</strong> Brevo recipients (175 waitlist + 47 internal). Daily max stress-tests send caps; monthly max drives lifecycle volume and contacts.</p>
+        <p class="section-cap">Stress-test signup volume against provider caps. <strong>Launch planning defaults to Brevo Starter</strong> ($29/mo) — see <a href="#launch-brevo">Launch plan</a>. Launch audience: <strong>${audience}</strong> Brevo recipients (175 waitlist + 47 internal).</p>
         <div class="scenario-controls">
           <div class="scenario-control-group">
             <label for="scenario-day-max">New users / day (max)</label>
@@ -1342,8 +1375,8 @@
           </div>
           <div class="scenario-control-group">
             <label>Brevo tier</label>
-            <label class="scenario-override-toggle"><input type="checkbox" id="scenario-brevo-starter" /> Starter ($29/mo · 20k sends · 500k contacts)</label>
-            <p class="section-cap">Default: free (300/day · 2k contacts). Enable Starter to compare post-upgrade headroom.</p>
+            <label class="scenario-override-toggle"><input type="checkbox" id="scenario-brevo-starter"${starterDefault ? " checked" : ""} /> Starter ($29/mo · 20k sends · 500k contacts) — <strong>launch default</strong></label>
+            <p class="section-cap">Uncheck to model free tier (300/day · 2k automation entrants) — not recommended for Product Hunt week.</p>
           </div>
           <div class="scenario-control-group">
             <label for="scenario-paid">Paid subscribers <span id="scenario-paid-mode" class="section-cap">(auto)</span></label>
@@ -1426,10 +1459,15 @@
                 .join(" · ") || "demand below pool caps"}${sim.poolDemand ? ` · total overflow demand ${Math.round(sim.poolDemand).toLocaleString()}` : ""}</p>`
             : "";
         const poolLine = pool.providerCount
-          ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Math.round(pool.sendUsed).toLocaleString()} / ${Math.round(pool.sendCap).toLocaleString()} sends/mo (${poolPct}%) · ${Math.round(pool.contactUsed).toLocaleString()} / ${Math.round(pool.contactCap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo + Loops + Resend) · <strong>HubSpot Phase 3:</strong> ~${(sim.companyEmailUsers + sim.autoPaid).toLocaleString()} CRM contacts</p>${poolAllocLine}`
+          ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Math.round(pool.sendUsed).toLocaleString()} / ${Math.round(pool.sendCap).toLocaleString()} sends/mo (${poolPct}%) · ${Math.round(pool.contactUsed).toLocaleString()} / ${Math.round(pool.contactCap).toLocaleString()} contacts (${escapeHtml(fallbackPoolMemberLabel())}) · <strong>HubSpot Phase 3:</strong> ~${(sim.companyEmailUsers + sim.autoPaid).toLocaleString()} CRM contacts</p>${poolAllocLine}`
           : poolAllocLine;
-        const SES_DAILY_CAP = 200;
-        const opBlastLine = `<p class="section-cap"><strong>Operational blast (legal/incident):</strong> ${sim.totalUsers.toLocaleString()} users → ${Math.max(1, Math.ceil(sim.totalUsers / SES_DAILY_CAP))} day(s) at SES ${SES_DAILY_CAP}/day (sandbox until production).</p>`;
+        const sesProv = providerById("ses");
+        const sesSandbox = Boolean(sesProv?.production_pending);
+        const resendOpLim = emailData?.operational_pool?.member_limits?.resend || {};
+        const resendOpMo = resendOpLim.emails_per_month || 50000;
+        const opBlastLine = sesSandbox
+          ? `<p class="section-cap"><strong>Operational blast (legal/incident):</strong> ${sim.totalUsers.toLocaleString()} users → <strong>Resend Pro backup</strong> (${Number(resendOpMo).toLocaleString()}/mo · no daily cap) until SES production. One blast fits easily at current scale.</p>`
+          : `<p class="section-cap"><strong>Operational blast (legal/incident):</strong> ${sim.totalUsers.toLocaleString()} users → Amazon SES primary.</p>`;
         summaryEl.innerHTML = `${rateWarn}${stallBanner}${rules}${cliffs}${poolLine}${opBlastLine}<p class="section-cap"><strong>Brevo tier:</strong> ${sim.useBrevoStarter ? "Starter ($29/mo)" : "Free (300/day · 2k contacts)"} · ${escapeHtml(sim.goalsNote)} · Total users: ${sim.totalUsers.toLocaleString()} · Brevo peak day: ~${Math.round(sim.dailyPeaks?.brevo || 0).toLocaleString()}/${sim.useBrevoStarter ? "—" : "300"}</p>`;
       }
 
@@ -1596,8 +1634,9 @@ Brevo or Resend cap hit → Fallback pool (Loops | Resend | OmniSend | MailerLit
         <div class="funnel-grid">
           <div class="funnel-phase-card phase-1">
             <h3>${escapeHtml(p1?.label || "Phase 1")}</h3>
-            <p><strong>${escapeHtml(brevo?.name || "Brevo")}</strong> · 300/day · 2k automation entrants · ${p1?.emails_per_user_min}–${p1?.emails_per_user_max} emails toward lifecycle cap</p>
+            <p><strong>${escapeHtml(brevo?.name || "Brevo")}</strong> · <span class="routing-pill">Launch: Starter $29/mo</span> · ${p1?.emails_per_user_min}–${p1?.emails_per_user_max} emails toward lifecycle cap</p>
             <p class="section-cap">${escapeHtml(p1?.notes || "")}</p>
+            ${emailData?.launch_config?.brevo_launch_plan?.after_launch ? `<p class="section-cap"><strong>After PH:</strong> ${escapeHtml(emailData.launch_config.brevo_launch_plan.after_launch)}</p>` : ""}
             ${funnelPhaseGoalsList(p1)}
             ${funnelPhaseReadinessList(p1)}
             ${funnelPhaseKpiList(p1)}
@@ -1692,7 +1731,7 @@ provider = max(headroom, key=headroom.get)`;
       return `<section id="implementation">
         <h2>Implementation guide</h2>
         <p class="section-cap">Wiring spec for CS agent + Supabase. <strong>${stats.pending} of ${stats.total} sequences</strong> need implementation (${stats.shipped} shipped).</p>
-        <div class="banner banner-info"><strong>Phase 1 primary:</strong> All welcome / activation / NPS / PMF automations on <strong>Brevo</strong> (free). Overflow → <span class="code">fallback_pool</span> (Loops, Resend, OmniSend, MailerLite). Beehiiv archived (Scale required for journeys).</div>
+        <div class="banner banner-info"><strong>Phase 1 primary:</strong> <strong>Brevo Starter ($29/mo)</strong> recommended before Product Hunt. <strong>Operational:</strong> <strong>Resend Pro ($20/mo)</strong> for legal/outage until SES production — not Brevo. Lifecycle overflow → <span class="code">fallback_pool</span> (${escapeHtml(fallbackPoolMemberLabel())}).</div>
         <h3>User lifecycle states</h3>
         <table class="impl-state-table">
           <thead><tr><th>State</th><th>Entry</th><th>Exit condition</th><th>Next</th></tr></thead>
@@ -1718,7 +1757,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
           const seqList = (r.sequences || []).join(", ");
           let prov = providerDisplayName(r.provider_id);
           if (r.provider_id === "fallback_pool") {
-            prov = `<span class="routing-pill">Any pool member (ML · OS · Brevo)</span>`;
+            prov = `<span class="routing-pill">Any pool member (${escapeHtml(fallbackPoolMemberLabel())})</span>`;
           } else if (!r.provider_id) {
             prov = `<span class="section-cap">Supabase / sheet action</span>`;
           }
@@ -1745,6 +1784,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
     function renderCharterNav() {
       return `<nav class="charter-toc" aria-label="Charter sections">
         <a href="#overview">Overview</a>
+        <a href="#launch-brevo">Launch plan</a>
         <a href="#funnel">Funnel</a>
         <a href="#implementation">Implementation</a>
         <a href="#sequences">Sequences</a>
@@ -1887,6 +1927,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         <p class="caption">Engineer implementation guide — multi-provider lifecycle email. Spec: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md">USER_EMAIL_MACHINE_PROPOSAL.md</a> · Agent: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/PLAN.md">PLAN.md</a></p>
         ${liveBanner()}
         ${renderCharterNav()}
+        ${renderBrevoLaunchPlan()}
         <section id="overview">
           <h2>Overview</h2>
           <p class="section-cap">Goals: <strong>500 paid subscribers by Dec 31, 2026</strong>, <strong>4.5× DAU</strong> vs Product Hunt launch week, <strong>80% gross margin</strong>. Lifecycle email budget: <strong>${cc.phase_1_emails_min ?? 4}–${cc.phase_1_emails_max ?? 7}</strong> Phase 1 + <strong>${cc.phase_2_conversion_emails_min ?? 3}–${cc.phase_2_conversion_emails_max ?? 4}</strong> Phase 2 conversion = <strong>${cc.total_emails_before_perpetual_free_min ?? 7}–${cc.total_emails_before_perpetual_free_max ?? 11}</strong> total before perpetual free.</p>
@@ -1924,7 +1965,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         ${renderProviderSetup()}
         <section id="providers">
           <h2>Email providers (free tier)</h2>
-          <p class="section-cap"><strong>Phase 1</strong> Brevo · <strong>Phase 2 paid</strong> Resend (interim) + HubSpot · <strong>Phase 2 conversion</strong> EmailOctopus · <strong>Phase 3</strong> terminal · <strong>Fallback pool</strong> = Loops + Resend + OmniSend + MailerLite · <strong>Operational</strong> = SES · <strong>Beehiiv</strong> archived. See <a href="#provider-setup">account setup</a>.</p>
+          <p class="section-cap"><strong>Phase 1</strong> Brevo (<a href="#launch-brevo">Starter $29/mo</a>) · <strong>Phase 2 paid</strong> Resend + HubSpot · <strong>Operational</strong> SES → <strong>Resend Pro</strong> ($20/mo) until SES production · <strong>Fallback pool</strong> = ${escapeHtml(fallbackPoolMemberLabel())}. See <a href="#provider-setup">account setup</a>.</p>
           ${renderProvidersGrouped()}
           ${renderProviderCandidates()}
         </section>

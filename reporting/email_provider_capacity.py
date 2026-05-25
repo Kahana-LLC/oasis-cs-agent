@@ -26,7 +26,7 @@ DEFAULT_NEAR_LIMIT = {
 }
 
 FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "loops", "resend"})
-OPERATIONAL_PROVIDER_IDS = frozenset({"ses"})
+OPERATIONAL_PROVIDER_IDS = frozenset({"ses", "resend"})
 
 
 def _load_manifest(path: Path | None = None) -> dict[str, Any]:
@@ -170,7 +170,7 @@ def _operational_pool_aggregate(
     sequences: list[dict[str, Any]] | None = None,
     total_users: int = 0,
 ) -> dict[str, Any]:
-    """SES primary (+ Brevo emergency) — legal/incident lane."""
+    """SES primary; Resend Pro backup when SES sandbox — legal/incident lane."""
     pool = manifest.get("operational_pool") or {}
     pool_ids = pool.get("provider_ids") or list(OPERATIONAL_PROVIDER_IDS)
     sequences = sequences or manifest.get("sequences") or []
@@ -178,21 +178,31 @@ def _operational_pool_aggregate(
     send_cap = 0.0
     daily_cap = 0.0
     daily_used = send_used / 30.0
-    for row in provider_rows:
-        if row["id"] not in pool_ids:
-            continue
-        prov = next((p for p in manifest.get("providers") or [] if p["id"] == row["id"]), None)
-        lim = (prov or {}).get("free_limits") or {}
-        mo = lim.get("emails_per_month")
-        if mo:
-            send_cap += mo
-        if lim.get("emails_per_day"):
-            daily_cap += lim["emails_per_day"]
-    agg = pool.get("aggregate_free_limits") or {}
-    if agg.get("sends_per_month"):
-        send_cap = max(send_cap, agg["sends_per_month"])
-    if agg.get("sends_per_day"):
-        daily_cap = max(daily_cap, agg["sends_per_day"])
+    ses_prov = next((p for p in manifest.get("providers") or [] if p.get("id") == "ses"), None)
+    ses_sandbox = bool(ses_prov and ses_prov.get("production_pending"))
+    member_limits = pool.get("member_limits") or {}
+    resend_op = member_limits.get("resend") or {}
+    if ses_sandbox and resend_op.get("emails_per_month"):
+        send_cap = float(resend_op["emails_per_month"])
+        daily_cap = float(resend_op["emails_per_day"] or 0)
+    else:
+        for row in provider_rows:
+            if row["id"] not in pool_ids:
+                continue
+            prov = next((p for p in manifest.get("providers") or [] if p["id"] == row["id"]), None)
+            lim = (prov or {}).get("free_limits") or {}
+            mo = lim.get("emails_per_month")
+            if mo:
+                send_cap += mo
+            if lim.get("emails_per_day"):
+                daily_cap += lim["emails_per_day"]
+    agg = pool.get("aggregate_limits") or pool.get("aggregate_free_limits") or {}
+    if ses_sandbox and agg.get("resend_pro_sends_per_month"):
+        send_cap = max(send_cap, float(agg["resend_pro_sends_per_month"]))
+    elif agg.get("sends_per_month"):
+        send_cap = max(send_cap, float(agg["sends_per_month"]))
+    if not ses_sandbox and agg.get("ses_sandbox_sends_per_day"):
+        daily_cap = max(daily_cap, float(agg["ses_sandbox_sends_per_day"]))
     return {
         "send_used": round(send_used, 1),
         "send_cap": round(send_cap, 1),
@@ -200,6 +210,8 @@ def _operational_pool_aggregate(
         "daily_cap": round(daily_cap, 1),
         "provider_count": len(pool_ids),
         "primary_provider_id": pool.get("primary_provider_id", "ses"),
+        "failover_provider_id": pool.get("failover_provider_id", "resend"),
+        "ses_sandbox": ses_sandbox,
     }
 
 
@@ -444,6 +456,6 @@ def compute_email_provider_capacity(
         "estimation_note": (
             "v1 estimates: Brevo Phase 1 (2k automation entrants · 300/day); EmailOctopus Phase 2 conversion; "
             "fallback pool = MailerLite + OmniSend + Loops + Resend; "
-            "operational pool = SES (legal/incident); HubSpot = paid + company email."
+            "operational pool = SES primary, Resend Pro backup; HubSpot = paid + company email."
         ),
     }

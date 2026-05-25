@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Send operational broadcast (legal or incident) via Resend with SES failover rules."""
+"""Send operational broadcast (legal or incident) — SES primary, Resend Pro backup when SES not ready."""
 
 from __future__ import annotations
 
@@ -15,8 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "public" / "email_sequences.json"
 CONTACTS_CSV = ROOT / "data" / "operational_contacts.csv"
 
-RESEND_DAILY_CAP = 100
-RESEND_MONTHLY_CAP = 3000
+# Lifecycle free tier (do not use for full-list operational blasts)
+RESEND_FREE_DAILY_CAP = 100
+RESEND_FREE_MONTHLY_CAP = 3000
 
 TEMPLATE_MAP = {
     "legal": "legal_notice",
@@ -76,6 +77,20 @@ def ses_production_ready(manifest: dict) -> bool:
     return bool(ses and not ses.get("production_pending"))
 
 
+def operational_resend_limits(manifest: dict) -> tuple[int | None, int | None]:
+    """Return (daily_cap, monthly_cap) for operational Resend backup. daily_cap None = no daily limit."""
+    pool = manifest.get("operational_pool") or {}
+    member = (pool.get("member_limits") or {}).get("resend") or {}
+    resend = next((p for p in manifest.get("providers") or [] if p.get("id") == "resend"), None)
+    op_tier = (resend or {}).get("operational_tier") or {}
+    tier_limits = op_tier.get("limits") or {}
+    monthly = member.get("emails_per_month") or tier_limits.get("emails_per_month") or 50_000
+    daily = member.get("emails_per_day")
+    if daily is None and "emails_per_day" not in member:
+        daily = None
+    return daily, int(monthly)
+
+
 def send_via_resend(
     recipients: list[dict[str, str]],
     *,
@@ -84,11 +99,13 @@ def send_via_resend(
     plain: str,
     from_email: str,
     dry_run: bool,
-    daily_cap: int,
+    daily_cap: int | None,
+    monthly_cap: int,
 ) -> int:
     api_key = os.environ.get("RESEND_API_KEY", "").strip()
     if dry_run:
-        print(f"[dry-run] Would send to {len(recipients)} via Resend (cap {daily_cap}/day)")
+        cap_desc = f"{monthly_cap}/mo" if daily_cap is None else f"{daily_cap}/day · {monthly_cap}/mo"
+        print(f"[dry-run] Would send to {len(recipients)} via Resend Pro backup ({cap_desc})")
         return 0
     if not api_key:
         raise SystemExit("RESEND_API_KEY required for send")
@@ -101,8 +118,11 @@ def send_via_resend(
     resend.api_key = api_key
     sent = 0
     for i, row in enumerate(recipients):
-        if i >= daily_cap:
+        if daily_cap is not None and i >= daily_cap:
             print(f"Stopped at Resend daily cap ({daily_cap})")
+            break
+        if sent >= monthly_cap:
+            print(f"Stopped at Resend monthly cap ({monthly_cap})")
             break
         email = row["email"]
         first = row.get("first_name") or "there"
@@ -118,7 +138,7 @@ def send_via_resend(
             payload["text"] = body_plain
         resend.Emails.send(payload)
         sent += 1
-    print(f"Sent {sent} via Resend")
+    print(f"Sent {sent} via Resend (operational backup)")
     return sent
 
 
@@ -127,13 +147,16 @@ def main() -> None:
     parser.add_argument("--template", required=True, choices=["legal", "incident"])
     parser.add_argument("--dedup-key", required=True, help="outreach_log dedup key")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--allow-sandbox", action="store_true", help="SES sandbox test only")
     parser.add_argument(
-        "--bridge-resend",
+        "--require-ses",
         action="store_true",
-        help="Interim only: send via Resend when SES not ready (not for full-list legal/outage)",
+        help="Refuse to send unless SES production is approved (no Resend backup)",
     )
-    parser.add_argument("--daily-cap", type=int, default=RESEND_DAILY_CAP)
+    parser.add_argument(
+        "--free-tier-resend",
+        action="store_true",
+        help="Use Resend free-tier caps (100/day) — not for full-list legal/outage",
+    )
     parser.add_argument("--contacts", type=Path, default=CONTACTS_CSV)
     args = parser.parse_args()
 
@@ -153,46 +176,52 @@ def main() -> None:
 
     print(f"Template: {args.template} · dedup: {args.dedup_key}")
     ses_ready = ses_production_ready(manifest)
-    print(f"Recipients: {len(recipients)} · provider route: ses (primary)")
+    op_daily, op_monthly = operational_resend_limits(manifest)
+    if args.free_tier_resend:
+        op_daily, op_monthly = RESEND_FREE_DAILY_CAP, RESEND_FREE_MONTHLY_CAP
 
-    if not ses_ready:
-        print(
-            "SES: sandbox — automated bulk blocked until production_pending=false on ses provider. "
-            "Request production access (see docs/OPERATIONAL_EMAIL_RUNBOOK.md)."
-        )
-        if args.bridge_resend:
-            print("Bridge: sending via Resend (--bridge-resend) — not for large legal/outage blasts")
-            if len(recipients) > args.daily_cap and not args.dry_run:
-                days = (len(recipients) + args.daily_cap - 1) // args.daily_cap
-                print(f"Note: {len(recipients)} recipients need ~{days} days at {args.daily_cap}/day on Resend")
-            send_via_resend(
-                recipients,
-                html=html,
-                subject=subject,
-                plain=plain,
-                from_email=from_addr,
-                dry_run=args.dry_run,
-                daily_cap=args.daily_cap,
-            )
-        elif args.dry_run:
-            print("[dry-run] Would send via SES when production access is approved")
+    print(f"Recipients: {len(recipients)}")
+
+    if ses_ready and not args.free_tier_resend:
+        print("Route: Amazon SES (primary)")
+        if args.dry_run:
+            print("[dry-run] Would send via SES when send_via_ses() is implemented")
         else:
             raise SystemExit(
-                "Refusing bulk send: use --dry-run, --allow-sandbox (verified emails only, not implemented), "
-                "or --bridge-resend for small interim tests only"
+                "SES production is approved but send_via_ses() is not implemented yet. "
+                "Use --dry-run or send via Resend backup (omit --require-ses)."
             )
-    else:
-        print("SES production: implement send_via_ses() — until then use --bridge-resend for interim tests")
-        if args.bridge_resend:
-            send_via_resend(
-                recipients,
-                html=html,
-                subject=subject,
-                plain=plain,
-                from_email=from_addr,
-                dry_run=args.dry_run,
-                daily_cap=args.daily_cap,
-            )
+        return
+
+    if args.require_ses:
+        raise SystemExit(
+            "SES is not production-ready (--require-ses). Request AWS production access "
+            "or send via Resend Pro backup (default)."
+        )
+
+    daily_cap = op_daily
+    monthly_cap = op_monthly
+    print(
+        "Route: Resend Pro backup (SES sandbox / not production-ready) — "
+        f"cap: {monthly_cap:,}/mo"
+        + (f" · {daily_cap}/day" if daily_cap else " · no daily cap")
+    )
+    if not args.free_tier_resend and len(recipients) > monthly_cap and not args.dry_run:
+        raise SystemExit(
+            f"{len(recipients)} recipients exceeds operational monthly cap {monthly_cap}. "
+            "Upgrade Resend plan or wait for SES production."
+        )
+
+    send_via_resend(
+        recipients,
+        html=html,
+        subject=subject,
+        plain=plain,
+        from_email=from_addr,
+        dry_run=args.dry_run,
+        daily_cap=daily_cap,
+        monthly_cap=monthly_cap,
+    )
 
 
 if __name__ == "__main__":
