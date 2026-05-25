@@ -526,12 +526,12 @@
     function lifecycleChecklistBadge(status) {
       const s = status || "pending";
       const cls =
-        s === "shipped"
+        s === "shipped" || s === "ready_local_and_edge"
           ? "status-shipped"
           : s === "optional"
             ? "status-planned"
             : "status-needs-implementation";
-      return `<span class="status-pill ${cls}">${escapeHtml(s)}</span>`;
+      return `<span class="status-pill ${cls}">${escapeHtml(s.replace(/_/g, " "))}</span>`;
     }
 
     function renderSupabaseLifecyclePlan() {
@@ -539,15 +539,22 @@
       if (!plan) return "";
       const docUrl =
         "https://github.com/AdamKershner/oasis-analytics/blob/main/docs/SUPABASE_LIFECYCLE_EMAIL_PLAN.md";
+      const welcomeDoc = plan.welcome_runbook
+        ? `https://github.com/AdamKershner/oasis-analytics/blob/main/${plan.welcome_runbook}`
+        : "";
+      const currentEmail = plan.current_email
+        ? `<p class="section-cap"><strong>Now building:</strong> <span class="code">${escapeHtml(plan.current_email)}</span>${welcomeDoc ? ` · <a href="${welcomeDoc}">Welcome runbook</a>` : ""}</p>`
+        : "";
       const triggerRows = (plan.triggers || [])
         .map(
           (t) =>
             `<tr>
-              <td><span class="code">${escapeHtml(t.dedup_trigger_name)}</span></td>
+              <td>${t.implementation_status ? lifecycleChecklistBadge(t.implementation_status) : ""} <span class="code">${escapeHtml(t.dedup_trigger_name)}</span></td>
               <td>${escapeHtml(t.brevo_template)}</td>
               <td><span class="routing-pill">${escapeHtml(t.channel)}</span></td>
               <td>${escapeHtml(t.when)}</td>
               <td>${escapeHtml(t.condition)}</td>
+              <td>${t.local_script ? `<span class="code">${escapeHtml(t.local_script)}</span>` : "—"}</td>
             </tr>`
         )
         .join("");
@@ -584,13 +591,14 @@
       return `<section id="supabase-lifecycle" class="lifecycle-plan-card">
         <h2>${escapeHtml(plan.headline || "Supabase lifecycle email")} <span class="routing-pill">${escapeHtml(plan.priority || plan.status || "planned")}</span></h2>
         <p class="section-cap">${escapeHtml(plan.summary || "")}</p>
-        <div class="banner banner-info"><strong>Deploy target:</strong> ${escapeHtml(plan.deploy_project || "Oasis Supabase")} · <strong>ESP:</strong> ${escapeHtml(plan.esp_id || "brevo")} templates · <strong>Dedup:</strong> <span class="code">${escapeHtml(plan.dedup_table || "cs_outreach_log")}</span> · Full spec: <a href="${docUrl}" target="_blank" rel="noopener noreferrer">SUPABASE_LIFECYCLE_EMAIL_PLAN.md</a></div>
+        ${currentEmail}
+        <div class="banner banner-info"><strong>Deploy target:</strong> ${escapeHtml(plan.deploy_project || "Oasis Supabase")} · <strong>ESP:</strong> ${escapeHtml(plan.esp_id || "brevo")} templates · <strong>Dedup:</strong> <span class="code">${escapeHtml(plan.dedup_table || "cs_outreach_log")}</span> · Full spec: <a href="${docUrl}" target="_blank" rel="noopener noreferrer">SUPABASE_LIFECYCLE_EMAIL_PLAN.md</a>${welcomeDoc ? ` · <a href="${welcomeDoc}">Welcome (step 1)</a>` : ""}</div>
         <pre class="funnel-flow-ascii">${escapeHtml(plan.architecture_ascii || "")}</pre>
         <h3>Edge Functions</h3>
         <div class="lifecycle-fn-grid">${fnCards}</div>
         <h3>Phase 1 triggers</h3>
         <table class="lifecycle-trigger-table">
-          <thead><tr><th>dedup_trigger_name</th><th>Brevo template</th><th>Channel</th><th>When</th><th>Condition</th></tr></thead>
+          <thead><tr><th>Trigger</th><th>Brevo template</th><th>Channel</th><th>When</th><th>Condition</th><th>Local test</th></tr></thead>
           <tbody>${triggerRows}</tbody>
         </table>
         <h3>Secrets (Oasis Supabase)</h3>

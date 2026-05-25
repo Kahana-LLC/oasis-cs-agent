@@ -143,6 +143,18 @@ Keep [`scripts/enroll_brevo_phase1.py`](../scripts/enroll_brevo_phase1.py) as **
 
 ---
 
+## Step-by-step (one email at a time)
+
+| Step | Email | Runbook | Status |
+|------|--------|---------|--------|
+| **1** | Welcome | [`LIFECYCLE_WELCOME.md`](LIFECYCLE_WELCOME.md) | Code shipped — apply migration + template id + test |
+| 2 | Activation nudge | *(pending)* | Not started |
+| 3 | Activation CS | *(pending)* | Not started |
+| 4 | NPS day 3 | *(pending)* | Not started |
+| 5 | PMF day 10 | *(pending)* | Not started |
+
+---
+
 ## Implementation checklist
 
 | # | Task | Repo / project | Status |

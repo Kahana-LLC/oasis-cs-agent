@@ -624,7 +624,9 @@
       "role_after_edge_deploy": "dev_fallback_enroll_and_contact_sync"
     },
     "supabase_lifecycle_email": {
-      "status": "planned",
+      "status": "in_progress",
+      "current_email": "welcome",
+      "welcome_runbook": "docs/LIFECYCLE_WELCOME.md",
       "priority": "recommended",
       "headline": "Supabase Edge Functions + daily cron (Phase 1)",
       "summary": "Supabase decides who gets which email from live product data; Brevo sends templates. Replaces Brevo Oasis Phase 1 automation as the primary trigger path.",
@@ -635,8 +637,13 @@
       "dedup_table": "cs_outreach_log",
       "dedup_doc": "PLAN.md",
       "reference_code": [
+        "integrations/lifecycle_email.py",
+        "db/outreach_log.py",
+        "scripts/send_lifecycle_email.py",
+        "scripts/list_brevo_smtp_templates.py",
+        "supabase/functions/lifecycle-send",
+        "supabase/functions/lifecycle-on-signup",
         "integrations/brevo_phase1.py",
-        "triggers/evaluate.py",
         "scripts/enroll_brevo_phase1.py"
       ],
       "edge_functions": [
@@ -682,9 +689,13 @@
           "dedup_trigger_name": "welcome_email",
           "sequence_id": "welcome",
           "brevo_template": "Oasis Welcome",
+          "env_template_id": "BREVO_TEMPLATE_ID_WELCOME",
+          "implementation_status": "ready_local_and_edge",
           "channel": "event",
           "when": "users INSERT (signup)",
-          "condition": "active user with email"
+          "condition": "active user with email",
+          "local_script": "scripts/send_lifecycle_email.py --trigger welcome_email",
+          "edge_functions": ["lifecycle-on-signup", "lifecycle-send"]
         },
         {
           "dedup_trigger_name": "activation_nudge_24h",
@@ -722,27 +733,37 @@
       "implementation_checklist": [
         {
           "id": "outreach_log",
-          "label": "Create cs_outreach_log in Supabase",
-          "status": "pending",
-          "owner": "Oasis Supabase"
+          "label": "Apply cs_outreach_log migration in Supabase",
+          "status": "shipped",
+          "owner": "Oasis Supabase",
+          "artifact": "supabase/migrations/20260525140000_cs_outreach_log.sql"
         },
         {
-          "id": "template_ids",
-          "label": "Map Brevo template names to numeric template IDs",
+          "id": "template_ids_welcome",
+          "label": "Set BREVO_TEMPLATE_ID_WELCOME + verified sender in .env / Edge secrets",
           "status": "pending",
-          "owner": "Oasis Supabase secrets"
+          "owner": "You"
         },
         {
           "id": "lifecycle_send",
-          "label": "Implement lifecycle-send Edge Function",
-          "status": "pending",
-          "owner": "Oasis repo"
+          "label": "Deploy lifecycle-send (welcome_email only)",
+          "status": "shipped",
+          "owner": "Oasis repo",
+          "artifact": "supabase/functions/lifecycle-send"
         },
         {
           "id": "on_signup",
           "label": "Wire users INSERT webhook → lifecycle-on-signup",
+          "status": "shipped",
+          "owner": "Oasis Supabase",
+          "artifact": "supabase/functions/lifecycle-on-signup"
+        },
+        {
+          "id": "welcome_local_test",
+          "label": "Local send: scripts/send_lifecycle_email.py --email …",
           "status": "pending",
-          "owner": "Oasis Supabase"
+          "owner": "You",
+          "artifact": "docs/LIFECYCLE_WELCOME.md"
         },
         {
           "id": "daily_cron",
