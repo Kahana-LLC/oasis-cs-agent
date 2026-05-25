@@ -184,6 +184,14 @@
       return (emailData?.sequences || []).filter((s) => s.funnel_phase === phaseId);
     }
 
+    function formatSendLimits(lim) {
+      if (!lim) return [];
+      const parts = [];
+      if (lim.emails_per_day != null) parts.push(`${lim.emails_per_day}/day`);
+      if (lim.emails_per_month != null) parts.push(`${Number(lim.emails_per_month).toLocaleString()}/mo`);
+      return parts;
+    }
+
     function formatLimits(p) {
       if (!p?.free_limits) return "—";
       const lim = p.free_limits;
@@ -191,12 +199,7 @@
       if (lim.marketing_emails_per_month != null) {
         parts.push(`${lim.marketing_emails_per_month.toLocaleString()}/mo marketing`);
       }
-      if (lim.emails_per_day != null) {
-        parts.push(`${lim.emails_per_day}/day`);
-      }
-      if (lim.emails_per_month != null) {
-        parts.push(`${lim.emails_per_month.toLocaleString()}/mo`);
-      }
+      parts.push(...formatSendLimits(lim));
       if (lim.contacts != null) {
         parts.push(`${lim.contacts.toLocaleString()} contacts`);
       }
@@ -787,8 +790,7 @@
           const lim = pool.member_limits?.[p.id] || p.free_limits || {};
           const parts = [];
           if (lim.contacts) parts.push(`${lim.contacts.toLocaleString()} contacts`);
-          if (lim.emails_per_month) parts.push(`${lim.emails_per_month.toLocaleString()}/mo`);
-          else if (lim.emails_per_day) parts.push(`${lim.emails_per_day}/day`);
+          parts.push(...formatSendLimits(lim));
           return `<div class="pool-member"><strong>${escapeHtml(p.name)}</strong>${parts.join(" · ")}</div>`;
         })
         .join("");
@@ -1591,8 +1593,7 @@ Any phase cap hit → Fallback pool (MailerLite | OmniSend | Brevo)`;
           const lim = pool.member_limits?.[id] || {};
           const parts = [];
           if (lim.contacts) parts.push(`${lim.contacts} contacts`);
-          if (lim.emails_per_month) parts.push(`${lim.emails_per_month}/mo`);
-          else if (lim.emails_per_day) parts.push(`${lim.emails_per_day}/day`);
+          parts.push(...formatSendLimits(lim));
           return `<div class="pool-member"><strong>${escapeHtml(p?.name || id)}</strong>${parts.join(" · ")}</div>`;
         })
         .join("");
