@@ -8,7 +8,9 @@ HTML, plain-text, and drag-and-drop specs for Oasis lifecycle and Product Hunt c
 
 | Folder | Contents |
 |--------|----------|
-| [`lifecycle/`](lifecycle/) | Welcome, NPS (day 3), PMF (day 10), Paid Zen welcome |
+| [`lifecycle/`](lifecycle/) | Welcome, activation, limit-hitter, cancelled win-back, NPS, PMF, Paid Zen |
+| [`conversion/`](conversion/) | At-risk nurture, dead resurrection, return reinforcement |
+| [`enterprise/`](enterprise/) | B2B founder + expansion (HubSpot) |
 | [`ph-waitlist/`](ph-waitlist/) | Product Hunt teaser + launch emails, Zen gift snippets |
 | [`shared/`](shared/) | Founder header/signoff, Slack button, support links |
 
@@ -31,3 +33,19 @@ HTML, plain-text, and drag-and-drop specs for Oasis lifecycle and Product Hunt c
 | Paid Zen | `lifecycle/brevo-oasis-paid-zen-welcome.html` |
 | PH teaser | `ph-waitlist/brevo-oasis-ph-teaser-waitlist.html` |
 | PH launch | `ph-waitlist/brevo-oasis-ph-launch-waitlist.html` |
+
+## Lifecycle expansion + conversion + enterprise
+
+| Touch | File |
+|-------|------|
+| Activation nudge (D1) | `lifecycle/brevo-oasis-activation-nudge.html` |
+| Activation CS / calendar (D3) | `lifecycle/brevo-oasis-activation-cs-calendar.html` |
+| Limit-hitter upgrade (D0, D7) | `lifecycle/brevo-oasis-limit-hitter-upgrade.html`, `…-d7.html` |
+| At-risk nurture (D0–D21) | `conversion/brevo-oasis-at-risk-nurture-d{0,7,14,21}.html` |
+| Dead resurrection (D0, D14) | `conversion/brevo-oasis-dead-resurrection-d0.html`, `…-d14.html` |
+| Return reinforcement | `conversion/brevo-oasis-return-reinforcement.html` |
+| Cancelled win-back (D0, D14) | `lifecycle/brevo-oasis-cancelled-winback-d0.html`, `…-d14.html` |
+| Enterprise founder (D55) | `enterprise/brevo-oasis-enterprise-founder.html` |
+| Enterprise expansion (D85) | `enterprise/brevo-oasis-enterprise-expansion.html` |
+
+Regenerate HTML from specs: `python brevo-oasis-emails/generate_missing_templates.py`

@@ -140,7 +140,8 @@
             const when = t.day_offset != null ? `D${t.day_offset} · ${t.trigger_when || seq.trigger_when || ""}` : seq.trigger_when || "—";
             const hasFallback = (t.fallback?.type === "fallback_pool") || seq.provider_overflow_id === "fallback_pool";
             const interim = t.interim_provider_id || (["welcome", "activation_nudge"].includes(seq.id) ? "brevo" : "");
-            return `<tr class="touch-row seq-row" data-bucket="${escapeHtml((seq.buckets || []).join(","))}" data-provider="${escapeHtml(t.primary_provider_id || seq.provider_id)}" data-overflow="${escapeHtml(seq.provider_overflow_id || "")}" data-funnel-phase="${escapeHtml(seq.funnel_phase || fpId)}" data-has-fallback="${hasFallback ? "1" : "0"}" data-ph-interim="${interim ? "1" : "0"}" data-sequence-id="${escapeHtml(seq.id)}">
+            const hasPreview = touch ? touchHasPreview(seq, touch) : touchHasPreview(seq, null);
+            return `<tr class="touch-row seq-row" data-bucket="${escapeHtml((seq.buckets || []).join(","))}" data-provider="${escapeHtml(t.primary_provider_id || seq.provider_id)}" data-overflow="${escapeHtml(seq.provider_overflow_id || "")}" data-funnel-phase="${escapeHtml(seq.funnel_phase || fpId)}" data-has-fallback="${hasFallback ? "1" : "0"}" data-ph-interim="${interim ? "1" : "0"}" data-has-preview="${hasPreview ? "1" : "0"}" data-sequence-id="${escapeHtml(seq.id)}">
               <td>${ord}</td>
               <td><strong>${escapeHtml(t.name || seq.name)}</strong><br><span class="code section-cap">${escapeHtml(seq.id)}</span>${seq.inflection ? ' <span class="routing-pill">upgrade inflection</span>' : ""}</td>
               <td>${bucketPills(seq.buckets)}</td>
@@ -149,7 +150,7 @@
               <td>${touch ? fallbackTouchCell(touch) : (seq.provider_overflow_id === "fallback_pool" ? fallbackTouchCell({ fallback: { type: "fallback_pool" } }) : '<span class="section-cap">—</span>')}</td>
               <td><span class="code">${escapeHtml(t.dedup_trigger_name || seq.dedup_trigger_name || "")}</span></td>
               <td>${implementationStatusBadge(seq)}</td>
-              <td>${touch && touch.ordinal === 1 ? previewCell(seq) : (touch ? "—" : previewCell(seq))}</td>
+              <td>${previewCell(seq, touch)}</td>
             </tr>`;
           })
           .join("");
@@ -248,9 +249,44 @@
       return seq?.preview && typeof seq.preview === "object" ? seq.preview : null;
     }
 
+    function resolvePreview(seq, touch) {
+      if (touch?.preview && typeof touch.preview === "object" && touch.preview.source) {
+        return touch.preview;
+      }
+      return getPreview(seq);
+    }
+
+    function resolvePreviewPath(seq, touch) {
+      const p = resolvePreview(seq, touch);
+      if (p?.path) return p.path;
+      if (touch?.touch_id) return `/emails/${touch.touch_id}.html`;
+      return getPreviewPath(seq);
+    }
+
+    function manifestKey(seq, touch) {
+      return touch?.touch_id || seq.id;
+    }
+
+    function touchHasPreview(seq, touch) {
+      const p = resolvePreview(seq, touch);
+      return !!(p?.source || resolvePreviewPath(seq, touch));
+    }
+
     function getPreviewPath(seq) {
       const p = getPreview(seq);
       return p?.path || seq.preview_path || null;
+    }
+
+    function previewDeployLine(seq, touch) {
+      const preview = resolvePreview(seq, touch);
+      const prov = preview?.deploy_provider || touch?.primary_provider_id || seq.provider_id;
+      if (!prov) return "";
+      let label = providerDisplayName(prov);
+      const interim = touch?.interim_provider_id || seq.deployed_via;
+      if (interim && interim !== prov) {
+        label += ` · interim: ${providerDisplayName(interim)}`;
+      }
+      return `<p class="preview-deploy-target"><span class="preview-deploy-badge">Deploy</span> ${escapeHtml(label)}</p>`;
     }
 
     function inferImplementationStatus(seq) {
@@ -373,16 +409,20 @@
       </div>`;
     }
 
+    let copyButtonsDelegated = false;
+
     function bindCopyButtons() {
-      document.querySelectorAll(".copy-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const seqId = btn.getAttribute("data-seq");
-          const kind = btn.getAttribute("data-copy-kind");
-          const entry = copyManifest[seqId];
-          if (!entry) return;
-          const text = kind === "plain" ? entry.plain_text : entry.html;
-          copyToClipboard(text, btn);
-        });
+      if (copyButtonsDelegated) return;
+      copyButtonsDelegated = true;
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".copy-btn");
+        if (!btn) return;
+        const seqId = btn.getAttribute("data-seq");
+        const kind = btn.getAttribute("data-copy-kind");
+        const entry = copyManifest[seqId];
+        if (!entry) return;
+        const text = kind === "plain" ? entry.plain_text : entry.html;
+        copyToClipboard(text, btn);
       });
     }
 
@@ -392,58 +432,160 @@
       return `<span class="status-pill status-${cap.status}">${escapeHtml(cap.status.replace("_", " "))}</span>`;
     }
 
-    function previewIframe(path, title) {
-      return `<div class="preview-iframe-wrap"><iframe src="${escapeHtml(path)}" title="${escapeHtml(title)} preview" sandbox=""></iframe></div>`;
+    function previewOpenButton(path, title, key, preheader) {
+      const preAttr = preheader ? ` data-preview-preheader="${escapeHtml(preheader)}"` : "";
+      return `<button type="button" class="preview-open-btn" data-preview-path="${escapeHtml(path)}" data-preview-title="${escapeHtml(title)}" data-preview-key="${escapeHtml(key)}"${preAttr}>View preview</button>`;
     }
 
-    function previewCell(seq) {
-      const preview = getPreview(seq);
-      const path = getPreviewPath(seq);
-      if (!path) {
+    function ensurePreviewModal() {
+      if (document.getElementById("email-preview-modal")) return;
+      const dialog = document.createElement("dialog");
+      dialog.id = "email-preview-modal";
+      dialog.className = "preview-modal";
+      dialog.innerHTML = `
+        <div class="preview-modal-inner">
+          <header class="preview-modal-header">
+            <h2 id="preview-modal-title" class="preview-modal-title"></h2>
+            <button type="button" class="preview-modal-close" aria-label="Close preview">Close</button>
+          </header>
+          <p id="preview-modal-preheader" class="preview-modal-preheader section-cap"></p>
+          <div id="preview-modal-copy" class="preview-modal-copy"></div>
+          <div class="preview-modal-frame">
+            <iframe id="preview-modal-iframe" title="Email preview" sandbox=""></iframe>
+          </div>
+        </div>`;
+      document.body.appendChild(dialog);
+    }
+
+    function closePreviewModal() {
+      const dialog = document.getElementById("email-preview-modal");
+      const iframe = document.getElementById("preview-modal-iframe");
+      if (iframe) iframe.removeAttribute("src");
+      if (dialog?.open) dialog.close();
+    }
+
+    function openPreviewModal({ path, title, key, preheader }) {
+      ensurePreviewModal();
+      const dialog = document.getElementById("email-preview-modal");
+      const titleEl = document.getElementById("preview-modal-title");
+      const preheaderEl = document.getElementById("preview-modal-preheader");
+      const copyEl = document.getElementById("preview-modal-copy");
+      const iframe = document.getElementById("preview-modal-iframe");
+      if (!dialog || !iframe) return;
+      if (titleEl) titleEl.textContent = title || "Email preview";
+      if (preheaderEl) {
+        if (preheader) {
+          preheaderEl.textContent = preheader;
+          preheaderEl.hidden = false;
+        } else {
+          preheaderEl.textContent = "";
+          preheaderEl.hidden = true;
+        }
+      }
+      if (copyEl) copyEl.innerHTML = copyButtonsHtml(key);
+      iframe.setAttribute("title", `${title || "Email"} preview`);
+      iframe.src = path;
+      if (!dialog.open) dialog.showModal();
+    }
+
+    let previewModalBound = false;
+
+    function bindPreviewModal() {
+      ensurePreviewModal();
+      if (previewModalBound) return;
+      previewModalBound = true;
+      const dialog = document.getElementById("email-preview-modal");
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".preview-open-btn");
+        if (!btn) return;
+        openPreviewModal({
+          path: btn.getAttribute("data-preview-path"),
+          title: btn.getAttribute("data-preview-title"),
+          key: btn.getAttribute("data-preview-key"),
+          preheader: btn.getAttribute("data-preview-preheader") || "",
+        });
+      });
+      dialog?.querySelector(".preview-modal-close")?.addEventListener("click", closePreviewModal);
+      dialog?.addEventListener("cancel", (e) => {
+        e.preventDefault();
+        closePreviewModal();
+      });
+      dialog?.addEventListener("close", () => {
+        const iframe = document.getElementById("preview-modal-iframe");
+        if (iframe) iframe.removeAttribute("src");
+      });
+    }
+
+    function previewCell(seq, touch) {
+      const preview = resolvePreview(seq, touch);
+      const path = resolvePreviewPath(seq, touch);
+      const key = manifestKey(seq, touch);
+      const label = touch?.name || seq.name;
+      if (!path || !preview?.source) {
         return `<details class="email-preview preview-slot">
           <summary>Preview</summary>
-          <div class="preview-body">Template not yet in <span class="code">brevo-oasis-emails/</span>. Add source HTML and <span class="code">preview.source</span> in email_sequences.json, then run build.</div>
+          <div class="preview-body">Template not yet in <span class="code">brevo-oasis-emails/</span>. Add source HTML and <span class="code">preview</span> on the touch (or sequence) in <span class="code">email_sequences.json</span>, then run build.</div>
+          ${previewDeployLine(seq, touch)}
         </details>`;
       }
       const subject = preview?.subject ? escapeHtml(preview.subject) : "Preview";
-      return `<details class="email-preview preview-slot">
-        <summary>${subject}</summary>
-        ${copyButtonsHtml(seq.id)}
-        ${previewIframe(path, seq.name)}
-      </details>`;
+      return `<div class="preview-slot preview-slot-compact">
+        <p class="preview-cell-subject">${subject}</p>
+        ${previewDeployLine(seq, touch)}
+        ${copyButtonsHtml(key)}
+        ${previewOpenButton(path, label, key, preview?.preheader || "")}
+      </div>`;
+    }
+
+    function galleryPreviewItems() {
+      const items = [];
+      for (const seq of emailData?.sequences || []) {
+        const touches = seq.touches || [];
+        const withTouchPreview = touches.filter((t) => t.preview?.source);
+        if (withTouchPreview.length) {
+          for (const touch of withTouchPreview) {
+            items.push({ seq, touch, preview: touch.preview, path: resolvePreviewPath(seq, touch) });
+          }
+        } else if (getPreview(seq)?.source) {
+          items.push({ seq, touch: null, preview: getPreview(seq), path: getPreviewPath(seq) });
+        }
+      }
+      return items;
     }
 
     function renderPreviewGallery() {
-      const withPreview = (emailData?.sequences || []).filter((s) => getPreviewPath(s));
-      if (!withPreview.length) return "";
+      const items = galleryPreviewItems();
+      if (!items.length) return "";
       const repoBase = "https://github.com/AdamKershner/oasis-analytics/blob/main/";
-      const cards = withPreview
-        .map((seq) => {
-          const preview = getPreview(seq);
-          const path = getPreviewPath(seq);
+      const cards = items
+        .map(({ seq, touch, preview, path }) => {
+          const key = manifestKey(seq, touch);
+          const title = touch ? `${seq.name} — ${touch.name}` : seq.name;
+          const cardId = touch ? `preview-${touch.touch_id}` : `preview-${seq.id}`;
           const sourceLink = preview?.source
             ? `<a href="${repoBase}${escapeHtml(preview.source)}" target="_blank" rel="noopener">Source file</a>`
             : "";
-          return `<article class="preview-card" id="preview-${escapeHtml(seq.id)}">
+          return `<article class="preview-card" id="${escapeHtml(cardId)}">
             <div class="preview-meta">
-              <h3>${escapeHtml(seq.name)}${phaseBadge(seq.phase)} ${implementationStatusBadge(seq)}</h3>
+              <h3>${escapeHtml(title)}${phaseBadge(seq.phase)} ${implementationStatusBadge(seq)}</h3>
+              ${touch ? `<p class="section-cap preview-touch-id"><span class="code">${escapeHtml(touch.touch_id)}</span></p>` : ""}
               <p class="preview-subject">${escapeHtml(preview?.subject || "")}</p>
               <p class="preview-preheader">${escapeHtml(preview?.preheader || "")}</p>
-              <p class="preview-from">${escapeHtml(preview?.from_name || "")} · ${escapeHtml(seq.trigger_when || "")}</p>
+              <p class="preview-from">${escapeHtml(preview?.from_name || "")} · ${escapeHtml((touch && touch.trigger_when) || seq.trigger_when || "")}</p>
+              ${previewDeployLine(seq, touch)}
               <p>${bucketPills(seq.buckets)}</p>
             </div>
-            <details class="email-preview">
-              <summary>Open full preview</summary>
-              ${copyButtonsHtml(seq.id)}
-              ${previewIframe(path, seq.name)}
-            </details>
+            <div class="preview-card-actions">
+              ${copyButtonsHtml(key)}
+              ${previewOpenButton(path, title, key, preview?.preheader || "")}
+            </div>
             <p class="preview-source">${sourceLink}</p>
           </article>`;
         })
         .join("");
       return `<section id="preview-gallery">
         <h2>Email previews</h2>
-        <p class="section-cap">Rendered from <span class="code">brevo-oasis-emails/</span> (built to <span class="code">public/emails/</span> on deploy). Merge tags show sample values (e.g. Alex).</p>
+        <p class="section-cap">Rendered from <span class="code">brevo-oasis-emails/</span> (built to <span class="code">public/emails/{touch_id}.html</span> on deploy). Merge tags show sample values (e.g. Alex). Use <strong>Copy HTML</strong> for the raw Brevo fragment.</p>
         <div class="preview-gallery">${cards}</div>
       </section>`;
     }
@@ -1514,6 +1656,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         <label>Provider <select id="filter-provider"><option value="">All</option>${providers.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("")}</select></label>
         <label>Funnel phase <select id="filter-funnel-phase"><option value="">All</option>${funnelPhases.map((fp) => `<option value="${escapeHtml(fp)}">${escapeHtml(FUNNEL_PHASE_LABELS[fp] || fp)}</option>`).join("")}</select></label>
         <label>Routing <select id="filter-routing"><option value="">All</option><option value="has-fallback">Has fallback</option><option value="primary-only">Primary only</option><option value="ph-interim">PH interim</option></select></label>
+        <label>Template <select id="filter-template"><option value="">All</option><option value="has-preview">Has template</option><option value="missing-template">Missing template</option></select></label>
         <span id="filter-count" class="section-cap"></span>
       </div>`;
     }
@@ -1523,6 +1666,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
       const provider = document.getElementById("filter-provider")?.value || "";
       const funnelPhase = document.getElementById("filter-funnel-phase")?.value || "";
       const routing = document.getElementById("filter-routing")?.value || "";
+      const templateFilter = document.getElementById("filter-template")?.value || "";
       const poolIds = new Set(emailData?.fallback_pool?.provider_ids || []);
       const rows = document.querySelectorAll(".touch-row, .seq-row");
       let visible = 0;
@@ -1539,12 +1683,17 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         const matchFunnelPhase = !funnelPhase || row.getAttribute("data-funnel-phase") === funnelPhase;
         const hasFallback = row.getAttribute("data-has-fallback") === "1";
         const phInterim = row.getAttribute("data-ph-interim") === "1";
+        const hasPreview = row.getAttribute("data-has-preview") === "1";
         const matchRouting =
           !routing ||
           (routing === "has-fallback" && hasFallback) ||
           (routing === "primary-only" && !hasFallback) ||
           (routing === "ph-interim" && phInterim);
-        const show = matchBucket && matchProvider && matchFunnelPhase && matchRouting;
+        const matchTemplate =
+          !templateFilter ||
+          (templateFilter === "has-preview" && hasPreview) ||
+          (templateFilter === "missing-template" && !hasPreview);
+        const show = matchBucket && matchProvider && matchFunnelPhase && matchRouting && matchTemplate;
         row.classList.toggle("hidden", !show);
         if (show) visible++;
       });
@@ -1553,7 +1702,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
     }
 
     function bindFilters() {
-      ["filter-bucket", "filter-provider", "filter-funnel-phase", "filter-routing"].forEach((id) => {
+      ["filter-bucket", "filter-provider", "filter-funnel-phase", "filter-routing", "filter-template"].forEach((id) => {
         document.getElementById(id)?.addEventListener("change", applyFilters);
       });
       applyFilters();
@@ -1643,6 +1792,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
       `;
       bindFilters();
       bindCopyButtons();
+      bindPreviewModal();
       bindScenarioPlanner();
     }
 

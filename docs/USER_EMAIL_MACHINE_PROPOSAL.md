@@ -554,7 +554,9 @@ Live HTML previews, **project charter**, and **PH scenario planner**: **[`/email
 
 Where **deployed** Brevo automations differ from the multi-provider **strategy** below, the engineer reference shows both (`deployed_via: brevo` on sequences with Brevo templates).
 
-**Charter `implementation_status`:** only **PH teaser** and **PH launch** are `shipped` (2 of 12). Welcome, NPS, PMF, Paid Zen welcome, and all other sequences are `needs_implementation` — Brevo HTML may exist, but CS agent routing and multi-provider stack are not built yet.
+**Charter `implementation_status`:** only **PH teaser** and **PH launch** are `shipped` (2 of 12). Welcome, NPS, PMF, Paid Zen welcome, and all other sequences are `needs_implementation` — CS agent routing and multi-provider stack are not built yet.
+
+**Copy-ready HTML:** All lifecycle, conversion, and enterprise sequences now have Brevo-style HTML + plain text in [`brevo-oasis-emails/`](../brevo-oasis-emails/) with `preview` metadata per touch in `email_sequences.json`. Engineers can preview, copy raw HTML, and see deploy-target provider notes on [`/email-machine`](/email-machine) after `python reporting/build_static_site.py`.
 
 | Sequence | Strategy provider | Shipped (Brevo interim) | Trigger (deployed) |
 |----------|-------------------|---------|-------------------|

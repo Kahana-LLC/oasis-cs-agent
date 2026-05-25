@@ -1,0 +1,19 @@
+Hi {{ contact.FIRSTNAME }},
+
+Adam Kershner
+Founder, Oasis
+
+Final resurrection email in this series.
+See what is new: https://kahana.co/installations
+
+See what is new: https://kahana.co/installations
+
+I'm here if you have questions.
+Connect with me: https://kahana.co/adam-kershner
+
+You're receiving this because you previously used Oasis.
+Docs: https://kahana.co/docs
+Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact: https://kahana.co/contact
+View in browser: {{ mirror }}
+Unsubscribe: {{ unsubscribe }}

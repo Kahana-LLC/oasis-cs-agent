@@ -1,0 +1,19 @@
+Hi {{ contact.FIRSTNAME }},
+
+Adam Kershner
+Founder, Oasis
+
+Follow-up after cancellation.
+Reactivate: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
+
+Reactivate Zen: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
+
+I'm here if you have questions.
+Connect with me: https://kahana.co/adam-kershner
+
+You're receiving this because you cancelled Oasis Zen.
+Docs: https://kahana.co/docs
+Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact: https://kahana.co/contact
+View in browser: {{ mirror }}
+Unsubscribe: {{ unsubscribe }}

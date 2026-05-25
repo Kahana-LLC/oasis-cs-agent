@@ -1,0 +1,20 @@
+Hi {{ contact.FIRSTNAME }},
+
+Adam Kershner
+Founder, Oasis
+
+Your Zen subscription ended.
+You can reactivate anytime.
+Billing portal: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
+
+Reactivate Oasis Zen: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
+
+I'm here if you have questions.
+Connect with me: https://kahana.co/adam-kershner
+
+You're receiving this because you had an Oasis Zen subscription.
+Docs: https://kahana.co/docs
+Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact: https://kahana.co/contact
+View in browser: {{ mirror }}
+Unsubscribe: {{ unsubscribe }}

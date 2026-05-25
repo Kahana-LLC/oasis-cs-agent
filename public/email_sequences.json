@@ -893,7 +893,15 @@
       "corporate_goals": [
         "dau"
       ],
-      "preview": null,
+      "preview": {
+        "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0.html",
+        "path": "/emails/at_risk_nurture_d0.html",
+        "subject": "We miss you in Oasis",
+        "preheader": "Come back today — one quick session keeps the habit alive.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0-plain-text.txt",
+        "deploy_provider": "emailoctopus"
+      },
       "funnel_phase": "phase_2_conversion",
       "touches": [
         {
@@ -907,7 +915,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "at_risk_nurture_d0",
-          "counts_toward_phase_budget": true
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0.html",
+            "path": "/emails/at_risk_nurture_d0.html",
+            "subject": "We miss you in Oasis",
+            "preheader": "Come back today — one quick session keeps the habit alive.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
         },
         {
           "touch_id": "at_risk_nurture_d7",
@@ -920,7 +937,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "at_risk_nurture_d7",
-          "counts_toward_phase_budget": true
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d7.html",
+            "path": "/emails/at_risk_nurture_d7.html",
+            "subject": "Your Oasis workflow is waiting",
+            "preheader": "Return within seven days to rebuild your daily browser habit.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d7-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
         },
         {
           "touch_id": "at_risk_nurture_d14",
@@ -933,7 +959,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "at_risk_nurture_d14",
-          "counts_toward_phase_budget": true
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d14.html",
+            "path": "/emails/at_risk_nurture_d14.html",
+            "subject": "Before you drift away from Oasis",
+            "preheader": "Reply if something blocked you — I read every note.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d14-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
         },
         {
           "touch_id": "at_risk_nurture_d21",
@@ -946,7 +981,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "at_risk_nurture_d21",
-          "counts_toward_phase_budget": true
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d21.html",
+            "path": "/emails/at_risk_nurture_d21.html",
+            "subject": "Still here when you are ready",
+            "preheader": "Last scheduled check-in for a while — your account is still here.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d21-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
         }
       ]
     },
@@ -980,7 +1024,15 @@
         "dau",
         "subs"
       ],
-      "preview": null,
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge.html",
+        "path": "/emails/activation_nudge_d1.html",
+        "subject": "Try your first AI command in Oasis",
+        "preheader": "Import from Chrome, Safari, Brave, or Edge — then ask the assistant anything.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
+        "deploy_provider": "beehiiv"
+      },
       "funnel_phase": "phase_1_activation",
       "touches": [
         {
@@ -995,7 +1047,16 @@
           },
           "dedup_trigger_name": "activation_nudge_24h",
           "counts_toward_phase_budget": true,
-          "interim_provider_id": "brevo"
+          "interim_provider_id": "brevo",
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge.html",
+            "path": "/emails/activation_nudge_d1.html",
+            "subject": "Try your first AI command in Oasis",
+            "preheader": "Import from Chrome, Safari, Brave, or Edge — then ask the assistant anything.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
+            "deploy_provider": "beehiiv"
+          }
         }
       ]
     },
@@ -1028,7 +1089,15 @@
         "dau",
         "subs"
       ],
-      "preview": null,
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar.html",
+        "path": "/emails/activation_cs_calendar_d3.html",
+        "subject": "Need help getting started with Oasis?",
+        "preheader": "Book time with me — train the assistant for 1,000 bonus tokens.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar-plain-text.txt",
+        "deploy_provider": "beehiiv"
+      },
       "funnel_phase": "phase_1_activation",
       "touches": [
         {
@@ -1042,7 +1111,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "activation_cs_calendar",
-          "counts_toward_phase_budget": true
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar.html",
+            "path": "/emails/activation_cs_calendar_d3.html",
+            "subject": "Need help getting started with Oasis?",
+            "preheader": "Book time with me — train the assistant for 1,000 bonus tokens.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar-plain-text.txt",
+            "deploy_provider": "beehiiv"
+          }
         }
       ]
     },
@@ -1075,7 +1153,15 @@
         "subs",
         "margin"
       ],
-      "preview": null,
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade.html",
+        "path": "/emails/limit_hitter_upgrade_d0.html",
+        "subject": "You hit your daily limit — unlock unlimited AI",
+        "preheader": "Oasis Zen removes the cap ($20/mo, 1M tokens/day).",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-plain-text.txt",
+        "deploy_provider": "beehiiv"
+      },
       "touches": [
         {
           "touch_id": "limit_hitter_upgrade_d0",
@@ -1088,7 +1174,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "limit_hitter_upgrade",
-          "counts_toward_phase_budget": false
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade.html",
+            "path": "/emails/limit_hitter_upgrade_d0.html",
+            "subject": "You hit your daily limit — unlock unlimited AI",
+            "preheader": "Oasis Zen removes the cap ($20/mo, 1M tokens/day).",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-plain-text.txt",
+            "deploy_provider": "beehiiv"
+          }
         },
         {
           "touch_id": "limit_hitter_upgrade_d7",
@@ -1101,7 +1196,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "limit_hitter_upgrade_d7",
-          "counts_toward_phase_budget": false
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-d7.html",
+            "path": "/emails/limit_hitter_upgrade_d7.html",
+            "subject": "Still on the free plan after hitting your limit?",
+            "preheader": "Reminder: Oasis Zen gives you unlimited daily AI.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-d7-plain-text.txt",
+            "deploy_provider": "beehiiv"
+          }
         }
       ],
       "funnel_phase": "phase_1_activation",
@@ -1142,7 +1246,15 @@
       "corporate_goals": [
         "dau"
       ],
-      "preview": null,
+      "preview": {
+        "source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0.html",
+        "path": "/emails/dead_resurrection_d0.html",
+        "subject": "It has been a while — Oasis has improved",
+        "preheader": "Your account is still active. Try one fresh session.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0-plain-text.txt",
+        "deploy_provider": "emailoctopus"
+      },
       "funnel_phase": "phase_2_conversion",
       "touches": [
         {
@@ -1156,7 +1268,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "dead_resurrection_d0",
-          "counts_toward_phase_budget": true
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0.html",
+            "path": "/emails/dead_resurrection_d0.html",
+            "subject": "It has been a while — Oasis has improved",
+            "preheader": "Your account is still active. Try one fresh session.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
         },
         {
           "touch_id": "dead_resurrection_d14",
@@ -1169,7 +1290,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "dead_resurrection_d14",
-          "counts_toward_phase_budget": true
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d14.html",
+            "path": "/emails/dead_resurrection_d14.html",
+            "subject": "One more invite back to Oasis",
+            "preheader": "Privacy-first AI — the door is open when you are ready.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d14-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
         }
       ]
     },
@@ -1203,7 +1333,15 @@
       "corporate_goals": [
         "dau"
       ],
-      "preview": null,
+      "preview": {
+        "source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement.html",
+        "path": "/emails/return_reinforcement_d0.html",
+        "subject": "Welcome back to Oasis",
+        "preheader": "Train the assistant today for 1,000 bonus tokens.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement-plain-text.txt",
+        "deploy_provider": "emailoctopus"
+      },
       "funnel_phase": "phase_2_conversion",
       "touches": [
         {
@@ -1217,7 +1355,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "return_reinforcement",
-          "counts_toward_phase_budget": true
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement.html",
+            "path": "/emails/return_reinforcement_d0.html",
+            "subject": "Welcome back to Oasis",
+            "preheader": "Train the assistant today for 1,000 bonus tokens.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
         }
       ]
     },
@@ -1249,7 +1396,15 @@
       "corporate_goals": [
         "subs"
       ],
-      "preview": null,
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0.html",
+        "path": "/emails/cancelled_winback_d0.html",
+        "subject": "Sorry to see you cancel Oasis Zen",
+        "preheader": "You can keep using Oasis free or reactivate Zen anytime.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0-plain-text.txt",
+        "deploy_provider": "mailgun"
+      },
       "funnel_phase": "phase_2_paid",
       "touches": [
         {
@@ -1263,7 +1418,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "cancelled_winback",
-          "counts_toward_phase_budget": false
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0.html",
+            "path": "/emails/cancelled_winback_d0.html",
+            "subject": "Sorry to see you cancel Oasis Zen",
+            "preheader": "You can keep using Oasis free or reactivate Zen anytime.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0-plain-text.txt",
+            "deploy_provider": "mailgun"
+          }
         },
         {
           "touch_id": "cancelled_winback_d14",
@@ -1276,7 +1440,16 @@
             "type": "fallback_pool"
           },
           "dedup_trigger_name": "cancelled_winback_d14",
-          "counts_toward_phase_budget": false
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d14.html",
+            "path": "/emails/cancelled_winback_d14.html",
+            "subject": "Reconsider Oasis Zen?",
+            "preheader": "1M tokens per day — reply if price or features was the blocker.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d14-plain-text.txt",
+            "deploy_provider": "mailgun"
+          }
         }
       ]
     },
@@ -1307,7 +1480,15 @@
       "corporate_goals": [
         "subs"
       ],
-      "preview": null,
+      "preview": {
+        "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder.html",
+        "path": "/emails/enterprise_founder_d55.html",
+        "subject": "Oasis for your team?",
+        "preheader": "Company-email user with strong engagement — let's talk rollout.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder-plain-text.txt",
+        "deploy_provider": "hubspot"
+      },
       "funnel_phase": "phase_2_paid",
       "touches": [
         {
@@ -1321,7 +1502,16 @@
             "type": "none"
           },
           "dedup_trigger_name": "enterprise_founder",
-          "counts_toward_phase_budget": false
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder.html",
+            "path": "/emails/enterprise_founder_d55.html",
+            "subject": "Oasis for your team?",
+            "preheader": "Company-email user with strong engagement — let's talk rollout.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder-plain-text.txt",
+            "deploy_provider": "hubspot"
+          }
         }
       ]
     },
@@ -1352,7 +1542,15 @@
       "corporate_goals": [
         "subs"
       ],
-      "preview": null,
+      "preview": {
+        "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion.html",
+        "path": "/emails/enterprise_expansion_d85.html",
+        "subject": "Expanding Oasis with your team?",
+        "preheader": "Ready for seats or procurement? Let's set up a short call.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion-plain-text.txt",
+        "deploy_provider": "hubspot"
+      },
       "funnel_phase": "phase_2_paid",
       "touches": [
         {
@@ -1366,7 +1564,16 @@
             "type": "none"
           },
           "dedup_trigger_name": "enterprise_expansion",
-          "counts_toward_phase_budget": false
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion.html",
+            "path": "/emails/enterprise_expansion_d85.html",
+            "subject": "Expanding Oasis with your team?",
+            "preheader": "Ready for seats or procurement? Let's set up a short call.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion-plain-text.txt",
+            "deploy_provider": "hubspot"
+          }
         }
       ]
     }

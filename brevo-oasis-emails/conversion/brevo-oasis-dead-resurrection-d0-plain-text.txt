@@ -1,0 +1,20 @@
+Hi {{ contact.FIRSTNAME }},
+
+Adam Kershner
+Founder, Oasis
+
+It has been 30+ days since you used Oasis.
+Train the assistant for 1,000 bonus tokens.
+Try again: https://kahana.co/installations
+
+Try Oasis again: https://kahana.co/installations
+
+I'm here if you have questions.
+Connect with me: https://kahana.co/adam-kershner
+
+You're receiving this because you previously used Oasis.
+Docs: https://kahana.co/docs
+Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact: https://kahana.co/contact
+View in browser: {{ mirror }}
+Unsubscribe: {{ unsubscribe }}
