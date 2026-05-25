@@ -67,6 +67,68 @@ section {
   color: var(--ok);
 }
 
+.lifecycle-plan-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.25rem 0;
+  border-left: 4px solid #5b9fd4;
+}
+
+.lifecycle-plan-card h2 {
+  margin-top: 0;
+}
+
+.lifecycle-plan-card h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.lifecycle-fn-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+@media (max-width: 900px) {
+  .lifecycle-fn-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lifecycle-fn-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 0.82rem;
+}
+
+.lifecycle-trigger-table,
+.lifecycle-checklist-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.lifecycle-trigger-table th,
+.lifecycle-trigger-table td,
+.lifecycle-checklist-table th,
+.lifecycle-checklist-table td {
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.lifecycle-trigger-table th,
+.lifecycle-checklist-table th {
+  background: var(--surface);
+}
+
 .launch-plan-card {
   background: var(--card);
   border: 1px solid #1e4d3a;

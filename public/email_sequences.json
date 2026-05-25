@@ -555,8 +555,52 @@
         "ph_launch": "Oasis PH Launch"
       },
       "enroll_on": "script_after_signup",
-      "initial_test_wait_minutes": 1,
-      "initial_test_note": "While validating, use 1-minute waits in Oasis Phase 1 (~4 minutes for emails 2-5). Then edit the same automation for production delays and conditionals.",
+      "test_strategy": "production_timing_and_conditions",
+      "test_note": "No compressed 1-minute workflow. Validate with manual template sends, real day waits, HAS_FIRST_PROMPT/HAS_TRAINING attributes, and two cohorts (stuck vs activated). See docs/BREVO_PHASE1_TEST_SETUP.md.",
+      "contact_attributes": {
+        "HAS_FIRST_PROMPT": {
+          "type": "boolean",
+          "source": "supabase.llm_usage",
+          "description": "True when user has at least one llm_usage row"
+        },
+        "HAS_TRAINING": {
+          "type": "boolean",
+          "source": "supabase.feedback_events",
+          "description": "True when user has at least one feedback_events row"
+        }
+      },
+      "automation_steps": [
+        {
+          "template": "Oasis Welcome",
+          "sequence_id": "welcome",
+          "wait_after": "immediate"
+        },
+        {
+          "template": "Oasis Activation Nudge",
+          "sequence_id": "activation_nudge",
+          "wait_after": "1 day from list entry",
+          "condition": "HAS_FIRST_PROMPT is false"
+        },
+        {
+          "template": "Oasis Activation CS Calendar",
+          "sequence_id": "activation_cs_calendar",
+          "wait_after": "day 3 from list entry",
+          "condition": "HAS_FIRST_PROMPT is false AND HAS_TRAINING is false"
+        },
+        {
+          "template": "Oasis NPS",
+          "sequence_id": "nps_day3",
+          "wait_after": "day 3 from list entry",
+          "condition": "not unsubscribed"
+        },
+        {
+          "template": "Oasis PMF",
+          "sequence_id": "pmf_day10",
+          "wait_after": "day 10 from list entry",
+          "condition": "not unsubscribed"
+        }
+      ],
+      "sync_attributes_script": "scripts/sync_brevo_contact_attributes.py",
       "test_emails": [
         "adamkershnerdev1@gmail.com",
         "adamthewrite@gmail.com"
@@ -575,7 +619,163 @@
         "status": "not_wired",
         "contract": "After users row is created: resolve user_id + email; call integrations.brevo_phase1.enroll_user_for_phase1 (adds contact to Oasis Lifecycle list, triggers Oasis Phase 1)."
       },
-      "deprecated_manifest_key": "brevo_phase1_test renamed to brevo_phase1; use BREVO_LIFECYCLE_LIST_ID instead of BREVO_PHASE1_QA_LIST_ID"
+      "deprecated_manifest_key": "brevo_phase1_test renamed to brevo_phase1; use BREVO_LIFECYCLE_LIST_ID instead of BREVO_PHASE1_QA_LIST_ID",
+      "superseded_by": "launch_config.supabase_lifecycle_email",
+      "role_after_edge_deploy": "dev_fallback_enroll_and_contact_sync"
+    },
+    "supabase_lifecycle_email": {
+      "status": "planned",
+      "priority": "recommended",
+      "headline": "Supabase Edge Functions + daily cron (Phase 1)",
+      "summary": "Supabase decides who gets which email from live product data; Brevo sends templates. Replaces Brevo Oasis Phase 1 automation as the primary trigger path.",
+      "repo_doc": "docs/SUPABASE_LIFECYCLE_EMAIL_PLAN.md",
+      "ui_anchor": "supabase-lifecycle",
+      "deploy_project": "Oasis app Supabase (Edge Functions + cron; not Vercel)",
+      "esp_id": "brevo",
+      "dedup_table": "cs_outreach_log",
+      "dedup_doc": "PLAN.md",
+      "reference_code": [
+        "integrations/brevo_phase1.py",
+        "triggers/evaluate.py",
+        "scripts/enroll_brevo_phase1.py"
+      ],
+      "edge_functions": [
+        {
+          "id": "lifecycle-send",
+          "name": "lifecycle-send",
+          "role": "Shared send: dedup → Brevo template API → log cs_outreach_log",
+          "deploy": "supabase/functions/lifecycle-send"
+        },
+        {
+          "id": "lifecycle-on-signup",
+          "name": "lifecycle-on-signup",
+          "role": "Database webhook on users INSERT → welcome_email",
+          "deploy": "supabase/functions/lifecycle-on-signup"
+        },
+        {
+          "id": "lifecycle-daily-cron",
+          "name": "lifecycle-daily-cron",
+          "role": "Daily cohort SQL → nudge, CS, NPS, PMF triggers",
+          "deploy": "supabase/functions/lifecycle-daily-cron",
+          "schedule_utc": "0 14 * * *"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "BREVO_API_KEY",
+          "where": "Supabase Edge secrets",
+          "notes": "v3 xkeysib- key; whitelist Supabase egress or disable IP lock"
+        },
+        {
+          "name": "BREVO_TEMPLATE_IDS",
+          "where": "Supabase Edge secrets or config table",
+          "notes": "JSON map trigger_name → Brevo template id"
+        },
+        {
+          "name": "SUPABASE_SERVICE_ROLE_KEY",
+          "where": "Supabase Edge (built-in)",
+          "notes": "Query users, llm_usage, feedback_events, outreach_log"
+        }
+      ],
+      "triggers": [
+        {
+          "dedup_trigger_name": "welcome_email",
+          "sequence_id": "welcome",
+          "brevo_template": "Oasis Welcome",
+          "channel": "event",
+          "when": "users INSERT (signup)",
+          "condition": "active user with email"
+        },
+        {
+          "dedup_trigger_name": "activation_nudge_24h",
+          "sequence_id": "activation_nudge",
+          "brevo_template": "Oasis Activation Nudge",
+          "channel": "cron",
+          "when": "≥24h after created_at",
+          "condition": "no llm_usage row"
+        },
+        {
+          "dedup_trigger_name": "activation_cs_calendar",
+          "sequence_id": "activation_cs_calendar",
+          "brevo_template": "Oasis Activation CS Calendar",
+          "channel": "cron",
+          "when": "day 3 after signup",
+          "condition": "no llm_usage and no feedback_events"
+        },
+        {
+          "dedup_trigger_name": "nps_day3",
+          "sequence_id": "nps_day3",
+          "brevo_template": "Oasis NPS",
+          "channel": "cron",
+          "when": "day 3 after signup",
+          "condition": "not unsubscribed; dedup"
+        },
+        {
+          "dedup_trigger_name": "pmf_day10",
+          "sequence_id": "pmf_day10",
+          "brevo_template": "Oasis PMF",
+          "channel": "cron",
+          "when": "day 10 after signup",
+          "condition": "not unsubscribed; dedup"
+        }
+      ],
+      "implementation_checklist": [
+        {
+          "id": "outreach_log",
+          "label": "Create cs_outreach_log in Supabase",
+          "status": "pending",
+          "owner": "Oasis Supabase"
+        },
+        {
+          "id": "template_ids",
+          "label": "Map Brevo template names to numeric template IDs",
+          "status": "pending",
+          "owner": "Oasis Supabase secrets"
+        },
+        {
+          "id": "lifecycle_send",
+          "label": "Implement lifecycle-send Edge Function",
+          "status": "pending",
+          "owner": "Oasis repo"
+        },
+        {
+          "id": "on_signup",
+          "label": "Wire users INSERT webhook → lifecycle-on-signup",
+          "status": "pending",
+          "owner": "Oasis Supabase"
+        },
+        {
+          "id": "daily_cron",
+          "label": "Schedule lifecycle-daily-cron with cohort SQL",
+          "status": "pending",
+          "owner": "Oasis Supabase"
+        },
+        {
+          "id": "signup_app",
+          "label": "Ensure Oasis signup creates users row (webhook fires)",
+          "status": "pending",
+          "owner": "Oasis app"
+        },
+        {
+          "id": "spec_manifest",
+          "label": "Keep trigger spec in email_sequences.json + Email Machine UI",
+          "status": "shipped",
+          "owner": "oasis-cs-agent"
+        },
+        {
+          "id": "deprecate_brevo_automation",
+          "label": "Optional: deactivate Oasis Phase 1 Brevo automation",
+          "status": "optional",
+          "owner": "Brevo UI"
+        }
+      ],
+      "testing": {
+        "strategy": "Invoke Edge Functions and cron manually; use Supabase test users and cs_outreach_log dedup",
+        "fast_path": "lifecycle-on-signup with fixture payload",
+        "cohort_path": "lifecycle-daily-cron once for nudge/NPS/PMF cohorts",
+        "dev_fallback": "scripts/enroll_brevo_phase1.py (Brevo list + automation)"
+      },
+      "architecture_ascii": "users INSERT → lifecycle-on-signup → Brevo Welcome\ndaily cron → lifecycle-daily-cron → SQL cohorts → lifecycle-send → Brevo templates\ncs_outreach_log dedup on every send"
     },
     "company_email_pct": 0.15,
     "consumer_email_domains": [

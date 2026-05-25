@@ -21,35 +21,20 @@ def _load_env() -> None:
 
 
 CHECKLIST = """
---- Brevo UI: Oasis Phase 1 (do this if not built yet) ---
+--- Brevo UI: Oasis Phase 1 (production triggers) ---
 
-1. Automation → Create workflow
-   Name: Oasis Phase 1
-   Trigger: Contact added to list → Oasis Lifecycle
-   Status: INACTIVE until template test sends pass
+1. Contact attributes (Boolean): HAS_FIRST_PROMPT, HAS_TRAINING
+2. Manual test-send each of the 5 templates (copy QA only — not the funnel test)
+3. Automation "Oasis Phase 1":
+   Trigger: added to list → Oasis Lifecycle
+   Welcome (now) → wait 1d → nudge IF HAS_FIRST_PROMPT false
+   → wait to day 3 → CS IF no prompt AND no training → NPS (day 3) → wait 7d → PMF (day 10)
+4. Activate, then enroll + verify two cohorts (stuck vs activated)
 
-2. Steps (1-minute waits for first test):
-   T+0  Send email → template: Oasis Welcome
-   Wait 1 minute
-   Send email → template: Oasis Activation Nudge
-   Wait 1 minute
-   Send email → template: Oasis Activation CS Calendar
-   Wait 1 minute
-   Send email → template: Oasis NPS
-   Wait 1 minute
-   Send email → template: Oasis PMF
+Enroll:  .venv/bin/python scripts/enroll_brevo_phase1.py --email YOU@gmail.com
+Sync:    .venv/bin/python scripts/sync_brevo_contact_attributes.py --email YOU@gmail.com
 
-3. Each send step: From name = Adam from Oasis, pick matching template.
-
-4. Manual test: send each template to yourself from Brevo before activating.
-
-5. Activate workflow, then enroll a test user:
-   .venv/bin/python scripts/enroll_brevo_phase1.py --email YOUR@gmail.com
-
-6. Re-test: remove contact from list (or delete contact) before re-enrolling.
-
-Production timing (later): Welcome immediate, Nudge D1, CS D2-3, NPS D3, PMF D10.
-See docs/BREVO_PHASE1_TEST_SETUP.md
+Full procedure: docs/BREVO_PHASE1_TEST_SETUP.md
 """
 
 
@@ -80,13 +65,33 @@ def main() -> int:
     try:
         report = verify_phase1_setup()
     except Exception as exc:
+        err = str(exc)
         print(f"Brevo API failed: {exc}", file=sys.stderr)
+        if "unrecognised IP" in err or "authorized_ips" in err:
+            print(
+                "\nFix: Brevo blocked this machine's IP. Either add your IP at",
+                file=sys.stderr,
+            )
+            print(
+                "  https://app.brevo.com/security/authorised_ips",
+                file=sys.stderr,
+            )
+            print(
+                "  or use the one-click link in the security email Brevo sent, then re-run verify.",
+                file=sys.stderr,
+            )
+        elif not diag.get("api_key_looks_like_v3"):
+            print(
+                "\nFix: Brevo → SMTP & API → API keys → create/copy a v3 key (xkeysib-) into BREVO_API_KEY.",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                "\nFix: check BREVO_API_KEY is active and BREVO_LIFECYCLE_LIST_ID matches Oasis Lifecycle.",
+                file=sys.stderr,
+            )
         print(
-            "\nFix: Brevo → SMTP & API → API keys → create/copy a v3 key into BREVO_API_KEY in .env.",
-            file=sys.stderr,
-        )
-        print(
-            "Use .venv/bin/python (not system python3). MCP token (BREVO_MCP_TOKEN) does not work here.",
+            "Use .venv/bin/python (not system python3). MCP token does not work for these scripts.",
             file=sys.stderr,
         )
         return 2

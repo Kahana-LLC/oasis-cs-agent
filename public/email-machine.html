@@ -523,6 +523,100 @@
       </section>`;
     }
 
+    function lifecycleChecklistBadge(status) {
+      const s = status || "pending";
+      const cls =
+        s === "shipped"
+          ? "status-shipped"
+          : s === "optional"
+            ? "status-planned"
+            : "status-needs-implementation";
+      return `<span class="status-pill ${cls}">${escapeHtml(s)}</span>`;
+    }
+
+    function renderSupabaseLifecyclePlan() {
+      const plan = emailData?.launch_config?.supabase_lifecycle_email;
+      if (!plan) return "";
+      const docUrl =
+        "https://github.com/AdamKershner/oasis-analytics/blob/main/docs/SUPABASE_LIFECYCLE_EMAIL_PLAN.md";
+      const triggerRows = (plan.triggers || [])
+        .map(
+          (t) =>
+            `<tr>
+              <td><span class="code">${escapeHtml(t.dedup_trigger_name)}</span></td>
+              <td>${escapeHtml(t.brevo_template)}</td>
+              <td><span class="routing-pill">${escapeHtml(t.channel)}</span></td>
+              <td>${escapeHtml(t.when)}</td>
+              <td>${escapeHtml(t.condition)}</td>
+            </tr>`
+        )
+        .join("");
+      const fnCards = (plan.edge_functions || [])
+        .map(
+          (f) =>
+            `<div class="lifecycle-fn-card">
+              <strong><span class="code">${escapeHtml(f.name)}</span></strong>
+              <p class="section-cap">${escapeHtml(f.role)}</p>
+              ${f.schedule_utc ? `<p class="section-cap">Cron (UTC): <span class="code">${escapeHtml(f.schedule_utc)}</span></p>` : ""}
+              <p class="section-cap">Deploy: <span class="code">${escapeHtml(f.deploy)}</span></p>
+            </div>`
+        )
+        .join("");
+      const checklist = (plan.implementation_checklist || [])
+        .map(
+          (item) =>
+            `<tr>
+              <td>${lifecycleChecklistBadge(item.status)}</td>
+              <td>${escapeHtml(item.label)}</td>
+              <td>${escapeHtml(item.owner || "")}</td>
+              <td><span class="code">${escapeHtml(item.id)}</span></td>
+            </tr>`
+        )
+        .join("");
+      const secrets = (plan.secrets || [])
+        .map((s) => `<li><span class="code">${escapeHtml(s.name)}</span> — ${escapeHtml(s.where)} · ${escapeHtml(s.notes || "")}</li>`)
+        .join("");
+      const refs = (plan.reference_code || [])
+        .map((r) => `<li><span class="code">${escapeHtml(r)}</span></li>`)
+        .join("");
+      const testing = plan.testing || {};
+      const brevoPhase1 = emailData?.launch_config?.brevo_phase1;
+      return `<section id="supabase-lifecycle" class="lifecycle-plan-card">
+        <h2>${escapeHtml(plan.headline || "Supabase lifecycle email")} <span class="routing-pill">${escapeHtml(plan.priority || plan.status || "planned")}</span></h2>
+        <p class="section-cap">${escapeHtml(plan.summary || "")}</p>
+        <div class="banner banner-info"><strong>Deploy target:</strong> ${escapeHtml(plan.deploy_project || "Oasis Supabase")} · <strong>ESP:</strong> ${escapeHtml(plan.esp_id || "brevo")} templates · <strong>Dedup:</strong> <span class="code">${escapeHtml(plan.dedup_table || "cs_outreach_log")}</span> · Full spec: <a href="${docUrl}" target="_blank" rel="noopener noreferrer">SUPABASE_LIFECYCLE_EMAIL_PLAN.md</a></div>
+        <pre class="funnel-flow-ascii">${escapeHtml(plan.architecture_ascii || "")}</pre>
+        <h3>Edge Functions</h3>
+        <div class="lifecycle-fn-grid">${fnCards}</div>
+        <h3>Phase 1 triggers</h3>
+        <table class="lifecycle-trigger-table">
+          <thead><tr><th>dedup_trigger_name</th><th>Brevo template</th><th>Channel</th><th>When</th><th>Condition</th></tr></thead>
+          <tbody>${triggerRows}</tbody>
+        </table>
+        <h3>Secrets (Oasis Supabase)</h3>
+        <ul class="launch-plan-why">${secrets}</ul>
+        <h3>Implementation checklist</h3>
+        <table class="lifecycle-checklist-table">
+          <thead><tr><th>Status</th><th>Task</th><th>Owner</th><th>ID</th></tr></thead>
+          <tbody>${checklist}</tbody>
+        </table>
+        <h3>Testing</h3>
+        <p class="section-cap"><strong>Strategy:</strong> ${escapeHtml(testing.strategy || "")}</p>
+        <ul class="launch-plan-why">
+          ${testing.fast_path ? `<li><strong>Fast:</strong> ${escapeHtml(testing.fast_path)}</li>` : ""}
+          ${testing.cohort_path ? `<li><strong>Cohorts:</strong> ${escapeHtml(testing.cohort_path)}</li>` : ""}
+          ${testing.dev_fallback ? `<li><strong>Dev fallback:</strong> <span class="code">${escapeHtml(testing.dev_fallback)}</span></li>` : ""}
+        </ul>
+        <h3>Reference in this repo</h3>
+        <ul class="launch-plan-why">${refs}</ul>
+        ${
+          brevoPhase1
+            ? `<p class="section-cap"><strong>Brevo automation fallback:</strong> <span class="code">${escapeHtml(brevoPhase1.automation_name || "Oasis Phase 1")}</span> list enroll via <span class="code">${escapeHtml(brevoPhase1.enroll_script || "scripts/enroll_brevo_phase1.py")}</span> — superseded by this plan when Edge Functions ship. <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/BREVO_PHASE1_TEST_SETUP.md">Legacy Brevo automation setup</a></p>`
+            : ""
+        }
+      </section>`;
+    }
+
     function renderProviderSetup() {
       const providers = (emailData?.providers || []).filter((p) => p.account_setup);
       const meta = emailData?.provider_setup_meta || {};
@@ -1608,7 +1702,16 @@
       const pool = emailData?.fallback_pool || {};
       const cap = snapshotData?.email_provider_capacity?.pool_aggregate;
       const brevo = providerById("brevo");
-      const ascii = `Signup → Brevo Phase 1 automations
+      const edgePlan = emailData?.launch_config?.supabase_lifecycle_email;
+      const ascii = edgePlan
+        ? `Signup → Supabase Edge (welcome) + daily cron (nudge · CS · NPS · PMF)
+         ├─ Brevo transactional templates + cs_outreach_log dedup
+         ├─ track milestones (prompt · limit · training)
+         ├─ ripe enough? → Phase 2 fork
+         ├─ upgraded? → Phase 2 paid (Resend + HubSpot)
+         └─ enough lifecycle emails / days? → prune to Phase 2
+Brevo or Resend cap hit → Fallback pool (Loops | Resend | OmniSend | MailerLite)`
+        : `Signup → Brevo Phase 1 automations
          ├─ track milestones (welcome · prompt · limit · training · NPS · PMF)
          ├─ ripe enough? → Phase 2 fork
          ├─ upgraded? → Phase 2 paid (Resend + HubSpot)
@@ -1643,6 +1746,11 @@ Brevo or Resend cap hit → Fallback pool (Loops | Resend | OmniSend | MailerLit
             <p><strong>Sequences:</strong> ${escapeHtml(seqNamesByIds(p1?.sequences))}</p>
             ${p1?.nurture_model ? `<p class="section-cap"><strong>Nurture:</strong> ${escapeHtml(p1.nurture_model)}</p>` : ""}
             ${funnelPhaseExitList(p1)}
+            ${
+              edgePlan
+                ? `<p class="section-cap"><strong>Phase 1 triggers (recommended):</strong> <a href="#supabase-lifecycle">Supabase Edge + cron</a> — not Brevo automation waits.</p>`
+                : ""
+            }
           </div>
           <div class="funnel-phase-card phase-2">
             <h3>Phase 2 — Fork</h3>
@@ -1731,7 +1839,7 @@ provider = max(headroom, key=headroom.get)`;
       return `<section id="implementation">
         <h2>Implementation guide</h2>
         <p class="section-cap">Wiring spec for CS agent + Supabase. <strong>${stats.pending} of ${stats.total} sequences</strong> need implementation (${stats.shipped} shipped).</p>
-        <div class="banner banner-info"><strong>Phase 1 primary:</strong> <strong>Brevo Starter ($29/mo)</strong> recommended before Product Hunt. <strong>Operational:</strong> <strong>Resend Pro ($20/mo)</strong> for legal/outage until SES production — not Brevo. Lifecycle overflow → <span class="code">fallback_pool</span> (${escapeHtml(fallbackPoolMemberLabel())}).${emailData?.launch_config?.brevo_phase1 ? ` <strong>Phase 1:</strong> <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/BREVO_NAMING.md">BREVO_NAMING.md</a> · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/BREVO_PHASE1_TEST_SETUP.md">setup</a> · enroll: <span class="code">scripts/enroll_brevo_phase1.py</span>` : ""}</div>
+        <div class="banner banner-info"><strong>Phase 1 primary:</strong> <strong>Brevo Starter ($29/mo)</strong> for templates + sends. <strong>Recommended triggers:</strong> <a href="#supabase-lifecycle">Supabase Edge Functions + cron</a> (see <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/SUPABASE_LIFECYCLE_EMAIL_PLAN.md">plan</a>). <strong>Operational:</strong> <strong>Resend Pro ($20/mo)</strong> for legal/outage until SES production. Lifecycle overflow → <span class="code">fallback_pool</span> (${escapeHtml(fallbackPoolMemberLabel())}).${emailData?.launch_config?.brevo_phase1 ? ` <strong>Brevo automation fallback:</strong> <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/BREVO_PHASE1_TEST_SETUP.md">legacy setup</a> · <span class="code">scripts/enroll_brevo_phase1.py</span>` : ""}</div>
         <h3>User lifecycle states</h3>
         <table class="impl-state-table">
           <thead><tr><th>State</th><th>Entry</th><th>Exit condition</th><th>Next</th></tr></thead>
@@ -1785,6 +1893,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
       return `<nav class="charter-toc" aria-label="Charter sections">
         <a href="#overview">Overview</a>
         <a href="#launch-brevo">Launch plan</a>
+        <a href="#supabase-lifecycle">Supabase lifecycle</a>
         <a href="#funnel">Funnel</a>
         <a href="#implementation">Implementation</a>
         <a href="#sequences">Sequences</a>
@@ -1928,12 +2037,14 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         ${liveBanner()}
         ${renderCharterNav()}
         ${renderBrevoLaunchPlan()}
+        ${renderSupabaseLifecyclePlan()}
         <section id="overview">
           <h2>Overview</h2>
           <p class="section-cap">Goals: <strong>500 paid subscribers by Dec 31, 2026</strong>, <strong>4.5× DAU</strong> vs Product Hunt launch week, <strong>80% gross margin</strong>. Lifecycle email budget: <strong>${cc.phase_1_emails_min ?? 4}–${cc.phase_1_emails_max ?? 7}</strong> Phase 1 + <strong>${cc.phase_2_conversion_emails_min ?? 3}–${cc.phase_2_conversion_emails_max ?? 4}</strong> Phase 2 conversion = <strong>${cc.total_emails_before_perpetual_free_min ?? 7}–${cc.total_emails_before_perpetual_free_max ?? 11}</strong> total before perpetual free.</p>
-          <p class="section-cap">Three-phase funnel + redundant fallback pool — see <a href="#funnel">Funnel architecture</a> and <a href="#implementation">Implementation guide</a>.</p>
+          <p class="section-cap">Three-phase funnel + redundant fallback pool — see <a href="#funnel">Funnel architecture</a>, <a href="#supabase-lifecycle">Supabase lifecycle plan</a> (recommended Phase 1 triggers), and <a href="#implementation">Implementation guide</a>.</p>
           <div class="info">
             <ul style="margin:0;padding-left:1.25rem">
+              <li><strong>Supabase lifecycle plan</strong> — Edge Functions + cron trigger spec, checklist, Brevo template mapping</li>
               <li><strong>Sequence table</strong> — funnel phase, provider routing, Supabase trigger spec, dedup keys</li>
               <li><strong>Routing rules</strong> — what fires when a cap hits (including fallback pool)</li>
               <li><strong>Scenario planner</strong> — stress-test signup volume against free-tier limits</li>

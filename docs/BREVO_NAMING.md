@@ -30,9 +30,7 @@ Use these **exact** template names in Brevo. Wire each **Oasis Phase 1** automat
 | `nps_day3` | Oasis NPS | [`brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3.html`](../brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3.html) |
 | `pmf_day10` | Oasis PMF | [`brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10.html`](../brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10.html) |
 
-**Automation order (production timing):** Welcome (D0) → Activation Nudge (D1, conditional) → Activation CS Calendar (D2–3, conditional) → NPS (D3) → PMF (D10).
-
-**Initial test timing:** Same workflow **Oasis Phase 1**; set 1-minute waits between steps while validating, then edit waits/conditions in place (see [`BREVO_PHASE1_TEST_SETUP.md`](BREVO_PHASE1_TEST_SETUP.md)).
+**Automation order:** Welcome (D0) → Activation Nudge (D1, if `HAS_FIRST_PROMPT` false) → Activation CS Calendar (D3, if no prompt and no training) → NPS (D3) → PMF (D10). Build with production waits and conditions from day one — see [`BREVO_PHASE1_TEST_SETUP.md`](BREVO_PHASE1_TEST_SETUP.md).
 
 ---
 

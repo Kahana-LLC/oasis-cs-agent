@@ -1,11 +1,26 @@
 # Brevo Phase 1 setup and testing
 
-End-to-end setup for the five Phase 1 lifecycle emails on Brevo. Uses **production naming** everywhere: list **Oasis Lifecycle**, automation **Oasis Phase 1**, templates **Oasis Welcome**, etc. (no QA prefix, no em dashes). See [`BREVO_NAMING.md`](BREVO_NAMING.md).
+> **Recommended path:** [`SUPABASE_LIFECYCLE_EMAIL_PLAN.md`](SUPABASE_LIFECYCLE_EMAIL_PLAN.md) — Supabase Edge Functions + cron trigger sends; Brevo supplies templates only. This doc is the **legacy Brevo automation** fallback (list + workflow).
 
-Signup in Oasis does **not** enroll in Brevo until you run the enroll script (or wire Oasis later).
+Production-style **Oasis Phase 1** automation: real day-based waits and conditional sends driven by Supabase-backed contact attributes. No compressed “1-minute between all five emails” workflow.
+
+See [`BREVO_NAMING.md`](BREVO_NAMING.md) for template and list names.
 
 **Test accounts:** `adamkershnerdev1@gmail.com`, `adamthewrite@gmail.com`  
 **Manifest:** `launch_config.brevo_phase1` in [`public/email_sequences.json`](../public/email_sequences.json)
+
+---
+
+## Philosophy
+
+| Do | Don’t |
+|----|--------|
+| Manual **test send** each template once (layout, links, merge tags) | Run all five emails back-to-back in ~5 minutes |
+| Build automation with **production timing + conditions** | Use 1-minute waits to “simulate” the funnel |
+| Enroll **two cohorts** (stuck vs activated) and verify who gets nudge/CS | Assume one inbox proves every branch |
+| **Sync attributes** from Supabase when product state changes | Expect Brevo to know `llm_usage` without sync |
+
+Calendar waits (1 day, 3 days, 10 days) are intentional — you are validating triggers, not copy throughput.
 
 ---
 
@@ -13,148 +28,143 @@ Signup in Oasis does **not** enroll in Brevo until you run the enroll script (or
 
 | Item | Notes |
 |------|--------|
-| Brevo account | Starter (or higher) recommended for automation volume |
-| Domain / sender | Verified sender; **From name:** `Adam from Oasis` |
-| API key | `BREVO_API_KEY` in `.env` (see [`.env.example`](../.env.example)) |
-| Supabase | Service role for `scripts/enroll_brevo_phase1.py` user lookup |
-| HTML sources | [`brevo-oasis-emails/lifecycle/`](../brevo-oasis-emails/lifecycle/) |
-| Link reference | [`brevo-oasis-emails/brevo-oasis-email-links.js`](../brevo-oasis-emails/brevo-oasis-email-links.js) |
-
-After creating the list in Brevo, set **one** of:
-
-- `BREVO_LIFECYCLE_LIST_ID=<numeric>` in `.env`, or  
-- `launch_config.brevo_phase1.list_id` in the manifest
-
-Discover list IDs and confirm `.env` wiring:
+| Brevo Starter+ | Automation with waits and conditions |
+| `BREVO_API_KEY` | v3 key (`xkeysib-…`); IP allowlisted if required |
+| `BREVO_LIFECYCLE_LIST_ID` | List **Oasis Lifecycle** (e.g. `72`) |
+| Contact attributes | Boolean: **`HAS_FIRST_PROMPT`**, **`HAS_TRAINING`** (Brevo → Contacts → Settings) |
+| Supabase | Service role for enroll + attribute sync |
+| Templates | Five Phase 1 templates pasted from repo / Email Machine |
 
 ```bash
 .venv/bin/pip install brevo-python python-dotenv
 .venv/bin/python scripts/verify_brevo_phase1.py
-.venv/bin/python scripts/enroll_brevo_phase1.py --list-lists
 ```
-
-`verify_brevo_phase1.py` checks `BREVO_API_KEY` + `BREVO_LIFECYCLE_LIST_ID` and prints the automation build checklist.
 
 ---
 
-## Part A — Brevo UI (list, templates, automation)
+## Part A — Brevo UI
 
-### A.1 List
+### A.1 Contact attributes
 
-1. **Contacts → Lists → Create a list** (or rename existing list)
-2. Name: **`Oasis Lifecycle`**
-3. Until Oasis signup is wired, only add contacts via the enroll script or intentional test signups.
-4. Copy the numeric **list ID** into `.env` or manifest (see above).
+Create (exact names, type **Boolean**):
 
-**Re-test reset:** Remove the contact from this list, or delete the contact in Brevo, before re-enrolling so the “added to list” automation can fire again.
+| Attribute | Source | Used for |
+|-----------|--------|----------|
+| `HAS_FIRST_PROMPT` | `llm_usage` in Supabase | Skip activation nudge / CS when user already prompted |
+| `HAS_TRAINING` | `feedback_events` in Supabase | Skip CS calendar when user trained assistant |
+| `FIRSTNAME` | user name | Personalization (already used) |
+| `OASIS_USER_ID` | users.user_id | Debugging / future sync |
 
-### A.2 Five email templates (manual test send each)
+Enroll and [`scripts/sync_brevo_contact_attributes.py`](../scripts/sync_brevo_contact_attributes.py) set the two boolean flags from live data.
 
-Build each as a **campaign** or **automation email step** template. Use the **exact Brevo template name** below. Paste HTML + plain text; send yourself a **manual test** before activating the workflow.
+### A.2 Templates
 
-| Order | Sequence ID | Brevo template name | Subject | HTML | Plain text |
-|------|-------------|---------------------|---------|------|------------|
-| 1 | `welcome` | **Oasis Welcome** | Welcome to Oasis | [`brevo-oasis-welcome.html`](../brevo-oasis-emails/lifecycle/brevo-oasis-welcome.html) | [`brevo-oasis-welcome-plain-text.txt`](../brevo-oasis-emails/lifecycle/brevo-oasis-welcome-plain-text.txt) |
-| 2 | `activation_nudge` | **Oasis Activation Nudge** | Try your first AI command in Oasis | [`brevo-oasis-activation-nudge.html`](../brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge.html) | [`brevo-oasis-activation-nudge-plain-text.txt`](../brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt) |
-| 3 | `activation_cs_calendar` | **Oasis Activation CS Calendar** | Need help getting started with Oasis? | [`brevo-oasis-activation-cs-calendar.html`](../brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar.html) | [`brevo-oasis-activation-cs-calendar-plain-text.txt`](../brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar-plain-text.txt) |
-| 4 | `nps_day3` | **Oasis NPS** | Quick question: how likely are you to recommend Oasis? | [`brevo-oasis-nps-day3.html`](../brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3.html) | [`brevo-oasis-nps-day3-plain-text.txt`](../brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3-plain-text.txt) |
-| 5 | `pmf_day10` | **Oasis PMF** | Help us understand how Oasis fits your workflow | [`brevo-oasis-pmf-day10.html`](../brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10.html) | [`brevo-oasis-pmf-day10-plain-text.txt`](../brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10-plain-text.txt) |
+Manual **test send** each template to yourself before activating the workflow (subjects/HTML in [`BREVO_NAMING.md`](BREVO_NAMING.md)). That is the only “fast” copy check.
 
-D&D specs: welcome, activation nudge, activation CS calendar (under `brevo-oasis-emails/lifecycle/`).
-
-Copy details: [`brevo-oasis-lifecycle-emails.md`](../brevo-oasis-emails/lifecycle/brevo-oasis-lifecycle-emails.md). Previews: [Email Machine](https://oasis-analytics.vercel.app/email-machine) after `python3 reporting/build_static_site.py`.
-
-Re-paste HTML + plain text after repo updates. Each email should show founder headshot before greeting, then `- Adam`, mantra callout, and **All my socials** + icons (see [`brevo-oasis-emails/README.md`](../brevo-oasis-emails/README.md)).
-
-**NPS / PMF:** Follow [`brevo-oasis-nps-tally-form-setup.md`](../brevo-oasis-emails/lifecycle/brevo-oasis-nps-tally-form-setup.md). Preview with a test contact so `{{ contact.EMAIL }}` resolves.
-
-### A.3 Automation — `Oasis Phase 1`
+### A.3 Automation — `Oasis Phase 1` (production logic)
 
 | Setting | Value |
 |---------|--------|
-| **Trigger** | Contact **added to list** → `Oasis Lifecycle` |
-| **Entry** | All contacts on list (add filters when moving to production timing) |
-| **Workflow** | Linear for first test; add conditionals when switching to production timing |
+| **Trigger** | Contact **added to list** → **Oasis Lifecycle** |
+| **From name** | `Adam from Oasis` on every send step |
 
-#### Initial test timing (same automation)
+**Recommended step graph** (single workflow; adjust labels to match your Brevo UI):
 
-Use **1-minute waits** between steps while validating:
+```text
+[Added to Oasis Lifecycle]
+  → Send Oasis Welcome (immediately)
 
-1. Send **Oasis Welcome**
-2. Wait **1 minute** → Send **Oasis Activation Nudge**
-3. Wait **1 minute** → Send **Oasis Activation CS Calendar**
-4. Wait **1 minute** → Send **Oasis NPS**
-5. Wait **1 minute** → Send **Oasis PMF**
+  → Wait 1 day
+  → IF HAS_FIRST_PROMPT is false
+      → Send Oasis Activation Nudge
 
-Keep the workflow **inactive** until each template passes a manual test send; then **activate**.
+  → Wait 2 days   (contact is now ~day 3 from list entry)
+  → IF HAS_FIRST_PROMPT is false AND HAS_TRAINING is false
+      → Send Oasis Activation CS Calendar
 
-Brevo often enforces a **1 minute** minimum wait (~4 minutes after welcome for emails 2–5).
+  → Send Oasis NPS
+      (exclude unsubscribed; no “has prompt” gate — all signups get NPS at day 3)
 
-#### Production timing (edit in place)
+  → Wait 7 days   (day 10 from list entry)
+  → Send Oasis PMF
+      (exclude unsubscribed)
+```
 
-When QA passes, **edit the same** `Oasis Phase 1` workflow (do not clone under a new name):
+**Repo trigger contract** (for comparison):
 
-| Step | Production timing | Initial test timing |
-|------|-------------------|---------------------|
-| Oasis Welcome | Immediate (D0) | T+0 |
-| Oasis Activation Nudge | **1 day** if no `llm_usage` | T+1 min |
-| Oasis Activation CS Calendar | **~2–3 days** if still stuck | T+2 min |
-| Oasis NPS | Day 3 | T+3 min |
-| Oasis PMF | Day 10 | T+4 min |
+| Step | Sequence ID | Timing | Condition |
+|------|-------------|--------|-----------|
+| Welcome | `welcome` | Immediate on list add | — |
+| Activation nudge | `activation_nudge` | 24h after signup | `users_with_first_prompt == false` |
+| Activation CS | `activation_cs_calendar` | ~day 3 | Still no prompt **and** no training |
+| NPS | `nps_day3` | Day 3 | Unsubscribed excluded |
+| PMF | `pmf_day10` | Day 10 | Unsubscribed excluded |
 
-Add **conditions** on steps 2–3 (no usage / no training). Wire Oasis signup (see manifest `oasis_signup_integration.contract`).
+Keep workflow **inactive** until templates pass manual test send. **Activate** when ready for real calendar testing.
 
-**Out of scope for Phase 1 chain:** `limit_hitter_upgrade`, Paid Zen (add separate automations later).
+**Re-test reset:** Remove contact from **Oasis Lifecycle** or delete the contact before re-enrolling so “added to list” fires again.
 
 ---
 
-## Part B — Repo enroll bridge
+## Part B — Repo bridge
 
-### Enroll after Oasis signup
+### Enroll (sets attributes + list add → starts automation)
 
 ```bash
-.venv/bin/pip install brevo-python python-dotenv
-
-.venv/bin/python scripts/verify_brevo_phase1.py
-
 .venv/bin/python scripts/enroll_brevo_phase1.py --email you@example.com --dry-run
-
 .venv/bin/python scripts/enroll_brevo_phase1.py --email adamkershnerdev1@gmail.com
 ```
 
-The script:
+Dry-run prints `activation_attributes` (`HAS_FIRST_PROMPT`, `HAS_TRAINING`) from Supabase at enroll time.
 
-1. Loads `BREVO_API_KEY` and list id from env or manifest  
-2. Resolves the user via Supabase (`--email` and/or `--user-id`)  
-3. Creates/updates the Brevo contact with `FIRSTNAME` and `OASIS_USER_ID`  
-4. Adds the contact to **Oasis Lifecycle** (triggers **Oasis Phase 1**)
+### Sync attributes after product usage
 
-Shared module: `integrations.brevo_phase1.enroll_user_for_phase1`.
+When a test user sends their first prompt or completes training **after** enroll, refresh Brevo before the next conditional wait:
+
+```bash
+.venv/bin/python scripts/sync_brevo_contact_attributes.py --email you@example.com
+```
 
 ---
 
-## Part C — Two-Gmail test procedure
+## Part C — Trigger validation (two cohorts)
 
-1. **Prep:** Automation active; templates manually tested; `BREVO_LIFECYCLE_LIST_ID` in `.env` or manifest.  
-2. **Clean slate** (re-test): Remove both Gmail addresses from the list / delete contacts in Brevo.  
-3. **Sign up in Oasis** with `adamkershnerdev1@gmail.com` (new Supabase row).  
-4. **Enroll:** `python3 scripts/enroll_brevo_phase1.py --email adamkershnerdev1@gmail.com`  
-5. **Watch inbox** ~4–5 minutes (with 1-minute waits). Verify order, links, `{{ unsubscribe }}`.  
-6. Repeat for `adamthewrite@gmail.com`.  
-7. Fix HTML under `brevo-oasis-emails/` and refresh previews: `python3 reporting/build_static_site.py`
+Use two Gmail test accounts that exist in Supabase.
 
-### Link checklist
+### Cohort A — “Stuck” (should get nudge + CS)
 
-| Link / element | URL / check |
-|----------------|-------------|
-| Docs | `https://kahana.co/docs` |
-| Contact | `https://kahana.co/contact` |
-| Slack | `https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P` |
-| NPS (Tally) | `https://tally.so/r/ODoBz7` / page `https://kahana.co/oasis-nps` |
-| PMF (Tally) | `https://tally.so/r/EkNbXX` / page `https://kahana.co/oasis-pmf` |
-| Installations | `https://kahana.co/installations` |
-| Privacy | `https://kahana.co/privacy-policy` |
-| Unsubscribe | Brevo `{{ unsubscribe }}` renders in preview |
+1. Pick a user with **no** `llm_usage` rows (or use a fresh signup).
+2. Delete/remove Brevo contact; enroll: `enroll_brevo_phase1.py --email A`.
+3. Confirm dry-run/enroll shows `HAS_FIRST_PROMPT: false`, `HAS_TRAINING: false`.
+4. **Expect:** Welcome immediately → nudge ~24h later → CS ~day 3 if still stuck → NPS ~day 3 → PMF ~day 10.
+
+### Cohort B — “Activated” (should skip nudge + CS)
+
+1. Pick a user with **≥1** `llm_usage` row (or prompt once after enroll, then sync).
+2. Reset Brevo contact; enroll with `HAS_FIRST_PROMPT: true`.
+3. **Expect:** Welcome only from activation branch → **no** nudge, **no** CS → still NPS + PMF on calendar days.
+
+### Mid-test activation
+
+1. Enroll cohort A.
+2. In Oasis, send first AI command.
+3. Run `sync_brevo_contact_attributes.py` before the 24h nudge wait elapses.
+4. **Expect:** Nudge does **not** send; CS branch should also stay off if training happened.
+
+Track results in Brevo contact timeline + inbox. Full chain spans **~10 calendar days** — that is expected.
+
+---
+
+## Part D — What to check
+
+| Check | Pass criteria |
+|-------|----------------|
+| Welcome trigger | Email within minutes of enroll |
+| Nudge conditional | Only cohort A; suppressed after sync on B |
+| CS conditional | Only A at day 3 if still no prompt/training |
+| NPS / PMF | Both cohorts ~day 3 and ~day 10 |
+| Attributes | Brevo contact shows booleans matching Supabase |
+| Links / unsubscribe | Per link checklist in prior runs |
 
 ---
 
@@ -162,15 +172,15 @@ Shared module: `integrations.brevo_phase1.enroll_user_for_phase1`.
 
 | Risk | Mitigation |
 |------|------------|
-| Re-test doesn’t re-fire | Remove from list / delete contact before re-enroll |
-| Signup without script | Enroll script required until Oasis API wired |
-| Nudge to active users | Add conditions when switching to production timing |
-| NPS/PMF personalization | Brevo preview with test contact attributes |
+| Stale attributes | Re-run `sync_brevo_contact_attributes.py` after product events |
+| Re-test doesn’t fire | Remove from list / delete contact before re-enroll |
+| Waits still run when branch skipped | Brevo still advances calendar waits; conditions only gate **sends** |
+| 10-day test cycle | Use two cohorts in parallel; don’t compress timing |
 
 ---
 
-## Related docs
+## Related
 
-- [`BREVO_NAMING.md`](BREVO_NAMING.md) — canonical template and list names  
-- [USER_EMAIL_MACHINE_PROPOSAL.md](USER_EMAIL_MACHINE_PROPOSAL.md) — Phase 1 funnel  
-- [OPERATIONAL_EMAIL_RUNBOOK.md](OPERATIONAL_EMAIL_RUNBOOK.md) — legal/incident (separate from lifecycle)
+- [`BREVO_NAMING.md`](BREVO_NAMING.md)
+- `integrations.brevo_phase1.enroll_user_for_phase1`
+- [Email Machine](https://oasis-analytics.vercel.app/email-machine) — copy HTML

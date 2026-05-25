@@ -91,11 +91,19 @@ def main() -> int:
         return 0
 
     brevo = out.get("brevo") or {}
+    attrs = out.get("activation_attributes") or {}
     print(f"Enrolled {out['email']} (user_id={out['user_id']})")
     print(f"  List: {out.get('list_name')} (id={out['list_id']})")
     print(f"  Automation: {out.get('automation_name')}")
     print(f"  Brevo contact id: {brevo.get('id')}")
-    print("  Expect ~5 emails over ~4–5 minutes if automation uses 1-minute waits between steps.")
+    print(
+        f"  Attributes: HAS_FIRST_PROMPT={attrs.get('HAS_FIRST_PROMPT')}, "
+        f"HAS_TRAINING={attrs.get('HAS_TRAINING')}"
+    )
+    print(
+        "  Production timing: welcome now; nudge ~1d if stuck; CS ~d3 if stuck; NPS ~d3; PMF ~d10."
+    )
+    print("  After first prompt in Oasis: scripts/sync_brevo_contact_attributes.py --email ...")
     return 0
 
 
