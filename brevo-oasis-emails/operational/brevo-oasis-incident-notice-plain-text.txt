@@ -1,0 +1,13 @@
+Hi {{ contact.FIRSTNAME }},
+
+We're aware of an issue that may affect Oasis. Our team is investigating.
+
+What we know: [Describe impact]
+
+What you can do: Check our status page for live updates.
+
+Contact / status: https://kahana.co/contact
+
+We'll email again when resolved.
+
+View in browser: {{ mirror }}

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,7 @@ BASELINE_PATH = ROOT / "public" / "baseline_snapshot.json"
 
 CADENCE = {
     "one-time": 1,
+    "one-time-broadcast": 1,
     "drip-2-4": 4,
     "one-time-plus-d7": 2,
     "campaign-2-touch": 2,
@@ -22,8 +24,16 @@ CADENCE = {
 FAILURE_PRIORITY = {"launch_peak": 0, "daily": 1, "monthly": 2, "contacts": 3}
 
 PHASE1_SEQ_IDS = frozenset({"welcome", "activation_nudge", "activation_cs_calendar", "nps_day3", "pmf_day10"})
-FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo"})
-FALLBACK_CONTACT_CAPS = {"mailerlite": 500, "omnisend": 250, "brevo": 2000}
+FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo", "loops"})
+FALLBACK_CONTACT_CAPS = {
+    "mailerlite": 500,
+    "omnisend": 250,
+    "brevo": 2000,
+    "loops": 1000,
+}
+OPERATIONAL_PROVIDER_IDS = frozenset({"resend", "ses"})
+RESEND_DAILY_CAP = 100
+RESEND_MONTHLY_CAP = 3000
 PAID_SEQ_IDS = frozenset({"upgrade_thank_you", "cancelled_winback"})
 
 
@@ -259,6 +269,8 @@ def _provider_contacts(
         conv += min(ctx.bucket_counts.get("dead", 0), ctx.dead_cap)
         conv += ctx.bucket_counts.get("reactivated", 0) + ctx.bucket_counts.get("resurrected", 0)
         return min(conv, 2500)
+    if pid == "resend" or pid == "ses":
+        return ctx.total_users
     return ctx.total_users
 
 
@@ -479,7 +491,15 @@ def simulate_scenario(
         if cid == "brevo_launch_peak":
             fire = daily_peaks.get("brevo", 0) > 240
         elif cid == "fallback_pool_aggregate":
-            fire = pool_contacts_used > 2200
+            fire = pool_contacts_used > 3000
+        elif cid == "operational_resend_daily":
+            fire = total_users > RESEND_DAILY_CAP
+        elif cid == "ses_sandbox":
+            ses_prov = next((p for p in manifest.get("providers") or [] if p["id"] == "ses"), None)
+            fire = bool(ses_prov and ses_prov.get("production_pending"))
+        elif cid == "loops_fallback_cap":
+            loops_row = next((p for p in provider_rows if p["id"] == "loops"), None)
+            fire = bool(loops_row and loops_row.get("contacts", 0) > 800)
         elif cid == "hubspot_send_budget":
             hs_row = next((p for p in provider_rows if p["id"] == "hubspot"), None)
             fire = bool(hs_row and hs_row.get("monthly_sends", 0) > 1600)
@@ -495,6 +515,7 @@ def simulate_scenario(
             triggered_cliffs.append(cid)
 
     pool_aggregate = _compute_pool_aggregate(provider_rows, manifest.get("providers") or [])
+    operational_blast_days = max(1, math.ceil(total_users / RESEND_DAILY_CAP))
 
     return {
         "new_users_per_day_max": new_users_day,
@@ -511,6 +532,12 @@ def simulate_scenario(
         "active_rules": active_rules,
         "triggered_cliffs": triggered_cliffs,
         "daily_peaks": daily_peaks,
+        "operational_blast": {
+            "audience": total_users,
+            "resend_daily_cap": RESEND_DAILY_CAP,
+            "days_to_complete_at_resend_cap": operational_blast_days,
+            "fits_one_day": total_users <= RESEND_DAILY_CAP,
+        },
     }
 
 

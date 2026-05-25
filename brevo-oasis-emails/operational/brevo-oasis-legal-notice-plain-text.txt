@@ -1,0 +1,11 @@
+Hi {{ contact.FIRSTNAME }},
+
+We've updated our Privacy Policy (or Terms). The changes take effect on the date shown on the policy page.
+
+Please review: https://kahana.co/privacy-policy
+
+Continued use of Oasis after the effective date means you accept the revised terms.
+
+Questions: https://kahana.co/contact
+
+View in browser: {{ mirror }}

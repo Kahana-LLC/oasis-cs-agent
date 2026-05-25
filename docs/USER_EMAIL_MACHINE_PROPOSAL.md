@@ -98,7 +98,7 @@ These rates appear on the dashboard and in Key insights. Moving them grows DAU c
 
 ## 3. Provider stack — three phases + universal fallback pool
 
-Lifecycle email routes through **three phases**. **MailerLite, OmniSend, and Brevo** form a shared **fallback pool** usable by any phase when a primary provider hits its cap — easier to visualize and plan capacity. See `funnel_phases`, `fallback_pool`, and `routing_rules` in `email_sequences.json`.
+Lifecycle email routes through **three phases**. **MailerLite, OmniSend, Brevo, and Loops** form a shared **fallback pool** usable by any phase when a primary provider hits its cap — easier to visualize and plan capacity. See `funnel_phases`, `fallback_pool`, `operational_pool`, and `routing_rules` in `email_sequences.json`.
 
 ```mermaid
 flowchart TB
@@ -118,6 +118,7 @@ flowchart TB
     ML[MailerLite 500]
     OS[OmniSend 250]
     BR[Brevo 2k · 300/day]
+    LP[Loops 1k · 4k/mo]
   end
 
   p1 -.->|cap hit| spill
@@ -135,7 +136,50 @@ flowchart TB
 | **OmniSend** | 500/mo · **250 contacts** | Pool member — interchangeable |
 | **Brevo** | 300/day · **2,000 contacts** | Pool member — interchangeable; also PH interim + limit-hitter + CS agent |
 
-**Aggregate pool headroom:** ~2,750 contacts · ~13,500 sends/mo. Scenario planner shows combined **fallback pool** KPI — think of it as one bucket with three redundant backends.
+**Aggregate pool headroom:** ~3,750 contacts · ~17,500 sends/mo (includes **Loops**). Scenario planner shows combined **fallback pool** KPI — think of it as one bucket with four redundant backends.
+
+| Provider | Free limit | Pool role |
+|----------|------------|-----------|
+| **Loops** | 4,000/mo · **1,000 contacts** | Pool member — marketing / product-help fallback (Powered by Loops footer; not legal/outage) |
+
+### Provider account setup (live)
+
+**Source of truth:** `account_setup` on each provider in [`public/email_sequences.json`](../public/email_sequences.json), rendered on [/email-machine#provider-setup](https://oasis-analytics.vercel.app/email-machine#provider-setup) (`provider_setup_meta.as_of`).
+
+This is **not** the same as sequence `implementation_status` (automation shipped vs `needs_implementation`). Account setup tracks whether you can log in, verify domain, and use API keys today.
+
+| Provider | Account status | Notes |
+|----------|----------------|-------|
+| **Beehiiv** | Ready | API key configured |
+| **HubSpot** | Ready | Phase 3 terminal CRM |
+| **Brevo** | Ready | 300 emails/day; PH interim + CS agent |
+| **EmailOctopus** | Ready | API key; 2,500 subs · 10k/mo |
+| **Resend** | Ready | Operational primary |
+| **Loops** | Ready | Lifecycle fallback (not operational) |
+| **Amazon SES** | Sandbox | 200/day until production access approved |
+| **OmniSend** | Pending verification | Domain DNS in progress; 500/mo |
+| **MailerLite** | Account recovery | Regain login before pool use |
+| **Mailgun** | Access blocked | Resolve account or defer paid path to HubSpot interim |
+
+**Beehiiv MCP** (separate from API): [beehiiv MCP announcement](https://product.beehiiv.com/p/beehiiv-mcp) — connector `https://mcp.beehiiv.com/mcp`, OAuth in the AI client, v1 **read-only**, paid-plan early access. Use for analytics and ops in Cursor/Claude; write access is planned for v2.
+
+### 3b. Operational & broadcast email (legal, privacy, outage)
+
+Separate from lifecycle nurture and from the marketing fallback pool.
+
+| Provider | Free limit | Role |
+|----------|------------|------|
+| **Resend** | 3,000/mo · **100/day** | **Primary** operational — policy updates, incidents |
+| **Amazon SES** | 200/day (sandbox until production) | Failover when Resend cap hit or at scale |
+| **Brevo** | 300/day (emergency) | Last resort; separate operational list |
+
+**Sequences:** `legal_notice`, `incident_notice` in `email_sequences.json` (`funnel_phase: operational`). Do not count toward Phase 1’s 4–7 email budget.
+
+**Audience:** All `users` with `status = active` → list `oasis-operational-all`, synced nightly (see [`docs/OPERATIONAL_EMAIL_RUNBOOK.md`](OPERATIONAL_EMAIL_RUNBOOK.md)).
+
+**Capacity (illustrative):** At 122 users, one Resend blast fits in a day. At 2,000 users, plan ~20 days at 100/day or SES after production approval.
+
+**Anti-patterns:** No Beehiiv/Loops for outages; no Supabase query at send time during incidents; Loops is fallback for marketing only.
 
 ### Phase 1 — Welcome / onboarding / activation (Beehiiv)
 

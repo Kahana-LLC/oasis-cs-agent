@@ -39,6 +39,7 @@
       phase_2_conversion: "Phase 2 conversion",
       phase_3_terminal: "Phase 3",
       ph_interim: "PH interim",
+      operational: "Operational",
     };
 
     function funnelPhaseBadge(fp) {
@@ -52,14 +53,17 @@
               ? "phase-2-conv"
               : fp === "ph_interim"
                 ? "ph-interim"
-                : "phase-2-conv";
+                : fp === "operational"
+                  ? "phase-operational"
+                  : "phase-2-conv";
       const label = FUNNEL_PHASE_LABELS[fp] || fp.replace(/_/g, " ");
       return `<span class="funnel-phase-badge ${cls}">${escapeHtml(label)}</span>`;
     }
 
     function providerDisplayName(id) {
       if (!id) return "Supabase / sheet";
-      if (id === "fallback_pool") return "Fallback pool (ML · OS · Brevo)";
+      if (id === "fallback_pool") return "Fallback pool (ML · OS · Brevo · Loops)";
+      if (id === "operational_pool") return "Operational pool (Resend → SES)";
       const p = providerById(id);
       return p?.name || id;
     }
@@ -81,7 +85,7 @@
       if (fb.type === "provider" && fb.provider_id) {
         return escapeHtml(providerDisplayName(fb.provider_id));
       }
-      return '<span class="routing-pill" title="When primary at cap — ops: migrate phase or upgrade tier">Fallback pool (ML · OS · Brevo)</span>';
+      return '<span class="routing-pill" title="When primary at cap — ops: migrate phase or upgrade tier">Fallback pool (ML · OS · Brevo · Loops)</span>';
     }
 
     function primaryTouchCell(touch, seq) {
@@ -96,7 +100,7 @@
     }
 
     function inventoryPhaseOrder() {
-      return ["ph_interim", "phase_1_activation", "phase_2_paid", "phase_2_conversion"];
+      return ["ph_interim", "phase_1_activation", "phase_2_paid", "phase_2_conversion", "operational"];
     }
 
     function renderEmailInventory() {
@@ -417,6 +421,11 @@
       document.addEventListener("click", (e) => {
         const btn = e.target.closest(".copy-btn");
         if (!btn) return;
+        const inline = btn.getAttribute("data-copy-inline");
+        if (inline) {
+          copyToClipboard(inline, btn);
+          return;
+        }
         const seqId = btn.getAttribute("data-seq");
         const kind = btn.getAttribute("data-copy-kind");
         const entry = copyManifest[seqId];
@@ -430,6 +439,103 @@
       const cap = capacityForProvider(id);
       if (!cap) return "";
       return `<span class="status-pill status-${cap.status}">${escapeHtml(cap.status.replace("_", " "))}</span>`;
+    }
+
+    const SETUP_STATUS_LABELS = {
+      ready: "Ready",
+      pending_verification: "Pending verification",
+      sandbox: "Sandbox",
+      account_recovery: "Account recovery",
+      access_blocked: "Access blocked",
+      not_started: "Not started",
+    };
+
+    const SETUP_ROLE_LABELS = {
+      phase_1_primary: "Phase 1 primary",
+      phase_2_paid: "Phase 2 paid",
+      phase_2_conversion: "Phase 2 conversion",
+      phase_3_terminal: "Phase 3 terminal",
+      fallback: "Fallback pool",
+      operational: "Operational pool",
+    };
+
+    function setupStatusPill(provider) {
+      const st = provider?.account_setup?.status;
+      if (!st) return "";
+      const label = SETUP_STATUS_LABELS[st] || st.replace(/_/g, " ");
+      return `<span class="setup-pill setup-${escapeHtml(st)}">${escapeHtml(label)}</span>`;
+    }
+
+    function formatSetupBool(v) {
+      if (v === true) return "Yes";
+      if (v === false) return "No";
+      return "—";
+    }
+
+    function renderProviderSetup() {
+      const providers = (emailData?.providers || []).filter((p) => p.account_setup);
+      const meta = emailData?.provider_setup_meta || {};
+      const counts = {};
+      providers.forEach((p) => {
+        const st = p.account_setup.status || "not_started";
+        counts[st] = (counts[st] || 0) + 1;
+      });
+      const countParts = [];
+      if (counts.ready) countParts.push(`${counts.ready} ready`);
+      if (counts.sandbox) countParts.push(`${counts.sandbox} sandbox`);
+      if (counts.pending_verification) countParts.push(`${counts.pending_verification} pending`);
+      const blocked = (counts.access_blocked || 0) + (counts.account_recovery || 0);
+      if (blocked) countParts.push(`${blocked} need action`);
+      const summaryLine = countParts.length ? countParts.join(" · ") : "No setup data";
+      const asOf = meta.as_of ? ` · as of ${escapeHtml(meta.as_of)}` : "";
+
+      const rows = providers
+        .map((p) => {
+          const s = p.account_setup;
+          const role = SETUP_ROLE_LABELS[p.funnel_role] || p.funnel_role || "—";
+          return `<tr data-provider-setup="${escapeHtml(p.id)}">
+            <td><strong>${escapeHtml(p.name)}</strong></td>
+            <td>${escapeHtml(role)}</td>
+            <td>${setupStatusPill(p)}</td>
+            <td>${formatSetupBool(s.api_key_configured)}</td>
+            <td>${formatSetupBool(s.domain_verified)}</td>
+            <td>${s.next_action ? escapeHtml(s.next_action) : '<span class="section-cap">—</span>'}</td>
+          </tr>`;
+        })
+        .join("");
+
+      const blockers = providers
+        .filter((p) => ["access_blocked", "account_recovery"].includes(p.account_setup?.status))
+        .map(
+          (p) =>
+            `<div class="banner banner-warn"><strong>${escapeHtml(p.name)}:</strong> ${escapeHtml(p.account_setup.next_action || p.account_setup.notes || "Action required")}</div>`
+        )
+        .join("");
+
+      const beehiiv = providerById("beehiiv");
+      const mcp = beehiiv?.mcp;
+      let mcpBlock = "";
+      if (mcp) {
+        const connector = mcp.connector_url || "";
+        mcpBlock = `<div class="setup-mcp-card" id="beehiiv-mcp">
+          <h3>Beehiiv MCP <span class="routing-pill">AI connector</span></h3>
+          <p class="section-cap">Separate from the Beehiiv API key — connects Claude, Cursor, or other MCP clients to your account (v1 read-only). <a href="${escapeHtml(mcp.announcement_url)}" target="_blank" rel="noopener">Product announcement</a> · paid-plan early access.</p>
+          <p class="section-cap"><strong>Connector URL:</strong> <code class="setup-mcp-url">${escapeHtml(connector)}</code>
+            <button type="button" class="copy-btn" data-copy-inline="${escapeHtml(connector)}">Copy URL</button></p>
+          <p class="section-cap"><strong>Cursor:</strong> ${escapeHtml(mcp.cursor_steps || "Add MCP server with connector URL, then complete OAuth in the browser.")}</p>
+        </div>`;
+      }
+
+      return `<section id="provider-setup">
+        <h2>Provider account setup (live)</h2>
+        <p class="section-cap">${escapeHtml(meta.summary || "Account and API readiness — distinct from sequence automation status.")}${asOf} · <strong>${summaryLine}</strong></p>
+        ${blockers}
+        <table class="setup-table">
+          <thead><tr><th>Provider</th><th>Role</th><th>Account</th><th>API key</th><th>Domain</th><th>Next action</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        ${mcpBlock}
+      </section>`;
     }
 
     function previewOpenButton(path, title, key, preheader) {
@@ -608,6 +714,7 @@
         phase_2_conversion: "Phase 2 conversion",
         phase_3_terminal: "Phase 3 terminal",
         fallback: "Fallback pool",
+        operational: "Operational",
       };
       const roleLabel = roleLabels[p.funnel_role]
         ? `<span class="routing-pill">${escapeHtml(roleLabels[p.funnel_role])}</span>`
@@ -616,12 +723,27 @@
         ? `<span class="routing-pill">PH interim</span>`
         : "";
       const deprecated = p.status === "deprecated" ? `<span class="section-cap"> (deprecated)</span>` : "";
+      const setup = p.account_setup;
+      const nextAction =
+        setup && setup.status !== "ready" && setup.next_action
+          ? `<div class="setup-next-action"><strong>Next:</strong> ${escapeHtml(setup.next_action)}</div>`
+          : "";
+      const setupNotes = setup?.notes && setup.status !== "ready"
+        ? `<div class="setup-next-action">${escapeHtml(setup.notes)}</div>`
+        : setup?.notes && setup.status === "ready"
+          ? `<div class="section-cap">${escapeHtml(setup.notes)}</div>`
+          : "";
+      const mcpLink =
+        p.id === "beehiiv" && p.mcp
+          ? ` · <a href="#beehiiv-mcp">Connect MCP</a>`
+          : "";
       return `<div class="provider-card ${providerStatusClass(p.id)}" data-provider-id="${escapeHtml(p.id)}">
-            <h3>${nameHtml} ${roleLabel} ${phTag} ${providerStatusPill(p.id)}${deprecated}</h3>
+            <h3>${nameHtml} ${roleLabel} ${phTag} ${setupStatusPill(p)} ${providerStatusPill(p.id)}${deprecated}${mcpLink}</h3>
             <div class="limits">${escapeHtml(formatLimits(p))}</div>
             <div class="constraints">${(p.constraints || []).map(escapeHtml).join(" · ")}</div>
             <div class="upgrade"><strong>Upgrade when:</strong> ${escapeHtml(p.upgrade_trigger || "—")}</div>
             ${p.notes ? `<div class="upgrade">${escapeHtml(p.notes)}</div>` : ""}
+            ${setupNotes}${nextAction}
             <div class="seq-list">Sequences: ${used.length ? escapeHtml(used.join(", ")) : "—"}</div>
           </div>`;
     }
@@ -652,6 +774,12 @@
           return `<div class="pool-member"><strong>${escapeHtml(p.name)}</strong>${parts.join(" · ")}</div>`;
         })
         .join("");
+      const opPool = emailData?.operational_pool || {};
+      const operationalMembers = providers.filter((p) => p.funnel_role === "operational");
+      const opCap = snapshotData?.email_provider_capacity?.operational_pool_aggregate;
+      const opLive = opCap?.provider_count
+        ? `<p class="section-cap"><strong>Live operational usage:</strong> ${Number(opCap.daily_used || 0).toLocaleString()} / ${Number(opCap.daily_cap || 100).toLocaleString()} sends/day est.</p>`
+        : "";
       return `<div class="provider-grid-grouped">
         <h3 class="provider-group-heading">Primary providers</h3>
         <div class="provider-grid">${primary.map((p) => renderProviderCard(p, seqs)).join("")}</div>
@@ -661,6 +789,12 @@
           ${aggLine}${livePool}
           <div class="pool-members">${memberChips}</div>
           <div class="provider-grid">${fallbackMembers.map((p) => renderProviderCard(p, seqs)).join("")}</div>
+        </div>
+        <div class="operational-pool-card">
+          <h3>Operational pool <span class="routing-pill">Resend → SES</span></h3>
+          <p class="section-cap">${escapeHtml(opPool.notes || "")}</p>
+          ${opLive}
+          <div class="provider-grid">${operationalMembers.map((p) => renderProviderCard(p, seqs)).join("")}</div>
         </div>
       </div>`;
     }
@@ -733,12 +867,21 @@
         })
         .join("");
       const pool = cap.pool_aggregate;
+      const opPool = cap.operational_pool_aggregate;
       const poolBanner = pool?.provider_count
-        ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Number(pool.send_used).toLocaleString()} / ${Number(pool.send_cap).toLocaleString()} sends/mo · ${Number(pool.contact_used).toLocaleString()} / ${Number(pool.contact_cap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo — fallback when primary at cap).</p>`
+        ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Number(pool.send_used).toLocaleString()} / ${Number(pool.send_cap).toLocaleString()} sends/mo · ${Number(pool.contact_used).toLocaleString()} / ${Number(pool.contact_cap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo + Loops).</p>`
+        : "";
+      const sesBanner = cap.ses_sandbox
+        ? `<div class="banner banner-warn"><strong>Amazon SES sandbox:</strong> Automated operational blasts blocked until production access is approved. Test sends to verified emails only. See <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/OPERATIONAL_EMAIL_RUNBOOK.md#ses-production-access">OPERATIONAL_EMAIL_RUNBOOK.md</a>.</div>`
+        : "";
+      const opBanner = opPool?.provider_count
+        ? `<p class="section-cap"><strong>Operational pool (Resend primary):</strong> ${Number(opPool.daily_used || 0).toLocaleString()} / ${Number(opPool.daily_cap || 100).toLocaleString()} sends/day est. · ${Number(opPool.send_cap || 3000).toLocaleString()}/mo cap — legal &amp; incident only.</p>`
         : "";
       return `<section id="provider-capacity">
         <h2>Provider capacity &amp; near-limit</h2>
-        <p class="section-cap">${escapeHtml(cap.estimation_note || "")} · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md#6-capacity-runway-and-upgrade-triggers">Proposal §6</a></p>
+        <p class="section-cap">${escapeHtml(cap.estimation_note || "")} · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/OPERATIONAL_EMAIL_RUNBOOK.md">Operational runbook</a> · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md#3b-operational--broadcast-email">Proposal §3b</a></p>
+        ${sesBanner}
+        ${opBanner}
         ${poolBanner}
         ${alert}
         <table class="capacity-table">
@@ -811,7 +954,8 @@
     const FALLBACK_PROVIDER_IDS = new Set(["mailerlite", "omnisend", "brevo"]);
     const PAID_SEQ_IDS = new Set(["upgrade_thank_you", "cancelled_winback"]);
 
-    const FALLBACK_CAPS = { mailerlite: 500, omnisend: 250, brevo: 2000 };
+    const FALLBACK_CAPS = { mailerlite: 500, omnisend: 250, brevo: 2000, loops: 1000 };
+    const RESEND_DAILY_CAP = 100;
 
     function conversionContactDemand(ctx) {
       const conv =
@@ -987,7 +1131,8 @@
       const poolContactsUsed =
         providerContactsSim("mailerlite", ctx, poolAlloc) +
         providerContactsSim("omnisend", ctx, poolAlloc) +
-        providerContactsSim("brevo", ctx, poolAlloc);
+        providerContactsSim("brevo", ctx, poolAlloc) +
+        providerContactsSim("loops", ctx, poolAlloc);
 
       if (poolDemand > 0 || beehiivContacts >= 2000) activeRules.push("fallback_pool");
       if (beehiivContacts >= 2000) activeRules.push("beehiiv_prune_to_phase2");
@@ -1108,7 +1253,7 @@
       for (const cliff of emailData?.capacity_cliffs || []) {
         let fire = false;
         if (cliff.id === "fallback_pool_aggregate") {
-          fire = poolContactsUsed > 2200;
+          fire = poolContactsUsed > 3000;
         } else if (cliff.id === "brevo_launch_peak") {
           fire = dailyPeaks.brevo > 240;
         } else if (cliff.id === "hubspot_send_budget") {
@@ -1272,9 +1417,11 @@
                 .join(" · ") || "demand below pool caps"}${sim.poolDemand ? ` · total overflow demand ${Math.round(sim.poolDemand).toLocaleString()}` : ""}</p>`
             : "";
         const poolLine = pool.providerCount
-          ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Math.round(pool.sendUsed).toLocaleString()} / ${Math.round(pool.sendCap).toLocaleString()} sends/mo (${poolPct}%) · ${Math.round(pool.contactUsed).toLocaleString()} / ${Math.round(pool.contactCap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo — fallback when primary at cap) · <strong>HubSpot Phase 3:</strong> ~${(sim.companyEmailUsers + sim.autoPaid).toLocaleString()} CRM contacts</p>${poolAllocLine}`
+          ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Math.round(pool.sendUsed).toLocaleString()} / ${Math.round(pool.sendCap).toLocaleString()} sends/mo (${poolPct}%) · ${Math.round(pool.contactUsed).toLocaleString()} / ${Math.round(pool.contactCap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo + Loops) · <strong>HubSpot Phase 3:</strong> ~${(sim.companyEmailUsers + sim.autoPaid).toLocaleString()} CRM contacts</p>${poolAllocLine}`
           : poolAllocLine;
-        summaryEl.innerHTML = `${rateWarn}${stallBanner}${rules}${cliffs}${poolLine}<p class="section-cap"><strong>Brevo tier:</strong> ${sim.useBrevoStarter ? "Starter ($29/mo)" : "Free (300/day · 2k contacts)"} · ${escapeHtml(sim.goalsNote)} · Total users: ${sim.totalUsers.toLocaleString()} · Brevo peak day: ~${Math.round(sim.dailyPeaks?.brevo || 0).toLocaleString()}/${sim.useBrevoStarter ? "—" : "300"}</p>`;
+        const blastDays = Math.max(1, Math.ceil(sim.totalUsers / RESEND_DAILY_CAP));
+        const opBlastLine = `<p class="section-cap"><strong>Operational blast (legal/incident):</strong> ${sim.totalUsers.toLocaleString()} users → ${blastDays} day(s) at Resend 100/day${sim.totalUsers <= RESEND_DAILY_CAP ? " (fits one day)" : ""} · SES failover when production approved.</p>`;
+        summaryEl.innerHTML = `${rateWarn}${stallBanner}${rules}${cliffs}${poolLine}${opBlastLine}<p class="section-cap"><strong>Brevo tier:</strong> ${sim.useBrevoStarter ? "Starter ($29/mo)" : "Free (300/day · 2k contacts)"} · ${escapeHtml(sim.goalsNote)} · Total users: ${sim.totalUsers.toLocaleString()} · Brevo peak day: ~${Math.round(sim.dailyPeaks?.brevo || 0).toLocaleString()}/${sim.useBrevoStarter ? "—" : "300"}</p>`;
       }
 
       const cardsEl = document.getElementById("scenario-provider-cards");
@@ -1598,6 +1745,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         <a href="#capacity-scenarios">Scenario planner</a>
         <a href="#provider-capacity">Live capacity</a>
         <a href="#capacity">Cliffs</a>
+        <a href="#provider-setup">Account setup</a>
         <a href="#providers">Providers</a>
         <a href="#preview-gallery">Previews</a>
         <a href="#ops">Ops loop</a>
@@ -1765,9 +1913,10 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
           <p class="section-cap">When free tiers break — simulation-backed triggers. Use <a href="#capacity-scenarios">scenario planner</a> to test signup volume.</p>
           ${renderCliffsTable()}
         </section>
+        ${renderProviderSetup()}
         <section id="providers">
           <h2>Email providers (free tier)</h2>
-          <p class="section-cap"><strong>Phase 1</strong> Beehiiv · <strong>Phase 2</strong> Mailgun/HubSpot (paid) or EmailOctopus (free) · <strong>Phase 3</strong> terminal · <strong>Fallback pool</strong> = MailerLite + OmniSend + Brevo (fallback when primary at cap).</p>
+          <p class="section-cap"><strong>Phase 1</strong> Beehiiv · <strong>Phase 2</strong> Mailgun/HubSpot (paid) or EmailOctopus (free) · <strong>Phase 3</strong> terminal · <strong>Fallback pool</strong> = MailerLite + OmniSend + Brevo + Loops · <strong>Operational pool</strong> = Resend → SES. See <a href="#provider-setup">account setup</a> for live credentials and blockers.</p>
           ${renderProvidersGrouped()}
           ${renderProviderCandidates()}
         </section>

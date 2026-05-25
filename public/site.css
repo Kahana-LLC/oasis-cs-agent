@@ -642,6 +642,67 @@ th {
 .provider-card.provider-near-limit { border-color: #ffc107; }
 .provider-card.provider-at-limit { border-color: #ff6b6b; }
 
+.setup-pill {
+  display: inline-block;
+  font-size: 0.68rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+.setup-pill.setup-ready { background: rgba(61, 139, 110, 0.2); color: #6dd4a8; }
+.setup-pill.setup-pending_verification,
+.setup-pill.setup-sandbox { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
+.setup-pill.setup-account_recovery,
+.setup-pill.setup-access_blocked,
+.setup-pill.setup-not_started { background: rgba(255, 107, 107, 0.15); color: #ff8a8a; }
+
+.setup-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+}
+
+.setup-table th,
+.setup-table td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.setup-mcp-card {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.setup-mcp-card h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+
+.setup-mcp-url {
+  word-break: break-all;
+  font-size: 0.8rem;
+}
+
+.setup-next-action {
+  font-size: 0.8rem;
+  color: #ffc107;
+  margin-top: 0.35rem;
+}
+
+.operational-pool-card {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.operational-pool-card h3 { margin-top: 0; }
+
 .capacity-table {
   width: 100%;
   border-collapse: collapse;
@@ -1000,6 +1061,7 @@ th {
 .funnel-phase-badge.phase-2-paid { background: rgba(234, 179, 8, 0.15); color: #fbbf24; }
 .funnel-phase-badge.phase-2-conv { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
 .funnel-phase-badge.ph-interim { background: #243044; color: var(--muted); }
+.funnel-phase-badge.phase-operational { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
 
 .impl-state-table,
 .routing-table {

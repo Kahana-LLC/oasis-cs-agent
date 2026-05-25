@@ -11,6 +11,7 @@ HTML, plain-text, and drag-and-drop specs for Oasis lifecycle and Product Hunt c
 | [`lifecycle/`](lifecycle/) | Welcome, activation, limit-hitter, cancelled win-back, NPS, PMF, Paid Zen |
 | [`conversion/`](conversion/) | At-risk nurture, dead resurrection, return reinforcement |
 | [`enterprise/`](enterprise/) | B2B founder + expansion (HubSpot) |
+| [`operational/`](operational/) | Legal/policy + incident notices (Resend / SES) |
 | [`ph-waitlist/`](ph-waitlist/) | Product Hunt teaser + launch emails, Zen gift snippets |
 | [`shared/`](shared/) | Founder header/signoff, Slack button, support links |
 

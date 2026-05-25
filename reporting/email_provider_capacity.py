@@ -11,6 +11,7 @@ MANIFEST_PATH = ROOT / "public" / "email_sequences.json"
 
 CADENCE_SENDS: dict[str, int] = {
     "one-time": 1,
+    "one-time-broadcast": 1,
     "drip-2-4": 3,
     "one-time-plus-d7": 2,
     "campaign-2-touch": 2,
@@ -24,7 +25,8 @@ DEFAULT_NEAR_LIMIT = {
     "runway_months_min": 2,
 }
 
-FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo"})
+FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo", "loops"})
+OPERATIONAL_PROVIDER_IDS = frozenset({"resend", "ses"})
 
 
 def _load_manifest(path: Path | None = None) -> dict[str, Any]:
@@ -38,11 +40,14 @@ def _eligible_cohort(
     bucket_counts: dict[str, int],
     monetization: dict[str, Any],
     corporate_goals: dict[str, Any],
+    total_users: int = 0,
 ) -> int:
     total = 0
     launch = (corporate_goals or {}).get("launch") or {}
     for key in buckets or []:
-        if key in bucket_counts:
+        if key == "operational_all":
+            total += total_users
+        elif key in bucket_counts:
             total += int(bucket_counts.get(key) or 0)
         elif key == "paid":
             total += int(monetization.get("paid_subscribers") or 0)
@@ -71,10 +76,13 @@ def _projected_sends_for_provider(
     bucket_counts: dict[str, int],
     monetization: dict[str, Any],
     corporate_goals: dict[str, Any],
+    total_users: int = 0,
 ) -> float:
     monthly = 0.0
     for seq in sequences:
         if seq.get("provider_id") != provider_id:
+            continue
+        if seq.get("funnel_phase") == "operational":
             continue
         sends_per_user = _touch_count(seq, manifest)
         eligible = _eligible_cohort(
@@ -82,6 +90,7 @@ def _projected_sends_for_provider(
             bucket_counts=bucket_counts,
             monetization=monetization,
             corporate_goals=corporate_goals,
+            total_users=total_users,
         )
         monthly += eligible * sends_per_user
     return monthly
@@ -141,6 +150,59 @@ def _pool_aggregate(
     }
 
 
+def _operational_blast_sends_per_month(
+    sequences: list[dict[str, Any]],
+    *,
+    total_users: int,
+    blasts_per_month: float = 0.25,
+) -> float:
+    """Rough capacity: fraction of userbase × active operational sequences (manual blasts)."""
+    op_count = sum(1 for s in sequences if s.get("funnel_phase") == "operational")
+    if not op_count:
+        return 0.0
+    return total_users * blasts_per_month * op_count
+
+
+def _operational_pool_aggregate(
+    provider_rows: list[dict[str, Any]],
+    manifest: dict[str, Any],
+    *,
+    sequences: list[dict[str, Any]] | None = None,
+    total_users: int = 0,
+) -> dict[str, Any]:
+    """Resend + SES (+ Brevo emergency) — legal/incident lane."""
+    pool = manifest.get("operational_pool") or {}
+    pool_ids = pool.get("provider_ids") or list(OPERATIONAL_PROVIDER_IDS)
+    sequences = sequences or manifest.get("sequences") or []
+    send_used = _operational_blast_sends_per_month(sequences, total_users=total_users)
+    send_cap = 0.0
+    daily_cap = 0.0
+    daily_used = send_used / 30.0
+    for row in provider_rows:
+        if row["id"] not in pool_ids:
+            continue
+        prov = next((p for p in manifest.get("providers") or [] if p["id"] == row["id"]), None)
+        lim = (prov or {}).get("free_limits") or {}
+        mo = lim.get("emails_per_month")
+        if mo:
+            send_cap += mo
+        if lim.get("emails_per_day"):
+            daily_cap += lim["emails_per_day"]
+    agg = pool.get("aggregate_free_limits") or {}
+    if agg.get("sends_per_month"):
+        send_cap = max(send_cap, agg["sends_per_month"])
+    if agg.get("sends_per_day"):
+        daily_cap = max(daily_cap, agg["sends_per_day"])
+    return {
+        "send_used": round(send_used, 1),
+        "send_cap": round(send_cap, 1),
+        "daily_used": round(daily_used, 1),
+        "daily_cap": round(daily_cap, 1),
+        "provider_count": len(pool_ids),
+        "primary_provider_id": pool.get("primary_provider_id", "resend"),
+    }
+
+
 def _contact_usage(
     provider_id: str,
     *,
@@ -169,6 +231,10 @@ def _contact_usage(
         )
     if provider_id == "brevo":
         return min(total_users, total_users)
+    if provider_id in OPERATIONAL_PROVIDER_IDS:
+        return total_users
+    if provider_id == "loops":
+        return min(1000, max(0, total_users - 2000)) if total_users > 2000 else min(total_users, 200)
     return int(total_users)
 
 
@@ -296,6 +362,7 @@ def compute_email_provider_capacity(
             bucket_counts=bucket_counts,
             monetization=monetization,
             corporate_goals=corporate_goals,
+            total_users=total_users,
         )
         daily_sends = monthly_sends / 30.0
 
@@ -333,6 +400,8 @@ def compute_email_provider_capacity(
 
         runway = _runway_months(monthly_sends, monthly_limit)
         status = _provider_status(metrics, runway, thresholds["runway_months_min"])
+        if prov.get("implementation_status") == "blocked_sandbox":
+            status = "blocked_sandbox"
         errors = _near_limit_errors(
             name, metrics, runway, thresholds["runway_months_min"]
         )
@@ -359,14 +428,22 @@ def compute_email_provider_capacity(
         )
 
     pool = _pool_aggregate(provider_rows, providers)
+    op_pool = _operational_pool_aggregate(
+        provider_rows, manifest, sequences=sequences, total_users=total_users
+    )
+    ses_prov = next((p for p in providers if p["id"] == "ses"), None)
+    ses_sandbox = bool(ses_prov and ses_prov.get("production_pending"))
 
     return {
         "as_of": as_of,
         "providers": provider_rows,
         "pool_aggregate": pool,
+        "operational_pool_aggregate": op_pool,
+        "ses_sandbox": ses_sandbox,
         "any_near_limit": any_near_limit,
         "estimation_note": (
             "v1 estimates: Beehiiv Phase 1 contacts; EmailOctopus Phase 2 conversion; "
-            "fallback pool = MailerLite + OmniSend + Brevo (used when primary at cap); HubSpot = paid + company email."
+            "fallback pool = MailerLite + OmniSend + Brevo + Loops; "
+            "operational pool = Resend + SES (legal/incident); HubSpot = paid + company email."
         ),
     }

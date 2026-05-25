@@ -72,6 +72,8 @@ Until history accumulates, delta badges show “—”. Run `.venv/bin/python ma
 1. Open `https://oasis-analytics.vercel.app/api/snapshot` — JSON with `generated_at` and metrics.
 2. Open the main URL — header shows **Last updated** and **Source: live (Supabase)**.
 3. Open `/email-machine` — engineer reference for DAU buckets, triggers, and free-tier email providers (data from `public/email_sequences.json`). The **Email previews** gallery shows rendered Brevo templates when the build step synced `public/emails/*.html`.
+
+Operational broadcasts (legal, privacy, outage) use Resend/SES per [`docs/OPERATIONAL_EMAIL_RUNBOOK.md`](OPERATIONAL_EMAIL_RUNBOOK.md) and `scripts/send_operational.py`, not the static-site build alone.
 4. Hard-refresh — `generated_at` should reflect a new pull.
 5. If API returns `{"error":"Missing environment variable: ..."}` — add secrets in Vercel and redeploy.
 
