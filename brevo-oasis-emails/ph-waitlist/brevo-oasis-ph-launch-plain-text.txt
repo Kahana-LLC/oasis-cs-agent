@@ -1,20 +1,34 @@
+Adam Kershner
+Founder, Oasis
+
 Hi {{ contact.FIRSTNAME }},
 
-We're live on Product Hunt today. Oasis for Mac is available now.
-
-GET OASIS ON PRODUCT HUNT
-https://www.producthunt.com/products/kahana?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-oasis-browser-for-mac
-
 We just launched Oasis on Product Hunt and I could not be more excited. You can get Oasis for Mac today through Product Hunt. Head to our Product Hunt page to download the browser, upvote our launch, and share your honest feedback in a comment.
+https://www.producthunt.com/products/kahana?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-oasis-browser-for-mac
 
 Oasis is a privacy-first AI browser you can train, available now for Mac (Firefox engine, Apple Silicon and Intel). Product Hunt is the place to get it today.
 
-6 MONTHS OF OASIS ZEN, ON US
-1,000,000 tokens per day for 6 months
+Oasis Browser for Mac — get it on Product Hunt:
+https://www.producthunt.com/products/kahana?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-oasis-browser-for-mac
 
-I wanted to do something unexpected for the people who have been with us from the waitlist. Upvote Oasis on Product Hunt and leave a genuine comment with your feedback. I will gift you 6 months of Oasis Zen: 1,000,000 tokens per day, essentially the paid version of Oasis, free for half a year.
+Upvote on Product Hunt (same link):
+https://www.producthunt.com/products/kahana?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-oasis-browser-for-mac
 
-That is 6 months of our $20/mo Zen plan (~$120 value).
+Oasis for Mac is available now on Product Hunt. Open our launch page to download the browser, upvote, and leave a genuine comment.
+
+BONUS: Share your feedback on Product Hunt, send me a screenshot, and I'll unlock 3 months of 1,000,000 daily tokens as a thank-you (3 months free trial of premium).
+
+WANT WINDOWS, LINUX, OR CHROMIUM?
+
+Today's launch is Oasis for Mac on Product Hunt. If you'd rather get notified for early access to Chromium, Windows, or Linux — instead of or in addition to the Mac and Firefox builds available today — join our waitlist:
+https://kahana.co/oasis-waitlist
+
+This is a waitlist for launch updates, not a newsletter. We promise not to spam. On the next page you can choose Chromium, Firefox, or either works.
+
+3 MONTHS OF OASIS ZEN, ON US
+1,000,000 daily tokens for 3 months
+
+I wanted to do something unexpected for the people who have been with us from the waitlist. Upvote Oasis on Product Hunt and leave a genuine comment with your feedback. I will gift you 3 months of Oasis Zen: 1,000,000 daily tokens, essentially a 3-month free trial of premium.
 
 HOW TO GET OASIS AND CLAIM YOUR GIFT
 
@@ -23,7 +37,7 @@ https://www.producthunt.com/products/kahana?embed=true&utm_source=badge-featured
 
 2. Upvote Oasis and leave a genuine comment on that same page with your honest feedback.
 
-3. Reply to this email with a screenshot of your comment so we can verify it and activate your 6 months of Zen.
+3. Reply to this email with a screenshot of your comment so we can verify it and activate your 3 months of Zen.
 
 Offer valid for 7 days from launch. One gift per person. Comment must be genuine, original feedback (not spam or copy-paste). Reply email must match your Oasis account. We manually verify comments on Product Hunt; allow 2-3 business days to activate your gift.
 
@@ -73,20 +87,28 @@ I would really love your thoughts and feedback if you get a chance to check it o
 Thanks so much for the consideration. It means a lot. If you have not yet, get Oasis on Product Hunt, upvote, and leave a comment:
 https://www.producthunt.com/products/kahana?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-oasis-browser-for-mac
 
-Mobile and a Chromium build for Windows, Mac, and Linux are coming soon.
-
 I'm hoping you'll join us on this journey to the Oasis :)
 
 I'll be very much available to chat and answer questions in DMs if you connect with me, or if you respond to this email. Either way I'll be there to help and answer questions along the way!
 
-Connect with me: https://kahana.co/adam-kershner
+I'm here if you have questions, feedback, or just want to talk. Reply to this email anytime — my DMs are open on the links below. I'm here to help :)
+
+- Adam
+
+Work hard. Be kind. The rest will follow.
+
+All my socials: https://kahana.co/adam-kershner
+X: https://twitter.com/adam_kershner
+Instagram: https://www.instagram.com/adam_kershner/
+TikTok: https://www.tiktok.com/@adam_kershner
+YouTube: https://www.youtube.com/@adam_kershner
 
 MAKE OASIS YOUR OWN
 Assistant themes are a fan-favorite. Browse all 7 themes:
 https://kahana.co/docs/assistant-themes
 
-Choose your version (Mac, Windows, Linux · Chromium or Firefox):
-https://tally.so/r/w8V8GA
+Early access waitlist (Chromium, Windows, Linux — pick engine on the page):
+https://kahana.co/oasis-waitlist
 
 Questions?
 Browse docs: https://kahana.co/docs

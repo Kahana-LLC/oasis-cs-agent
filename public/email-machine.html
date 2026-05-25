@@ -1731,7 +1731,7 @@ provider = max(headroom, key=headroom.get)`;
       return `<section id="implementation">
         <h2>Implementation guide</h2>
         <p class="section-cap">Wiring spec for CS agent + Supabase. <strong>${stats.pending} of ${stats.total} sequences</strong> need implementation (${stats.shipped} shipped).</p>
-        <div class="banner banner-info"><strong>Phase 1 primary:</strong> <strong>Brevo Starter ($29/mo)</strong> recommended before Product Hunt. <strong>Operational:</strong> <strong>Resend Pro ($20/mo)</strong> for legal/outage until SES production — not Brevo. Lifecycle overflow → <span class="code">fallback_pool</span> (${escapeHtml(fallbackPoolMemberLabel())}).</div>
+        <div class="banner banner-info"><strong>Phase 1 primary:</strong> <strong>Brevo Starter ($29/mo)</strong> recommended before Product Hunt. <strong>Operational:</strong> <strong>Resend Pro ($20/mo)</strong> for legal/outage until SES production — not Brevo. Lifecycle overflow → <span class="code">fallback_pool</span> (${escapeHtml(fallbackPoolMemberLabel())}).${emailData?.launch_config?.brevo_phase1 ? ` <strong>Phase 1:</strong> <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/BREVO_NAMING.md">BREVO_NAMING.md</a> · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/BREVO_PHASE1_TEST_SETUP.md">setup</a> · enroll: <span class="code">scripts/enroll_brevo_phase1.py</span>` : ""}</div>
         <h3>User lifecycle states</h3>
         <table class="impl-state-table">
           <thead><tr><th>State</th><th>Entry</th><th>Exit condition</th><th>Next</th></tr></thead>

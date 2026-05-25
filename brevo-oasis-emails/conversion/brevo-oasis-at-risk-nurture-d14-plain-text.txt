@@ -1,16 +1,24 @@
-Hi {{ contact.FIRSTNAME }},
-
 Adam Kershner
 Founder, Oasis
 
-Two weeks away makes churn likely.
-Reply if something blocked you.
-Open Oasis: https://kahana.co/installations
+Hi {{ contact.FIRSTNAME }},
 
-Give Oasis another try: https://kahana.co/installations
+It has been about two weeks since you were last active in Oasis.
+If Oasis is not fitting your workflow, I want to understand why — bugs, confusion, missing features, or something else.
+YOUR HONEST TAKE HELPS: Reply to this email. I read every note.
+If you are using Oasis today: https://kahana.co/installations
 
-I'm here if you have questions.
-Connect with me: https://kahana.co/adam-kershner
+Reply to this email with anything on your mind — bugs, friction, or ideas for what would make Oasis better for you. I read every note and use it to improve the product.
+
+- Adam
+
+Work hard. Be kind. The rest will follow.
+
+All my socials: https://kahana.co/adam-kershner
+X: https://twitter.com/adam_kershner
+Instagram: https://www.instagram.com/adam_kershner/
+TikTok: https://www.tiktok.com/@adam_kershner
+YouTube: https://www.youtube.com/@adam_kershner
 
 You're receiving this as an Oasis user.
 Docs: https://kahana.co/docs

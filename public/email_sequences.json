@@ -539,6 +539,44 @@
       "after_launch": "If signups taper after PH, revisit downgrade to free. If volume stays high, keeping Starter supports conversion at scale — more users is the problem you want.",
       "overflow_note": "Keep Loops + Resend in the fallback pool for extreme spikes above ~20k Brevo sends/mo."
     },
+    "brevo_phase1": {
+      "status": "setup_required",
+      "list_name": "Oasis Lifecycle",
+      "list_id": null,
+      "automation_name": "Oasis Phase 1",
+      "naming_doc": "docs/BREVO_NAMING.md",
+      "template_names": {
+        "welcome": "Oasis Welcome",
+        "activation_nudge": "Oasis Activation Nudge",
+        "activation_cs_calendar": "Oasis Activation CS Calendar",
+        "nps_day3": "Oasis NPS",
+        "pmf_day10": "Oasis PMF",
+        "ph_teaser": "Oasis PH Teaser",
+        "ph_launch": "Oasis PH Launch"
+      },
+      "enroll_on": "script_after_signup",
+      "initial_test_wait_minutes": 1,
+      "initial_test_note": "While validating, use 1-minute waits in Oasis Phase 1 (~4 minutes for emails 2-5). Then edit the same automation for production delays and conditionals.",
+      "test_emails": [
+        "adamkershnerdev1@gmail.com",
+        "adamthewrite@gmail.com"
+      ],
+      "sequence_ids": [
+        "welcome",
+        "activation_nudge",
+        "activation_cs_calendar",
+        "nps_day3",
+        "pmf_day10"
+      ],
+      "runbook": "docs/BREVO_PHASE1_TEST_SETUP.md",
+      "enroll_script": "scripts/enroll_brevo_phase1.py",
+      "brevo_status": "automation_pending",
+      "oasis_signup_integration": {
+        "status": "not_wired",
+        "contract": "After users row is created: resolve user_id + email; call integrations.brevo_phase1.enroll_user_for_phase1 (adds contact to Oasis Lifecycle list, triggers Oasis Phase 1)."
+      },
+      "deprecated_manifest_key": "brevo_phase1_test renamed to brevo_phase1; use BREVO_LIFECYCLE_LIST_ID instead of BREVO_PHASE1_QA_LIST_ID"
+    },
     "company_email_pct": 0.15,
     "consumer_email_domains": [
       "gmail.com",
@@ -819,7 +857,8 @@
         "path": "/emails/ph_teaser.html",
         "subject": "Tomorrow on Product Hunt (+ a launch-day surprise)",
         "preheader": "Privacy-first AI browser. Something special for genuine launch-day feedback.",
-        "from_name": "Oasis by Kahana",
+        "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis PH Teaser",
         "plain_text_source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-teaser-plain-text.txt"
       },
       "funnel_phase": "ph_interim",
@@ -874,7 +913,8 @@
         "path": "/emails/ph_launch.html",
         "subject": "We're live on Product Hunt: 6 months of Zen, on us",
         "preheader": "Leave genuine feedback on our launch page. Reply with a screenshot to claim 1M tokens/day.",
-        "from_name": "Oasis by Kahana",
+        "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis PH Launch",
         "plain_text_source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-launch-plain-text.txt"
       },
       "funnel_phase": "ph_interim",
@@ -930,6 +970,7 @@
         "subject": "Welcome to Oasis",
         "preheader": "Docs, Slack, and support links to get started.",
         "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis Welcome",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-welcome-plain-text.txt"
       },
       "funnel_phase": "phase_1_activation",
@@ -980,6 +1021,7 @@
         "subject": "Quick question: how likely are you to recommend Oasis?",
         "preheader": "One question. Your feedback helps us improve.",
         "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis NPS",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3-plain-text.txt"
       },
       "funnel_phase": "phase_1_activation",
@@ -1033,6 +1075,7 @@
         "subject": "Help us understand how Oasis fits your workflow",
         "preheader": "2-minute product survey. Your answers shape what we build next.",
         "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis PMF",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10-plain-text.txt"
       },
       "funnel_phase": "phase_1_activation",
@@ -1141,8 +1184,8 @@
       "preview": {
         "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0.html",
         "path": "/emails/at_risk_nurture_d0.html",
-        "subject": "We miss you in Oasis",
-        "preheader": "Come back today — one quick session keeps the habit alive.",
+        "subject": "Quick check-in: how is Oasis going?",
+        "preheader": "Making sure nothing is broken on your side — honest feedback welcome.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0-plain-text.txt",
         "deploy_provider": "emailoctopus"
@@ -1164,8 +1207,8 @@
           "preview": {
             "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0.html",
             "path": "/emails/at_risk_nurture_d0.html",
-            "subject": "We miss you in Oasis",
-            "preheader": "Come back today — one quick session keeps the habit alive.",
+            "subject": "Quick check-in: how is Oasis going?",
+            "preheader": "Making sure nothing is broken on your side — honest feedback welcome.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0-plain-text.txt",
             "deploy_provider": "emailoctopus"
@@ -1186,8 +1229,8 @@
           "preview": {
             "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d7.html",
             "path": "/emails/at_risk_nurture_d7.html",
-            "subject": "Your Oasis workflow is waiting",
-            "preheader": "Return within seven days to rebuild your daily browser habit.",
+            "subject": "Checking in on your Oasis experience",
+            "preheader": "What is working, what is not — your honest take helps us improve.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d7-plain-text.txt",
             "deploy_provider": "emailoctopus"
@@ -1208,8 +1251,8 @@
           "preview": {
             "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d14.html",
             "path": "/emails/at_risk_nurture_d14.html",
-            "subject": "Before you drift away from Oasis",
-            "preheader": "Reply if something blocked you — I read every note.",
+            "subject": "Honest feedback would help us improve Oasis",
+            "preheader": "No pressure to return — I want to understand what would make Oasis better for you.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d14-plain-text.txt",
             "deploy_provider": "emailoctopus"
@@ -1230,8 +1273,8 @@
           "preview": {
             "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d21.html",
             "path": "/emails/at_risk_nurture_d21.html",
-            "subject": "Still here when you are ready",
-            "preheader": "Last scheduled check-in for a while — your account is still here.",
+            "subject": "Last check-in for a while",
+            "preheader": "If you have two minutes of honest feedback, it would mean a lot.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d21-plain-text.txt",
             "deploy_provider": "emailoctopus"
@@ -1400,8 +1443,8 @@
       "preview": {
         "source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade.html",
         "path": "/emails/limit_hitter_upgrade_d0.html",
-        "subject": "You hit your daily limit — unlock unlimited AI",
-        "preheader": "Oasis Zen removes the cap ($20/mo, 1M tokens/day).",
+        "subject": "You hit your daily limit — training can add bonus tokens",
+        "preheader": "Anonymous or personalized training in Oasis. Learn how it works.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-plain-text.txt",
         "deploy_provider": "brevo"
@@ -1422,8 +1465,8 @@
           "preview": {
             "source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade.html",
             "path": "/emails/limit_hitter_upgrade_d0.html",
-            "subject": "You hit your daily limit — unlock unlimited AI",
-            "preheader": "Oasis Zen removes the cap ($20/mo, 1M tokens/day).",
+            "subject": "You hit your daily limit — training can add bonus tokens",
+            "preheader": "Anonymous or personalized training in Oasis. Learn how it works.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-plain-text.txt",
             "deploy_provider": "brevo"
@@ -1444,8 +1487,8 @@
           "preview": {
             "source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-d7.html",
             "path": "/emails/limit_hitter_upgrade_d7.html",
-            "subject": "Still on the free plan after hitting your limit?",
-            "preheader": "Reminder: Oasis Zen gives you unlimited daily AI.",
+            "subject": "Still on the free plan after your limit?",
+            "preheader": "Training can add bonus tokens; Zen gives 1M/day if you need more now.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-d7-plain-text.txt",
             "deploy_provider": "brevo"
@@ -1493,8 +1536,8 @@
       "preview": {
         "source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0.html",
         "path": "/emails/dead_resurrection_d0.html",
-        "subject": "It has been a while — Oasis has improved",
-        "preheader": "Your account is still active. Try one fresh session.",
+        "subject": "Checking in — has Oasis been working for you?",
+        "preheader": "If you left because something was not good enough, I would like to hear what happened.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0-plain-text.txt",
         "deploy_provider": "emailoctopus"
@@ -1516,8 +1559,8 @@
           "preview": {
             "source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0.html",
             "path": "/emails/dead_resurrection_d0.html",
-            "subject": "It has been a while — Oasis has improved",
-            "preheader": "Your account is still active. Try one fresh session.",
+            "subject": "Checking in — has Oasis been working for you?",
+            "preheader": "If you left because something was not good enough, I would like to hear what happened.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0-plain-text.txt",
             "deploy_provider": "emailoctopus"
@@ -1538,8 +1581,8 @@
           "preview": {
             "source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d14.html",
             "path": "/emails/dead_resurrection_d14.html",
-            "subject": "One more invite back to Oasis",
-            "preheader": "Privacy-first AI — the door is open when you are ready.",
+            "subject": "One last check-in from me",
+            "preheader": "A minute of honest feedback helps us build a better product.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d14-plain-text.txt",
             "deploy_provider": "emailoctopus"
@@ -1580,8 +1623,8 @@
       "preview": {
         "source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement.html",
         "path": "/emails/return_reinforcement_d0.html",
-        "subject": "Welcome back to Oasis",
-        "preheader": "Train the assistant today for 1,000 bonus tokens.",
+        "subject": "Glad you are back — how is it going?",
+        "preheader": "Checking in to make sure things are running smoothly after your break.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement-plain-text.txt",
         "deploy_provider": "emailoctopus"
@@ -1603,8 +1646,8 @@
           "preview": {
             "source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement.html",
             "path": "/emails/return_reinforcement_d0.html",
-            "subject": "Welcome back to Oasis",
-            "preheader": "Train the assistant today for 1,000 bonus tokens.",
+            "subject": "Glad you are back — how is it going?",
+            "preheader": "Checking in to make sure things are running smoothly after your break.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement-plain-text.txt",
             "deploy_provider": "emailoctopus"
@@ -1727,8 +1770,8 @@
       "preview": {
         "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder.html",
         "path": "/emails/enterprise_founder_d55.html",
-        "subject": "Oasis for your team?",
-        "preheader": "Company-email user with strong engagement — let's talk rollout.",
+        "subject": "How is Oasis working for you?",
+        "preheader": "I'd love your honest feedback on your workflow and the product.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder-plain-text.txt",
         "deploy_provider": "hubspot"
@@ -1750,8 +1793,8 @@
           "preview": {
             "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder.html",
             "path": "/emails/enterprise_founder_d55.html",
-            "subject": "Oasis for your team?",
-            "preheader": "Company-email user with strong engagement — let's talk rollout.",
+            "subject": "How is Oasis working for you?",
+            "preheader": "I'd love your honest feedback on your workflow and the product.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder-plain-text.txt",
             "deploy_provider": "hubspot"
@@ -1789,8 +1832,8 @@
       "preview": {
         "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion.html",
         "path": "/emails/enterprise_expansion_d85.html",
-        "subject": "Expanding Oasis with your team?",
-        "preheader": "Ready for seats or procurement? Let's set up a short call.",
+        "subject": "Quick check-in: your Oasis experience",
+        "preheader": "Share feedback or book a few minutes on my calendar.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion-plain-text.txt",
         "deploy_provider": "hubspot"
@@ -1812,8 +1855,8 @@
           "preview": {
             "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion.html",
             "path": "/emails/enterprise_expansion_d85.html",
-            "subject": "Expanding Oasis with your team?",
-            "preheader": "Ready for seats or procurement? Let's set up a short call.",
+            "subject": "Quick check-in: your Oasis experience",
+            "preheader": "Share feedback or book a few minutes on my calendar.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion-plain-text.txt",
             "deploy_provider": "hubspot"

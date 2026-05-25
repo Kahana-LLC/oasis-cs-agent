@@ -1,16 +1,24 @@
-Hi {{ contact.FIRSTNAME }},
-
 Adam Kershner
 Founder, Oasis
 
-We have not seen you in Oasis recently.
-One quick session keeps your habit alive.
-Open Oasis: https://kahana.co/installations
+Hi {{ contact.FIRSTNAME }},
 
-Open Oasis: https://kahana.co/installations
+I wanted to check in — we have not seen you in Oasis for a day or two.
+Is everything running smoothly? If something felt off, confusing, or missing, I would really like to know.
+YOUR HONEST TAKE HELPS: Reply to this email with feedback, bugs, or anything that would make Oasis better for you.
+If you are using Oasis today: https://kahana.co/installations
 
-I'm here if you have questions.
-Connect with me: https://kahana.co/adam-kershner
+Reply to this email with anything on your mind — bugs, friction, or ideas for what would make Oasis better for you. I read every note and use it to improve the product.
+
+- Adam
+
+Work hard. Be kind. The rest will follow.
+
+All my socials: https://kahana.co/adam-kershner
+X: https://twitter.com/adam_kershner
+Instagram: https://www.instagram.com/adam_kershner/
+TikTok: https://www.tiktok.com/@adam_kershner
+YouTube: https://www.youtube.com/@adam_kershner
 
 You're receiving this as an Oasis user.
 Docs: https://kahana.co/docs

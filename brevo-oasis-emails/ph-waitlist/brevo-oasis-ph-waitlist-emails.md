@@ -16,7 +16,7 @@ Oasis waitlist contacts (Tally form `w8V8GA` → Brevo list).
 | [`brevo-oasis-ph-teaser-waitlist.html`](brevo-oasis-ph-teaser-waitlist.html) | Full teaser email |
 | [`brevo-oasis-ph-launch-waitlist.html`](brevo-oasis-ph-launch-waitlist.html) | Full launch email |
 | [`brevo-oasis-ph-founder-intro-snippet.html`](brevo-oasis-ph-founder-intro-snippet.html) | Adam headshot + founder voice copy |
-| [`brevo-oasis-ph-founder-signoff-snippet.html`](brevo-oasis-ph-founder-signoff-snippet.html) | Parting remark + Connect with me link |
+| [`brevo-oasis-ph-founder-signoff-snippet.html`](brevo-oasis-ph-founder-signoff-snippet.html) | PH intro + `- Adam` + mantra + socials |
 | [`brevo-oasis-ph-theme-gallery-snippet.html`](brevo-oasis-ph-theme-gallery-snippet.html) | Bottom theme gallery toss-in |
 | [`brevo-oasis-ph-payload-snippets.html`](brevo-oasis-ph-payload-snippets.html) | Privacy section + JSON only (D&D Text block) |
 | [`brevo-oasis-ph-tally-form-snippet.html`](brevo-oasis-ph-tally-form-snippet.html) | In-email Tally form buttons (teaser) |
@@ -24,6 +24,8 @@ Oasis waitlist contacts (Tally form `w8V8GA` → Brevo list).
 | [`brevo-oasis-ph-product-card-snippet.html`](brevo-oasis-ph-product-card-snippet.html) | PH product card for launch (replaces hero) |
 | [`brevo-oasis-ph-zen-gift-teaser-snippet.html`](brevo-oasis-ph-zen-gift-teaser-snippet.html) | Launch-day surprise hint (teaser only) |
 | [`brevo-oasis-ph-zen-gift-launch-snippet.html`](brevo-oasis-ph-zen-gift-launch-snippet.html) | Full Zen gift offer + claim steps (launch) |
+| [`brevo-oasis-ph-waitlist-early-access-snippet.html`](brevo-oasis-ph-waitlist-early-access-snippet.html) | Chromium / Windows / Linux early access card (launch) |
+| [`brevo-oasis-ph-zen-bonus-callout-snippet.html`](brevo-oasis-ph-zen-bonus-callout-snippet.html) | 3-month PH feedback bonus callout (launch, after upvote badge) |
 | [`brevo-oasis-ph-zen-gift-terms-snippet.html`](brevo-oasis-ph-zen-gift-terms-snippet.html) | Gift fine print |
 | [`brevo-oasis-ph-zen-gift-emails.md`](brevo-oasis-ph-zen-gift-emails.md) | Offer spec + redemption ops runbook |
 | [`brevo-oasis-ph-teaser-plain-text.txt`](brevo-oasis-ph-teaser-plain-text.txt) | Teaser plain-text tab paste |
@@ -43,11 +45,12 @@ Link constants: [`brevo-oasis-email-links.js`](../brevo-oasis-email-links.js) (`
 
 ## Email 1: Teaser (May 26)
 
+**Brevo template name:** `Oasis PH Teaser`  
 **Subject:** `Tomorrow on Product Hunt (+ a launch-day surprise)`
 
 **Preheader:** `Privacy-first AI browser. Something special for genuine launch-day feedback.`
 
-**From name:** `Oasis by Kahana`
+**From name:** `Adam from Oasis`
 
 **Single CTA button:** Follow us on Product Hunt (no Mac download button)
 
@@ -59,15 +62,18 @@ Paste [`brevo-oasis-ph-teaser-plain-text.txt`](brevo-oasis-ph-teaser-plain-text.
 
 ## Email 2: Launch (May 27)
 
+**Brevo template name:** `Oasis PH Launch`  
 **Subject:** `We're live on Product Hunt: 6 months of Zen, on us`
 
 **Preheader:** `Leave genuine feedback on our launch page. Reply with a screenshot to claim 1M tokens/day.`
 
-**From name:** `Oasis by Kahana`
+**From name:** `Adam from Oasis`
 
 **Primary CTA:** Comment on Product Hunt (orange `#ff6154`, UTM URL)
 
 **Secondary CTA:** Create Product Hunt account (`https://www.producthunt.com/`)
+
+**Early access CTA:** Get early access for Chromium / Windows / Linux (`https://kahana.co/oasis-waitlist`) — card after PH buttons, before privacy JSON. Snippet: [`brevo-oasis-ph-waitlist-early-access-snippet.html`](brevo-oasis-ph-waitlist-early-access-snippet.html)
 
 **Send:** Manual once PH listing is live: see [Launch day runbook](#launch-day-runbook-may-27) below.
 
@@ -114,8 +120,9 @@ Use this on launch day. Do **not** schedule the campaign in advance.
 | Hero | None (founder intro leads) | PH product card |
 | Founder voice | Future tense ("launching tomorrow") | Present tense ("just launched") |
 | Theme gallery | Bottom toss-in after signoff | Bottom toss-in after signoff |
-| Signoff | Journey to the Oasis + Connect with me | Journey to the Oasis + Connect with me |
-| Tally form | In-email engine buttons | Footer link only |
+| Signoff | Journey to the Oasis + `- Adam` + mantra + All my socials | Same |
+| Tally form | In-email engine buttons | Replaced by early-access card → `kahana.co/oasis-waitlist` |
+| Early access | N/A | Card: Chromium / Windows / Linux waitlist |
 | Button color | `#4A6200` (Follow PH) | `#ff6154` comment + `#4A6200` PH signup |
 | PH URL | Plain product URL | UTM badge URL for comments |
 | Personal close | Feedback ask + thanks | Feedback ask + thanks |
@@ -132,7 +139,8 @@ Use this on launch day. Do **not** schedule the campaign in advance.
 | Product Hunt (launch comment + UTM) | https://www.producthunt.com/products/kahana?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-oasis-browser-for-mac |
 | Interaction data doc | https://kahana.co/docs/technical-and-interaction-data |
 | Assistant themes doc | https://kahana.co/docs/assistant-themes |
-| Choose your version (Tally) | https://tally.so/r/w8V8GA |
+| Early access waitlist (Chromium, Windows, Linux) | https://kahana.co/oasis-waitlist |
+| Choose your version (Tally, teaser only) | https://tally.so/r/w8V8GA |
 | Adam linktree (social hub) | https://kahana.co/adam-kershner |
 | Adam headshot | https://kahana.co/images/about/adam-kershner.jpg |
 | Theme images | https://kahana.co/images/oasis/assistant-themes/01-stargazer.png (through 07-desert.png) |

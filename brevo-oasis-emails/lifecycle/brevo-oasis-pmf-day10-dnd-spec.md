@@ -10,6 +10,7 @@
 
 | Field | Value |
 |-------|--------|
+| Brevo template name | `Oasis PMF` |
 | Subject | `Help us understand how Oasis fits your workflow` |
 | Preheader | `2-minute product survey. Your answers shape what we build next.` |
 | From name | `Adam from Oasis` |
@@ -31,7 +32,7 @@
 | Body | Adam headshot + first-person PMF framing |
 | Button 1 | Take the survey → `https://kahana.co/oasis-pmf?email={{ contact.EMAIL }}` |
 | Button 2 | Join Slack (purple `#4A154B`) |
-| Signoff | Connect with me → `https://kahana.co/adam-kershner` |
+| Signoff | `- Adam` + mantra + **All my socials** row → `https://kahana.co/adam-kershner` + X/IG/TikTok/YouTube icons |
 | Footer | Support links snippet |
 
 ## QA
@@ -39,5 +40,5 @@
 - [ ] Adam headshot loads
 - [ ] Tally survey opens from button and fallback link
 - [ ] Slack button and footer icon load
-- [ ] Connect with me link works
+- [ ] All my socials link and icon row load (no LinkedIn)
 - [ ] Exclude unsubscribed users from automation

@@ -18,9 +18,10 @@ Edit your **existing** Brevo D&D template (v3.0.1) in the visual editor. Do **no
 
 | Field | Value |
 |-------|--------|
+| Brevo template name | `Oasis PH Teaser` |
 | Subject | `Tomorrow on Product Hunt (+ a launch-day surprise)` |
 | Preheader | `Privacy-first AI browser. Something special for genuine launch-day feedback.` |
-| From name | `Oasis by Kahana` |
+| From name | `Adam from Oasis` |
 
 ---
 
@@ -53,14 +54,14 @@ Edit your **existing** Brevo D&D template (v3.0.1) in the visual editor. Do **no
 | Title | `Oasis launches on Product Hunt tomorrow` |
 | Image (hero) | **Delete** old hero screenshot and top theme gallery |
 | Body | Founder intro + platform + Tally + JSON + personal close + PH CTA + signoff + bottom theme gallery |
-| Founder intro | Paste [`brevo-oasis-ph-founder-intro-snippet.html`](brevo-oasis-ph-founder-intro-snippet.html) after `Hi {{ contact.FIRSTNAME }},` |
+| Founder intro | Paste [`brevo-oasis-ph-founder-intro-snippet.html`](brevo-oasis-ph-founder-intro-snippet.html) first in body (includes founder row, then `Hi {{ contact.FIRSTNAME }},`) |
 | Zen gift teaser | Paste [`brevo-oasis-ph-zen-gift-teaser-snippet.html`](brevo-oasis-ph-zen-gift-teaser-snippet.html) after Mac platform paragraph, before Tally |
 | Founder signoff | Paste [`brevo-oasis-ph-founder-signoff-snippet.html`](brevo-oasis-ph-founder-signoff-snippet.html) after PH button |
 | Theme gallery | Paste [`brevo-oasis-ph-theme-gallery-snippet.html`](brevo-oasis-ph-theme-gallery-snippet.html) at bottom, before footer |
 | Tally form | Paste [`brevo-oasis-ph-tally-form-snippet.html`](brevo-oasis-ph-tally-form-snippet.html) after platform paragraph |
 | Button 1 | **Only button:** Follow us on Product Hunt → `https://www.producthunt.com/products/kahana` |
 
-**Body opening**: paste into Text block after `Hi {{ contact.FIRSTNAME }},`:
+**Body opening**: paste founder snippet at top of body (photo/name, then greeting):
 
 Use the teaser variant from [`brevo-oasis-ph-founder-intro-snippet.html`](brevo-oasis-ph-founder-intro-snippet.html) (headshot table + opening paragraphs). Or paste this:
 
@@ -113,7 +114,7 @@ Then paste [`brevo-oasis-ph-tally-form-snippet.html`](brevo-oasis-ph-tally-form-
 **Fallback links** (optional Text block):
 
 ```html
-<p style="font-size:14px;color:#6b7355;">If the button doesn't work: <a href="https://www.producthunt.com/products/kahana">Product Hunt</a> · <a href="https://kahana.co/adam-kershner">Connect with me</a> · <a href="https://kahana.co/docs">Browse docs</a> · <a href="https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P">Join Slack</a> · <a href="https://kahana.co/contact">Contact us</a> · <a href="https://kahana.co/docs/technical-and-interaction-data">Interaction data doc</a> · <a href="https://tally.so/r/w8V8GA">Choose your version</a></p>
+<p style="font-size:14px;color:#6b7355;">If the button doesn't work: <a href="https://www.producthunt.com/products/kahana">Product Hunt</a> · <a href="https://kahana.co/adam-kershner">All my socials</a> · <a href="https://kahana.co/docs">Browse docs</a> · <a href="https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P">Join Slack</a> · <a href="https://kahana.co/contact">Contact us</a> · <a href="https://kahana.co/docs/technical-and-interaction-data">Interaction data doc</a> · <a href="https://tally.so/r/w8V8GA">Choose your version</a></p>
 ```
 
 **Footer support links:** paste [`brevo-oasis-support-links-snippet.html`](../shared/brevo-oasis-support-links-snippet.html) in the footer area above Privacy Policy.

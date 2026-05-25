@@ -10,6 +10,7 @@
 
 | Field | Value |
 |-------|--------|
+| Brevo template name | `Oasis NPS` |
 | Subject | `Quick question: how likely are you to recommend Oasis?` |
 | Preheader | `One question. Your feedback helps us improve.` |
 | From name | `Adam from Oasis` |
@@ -21,7 +22,7 @@
 | [`brevo-oasis-lifecycle-founder-header-snippet.html`](../shared/brevo-oasis-lifecycle-founder-header-snippet.html) | After greeting |
 | [`brevo-oasis-nps-tally-form-snippet.html`](brevo-oasis-nps-tally-form-snippet.html) | Inline 0-10 NPS scale (replaces Share your score button) |
 | [`brevo-oasis-slack-button-snippet.html`](../shared/brevo-oasis-slack-button-snippet.html) | After NPS form |
-| [`brevo-oasis-lifecycle-founder-signoff-snippet.html`](../shared/brevo-oasis-lifecycle-founder-signoff-snippet.html) | Before footer |
+| [`brevo-oasis-founder-signoff-package-snippet.html`](../shared/brevo-oasis-founder-signoff-package-snippet.html) | Help line + `- Adam` + mantra + socials before footer |
 | [`brevo-oasis-support-links-snippet.html`](../shared/brevo-oasis-support-links-snippet.html) | Footer |
 
 Tally setup: [`brevo-oasis-nps-tally-form-setup.md`](brevo-oasis-nps-tally-form-setup.md)
@@ -34,7 +35,7 @@ Tally setup: [`brevo-oasis-nps-tally-form-setup.md`](brevo-oasis-nps-tally-form-
 | Body | Adam headshot + first-person NPS ask |
 | NPS form card | Paste 0-10 score grid snippet |
 | Button | Join Slack (purple `#4A154B`) |
-| Signoff | Connect with me → `https://kahana.co/adam-kershner` |
+| Signoff | `- Adam` + mantra + **All my socials** row → `https://kahana.co/adam-kershner` + X/IG/TikTok/YouTube icons |
 | Footer | Support links snippet |
 
 ## QA
@@ -42,5 +43,5 @@ Tally setup: [`brevo-oasis-nps-tally-form-setup.md`](brevo-oasis-nps-tally-form-
 - [ ] Adam headshot loads
 - [ ] Each score link opens Tally with score pre-selected (test 0, 5, 10)
 - [ ] Slack button and footer icon load
-- [ ] Connect with me link works
+- [ ] All my socials link and icon row load (no LinkedIn)
 - [ ] Exclude unsubscribed users from automation

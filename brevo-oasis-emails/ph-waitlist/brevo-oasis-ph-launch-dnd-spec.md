@@ -16,7 +16,7 @@ Edit by **duplicating** the saved May 26 teaser template in Brevo D&D v3.0.1. Do
 | [`brevo-oasis-ph-zen-gift-terms-snippet.html`](brevo-oasis-ph-zen-gift-terms-snippet.html) | Gift fine print (included in launch snippet) |
 | [`brevo-oasis-ph-zen-gift-emails.md`](brevo-oasis-ph-zen-gift-emails.md) | Offer spec + redemption ops runbook |
 | [`brevo-oasis-ph-founder-intro-snippet.html`](brevo-oasis-ph-founder-intro-snippet.html) | Founder headshot + opening copy |
-| [`brevo-oasis-ph-founder-signoff-snippet.html`](brevo-oasis-ph-founder-signoff-snippet.html) | Parting remark + Connect with me link |
+| [`brevo-oasis-ph-founder-signoff-snippet.html`](brevo-oasis-ph-founder-signoff-snippet.html) | PH intro + `- Adam` + mantra + socials |
 | [`brevo-oasis-ph-theme-gallery-snippet.html`](brevo-oasis-ph-theme-gallery-snippet.html) | Bottom theme thumbnail grid |
 | [`brevo-oasis-ph-payload-snippets.html`](brevo-oasis-ph-payload-snippets.html) | Privacy + JSON section |
 | [`brevo-oasis-ph-launch-plain-text.txt`](brevo-oasis-ph-launch-plain-text.txt) | Plain-text tab paste |
@@ -27,9 +27,10 @@ Edit by **duplicating** the saved May 26 teaser template in Brevo D&D v3.0.1. Do
 
 | Field | Value |
 |-------|--------|
+| Brevo template name | `Oasis PH Launch` |
 | Subject | `We're live on Product Hunt: 6 months of Zen, on us` |
 | Preheader | `Upvote Oasis on Product Hunt and leave feedback. Reply with a screenshot to claim 1M tokens/day.` |
-| From name | `Oasis by Kahana` |
+| From name | `Adam from Oasis` |
 | Schedule | **Do not schedule**: save as draft; send manually when live |
 
 ---
@@ -66,6 +67,7 @@ Edit by **duplicating** the saved May 26 teaser template in Brevo D&D v3.0.1. Do
 | Image (hero) | **Add** PH upvote badge + linked product card at top (see below) |
 | Body opening | Replace teaser copy with launch founder intro (see below) |
 | Zen gift (full) | Paste [`brevo-oasis-ph-zen-gift-launch-snippet.html`](brevo-oasis-ph-zen-gift-launch-snippet.html) after platform paragraph, **before** privacy JSON |
+| Early access waitlist | Paste [`brevo-oasis-ph-waitlist-early-access-snippet.html`](brevo-oasis-ph-waitlist-early-access-snippet.html) after privacy-first paragraph (end of Mac section) |
 | Founder signoff | Paste after PH badge: `brevo-oasis-ph-founder-signoff-snippet.html` |
 | Theme gallery | Paste at bottom after signoff, before fallback links |
 | Personal close | Feedback ask + thanks (see below) |
@@ -102,7 +104,7 @@ Or set Image block URL to:
 
 ## Body opening: paste into Text block
 
-Use the launch variant from [`brevo-oasis-ph-founder-intro-snippet.html`](brevo-oasis-ph-founder-intro-snippet.html). Or paste this after `Hi {{ contact.FIRSTNAME }},`:
+Use the launch variant from [`brevo-oasis-ph-founder-intro-snippet.html`](brevo-oasis-ph-founder-intro-snippet.html). Founder block first, then `Hi {{ contact.FIRSTNAME }},`:
 
 ```html
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 16px;">
@@ -119,10 +121,18 @@ Use the launch variant from [`brevo-oasis-ph-founder-intro-snippet.html`](brevo-
 <p>We just launched Oasis on Product Hunt and I could not be more excited to share it with you directly.</p>
 <p>Chrome was never built for privacy, and the AI in today's "private" browsers still lags behind. Oasis is a privacy-first AI browser <strong>you can train</strong>. Your personal data is sacred, and all interaction data is anonymized by default.</p>
 <p>The launch build is <strong>Oasis for Mac</strong>, <strong>desktop only</strong>, built on <strong>Firefox</strong>, for <strong>Apple Silicon and Intel</strong>.</p>
-<p><strong>Mobile</strong> and a <strong>Chromium</strong>-engine build for <strong>Windows, Mac, and Linux</strong> are coming soon. <a href="https://tally.so/r/w8V8GA">Choose your version</a> so we know what to notify you about.</p>
+<p>The launch build is <strong>Oasis for Mac</strong> on Product Hunt today. For <strong>Chromium</strong>, <strong>Windows</strong>, or <strong>Linux</strong> early access, use the waitlist card below (not the Mac download).</p>
 ```
 
-**Zen gift block:** paste [`brevo-oasis-ph-zen-gift-launch-snippet.html`](brevo-oasis-ph-zen-gift-launch-snippet.html) after the platform/Tally paragraph, before the privacy JSON section.
+**Zen gift block:** paste [`brevo-oasis-ph-zen-gift-launch-snippet.html`](brevo-oasis-ph-zen-gift-launch-snippet.html) after the platform paragraph, before the privacy JSON section.
+
+**Block order (top to bottom):** founder headshot → `Hi {{ contact.FIRSTNAME }}` + launch excitement → privacy-first Mac line → product card → upvote badge → Mac intro copy → **3-month bonus callout** (`brevo-oasis-ph-zen-bonus-callout-snippet.html`) → early-access waitlist → Zen gift card → optional orange PH CTA → privacy JSON → signoff → themes. No orange “Get Oasis on Product Hunt” button in the Mac hero (upvote badge + product card only).
+
+**Greeting:** `Hi {{ contact.FIRSTNAME }},` plus launch excitement copy immediately after founder block, before PH hero (intro → product card → badge).
+
+**Privacy-first Mac line:** place immediately after the first orange PH CTA, before the early-access waitlist card.
+
+**Early access waitlist:** paste [`brevo-oasis-ph-waitlist-early-access-snippet.html`](brevo-oasis-ph-waitlist-early-access-snippet.html) after the privacy-first paragraph. Link: `https://kahana.co/oasis-waitlist`.
 
 **Founder signoff:** paste [`brevo-oasis-ph-founder-signoff-snippet.html`](brevo-oasis-ph-founder-signoff-snippet.html) after PH badge. Links to `https://kahana.co/adam-kershner`.
 
@@ -186,7 +196,7 @@ Place both buttons immediately after the Zen gift card. Remove the duplicate "Fo
 <p style="font-size:14px;color:#6b7355;text-align:center;">
   <a href="https://tally.so/r/w8V8GA" style="color:#4A6200;font-weight:600;text-decoration:underline;">Choose your version (Mac, Windows, Linux · Chromium or Firefox)</a>
 </p>
-<p style="font-size:14px;color:#6b7355;">If the button doesn't work: <a href="https://www.producthunt.com/products/kahana?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-oasis-browser-for-mac">Product Hunt</a> · <a href="https://kahana.co/adam-kershner">Connect with me</a> · <a href="https://kahana.co/docs">Browse docs</a> · <a href="https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P">Join Slack</a> · <a href="https://kahana.co/contact">Contact us</a> · <a href="https://kahana.co/docs/technical-and-interaction-data">Interaction data doc</a> · <a href="https://tally.so/r/w8V8GA">Choose your version</a></p>
+<p style="font-size:14px;color:#6b7355;">If the button doesn't work: <a href="https://www.producthunt.com/products/kahana?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-oasis-browser-for-mac">Product Hunt</a> · <a href="https://kahana.co/adam-kershner">All my socials</a> · <a href="https://kahana.co/docs">Browse docs</a> · <a href="https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P">Join Slack</a> · <a href="https://kahana.co/contact">Contact us</a> · <a href="https://kahana.co/docs/technical-and-interaction-data">Interaction data doc</a> · <a href="https://tally.so/r/w8V8GA">Choose your version</a></p>
 ```
 
 **Footer support links:** paste [`brevo-oasis-support-links-snippet.html`](../shared/brevo-oasis-support-links-snippet.html) in the footer area above Privacy Policy.

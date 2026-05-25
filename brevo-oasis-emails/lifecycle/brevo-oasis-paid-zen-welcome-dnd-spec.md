@@ -9,6 +9,7 @@
 
 | Field | Value |
 |-------|--------|
+| Brevo template name | `Oasis Paid Zen Welcome` |
 | Subject | `Welcome to Oasis Zen` |
 | Preheader | `1M tokens per day and priority support are now active.` |
 | From name | `Adam from Oasis` |
@@ -30,7 +31,7 @@
 | Body | Adam headshot + thank you + Zen benefits list |
 | Button 1 | Manage billing → Stripe portal URL |
 | Button 2 | Join Slack (purple `#4A154B`) |
-| Signoff | Connect with me → `https://kahana.co/adam-kershner` |
+| Signoff | `- Adam` + mantra + **All my socials** row → `https://kahana.co/adam-kershner` + X/IG/TikTok/YouTube icons |
 | Footer | Support links snippet |
 
 ## Brevo trigger note
@@ -42,5 +43,5 @@ Fire from Stripe checkout webhook or Brevo automation when contact attribute `pl
 - [ ] Adam headshot loads
 - [ ] Billing portal link works
 - [ ] Slack button and footer icon load
-- [ ] Connect with me link works
+- [ ] All my socials link and icon row load (no LinkedIn)
 - [ ] Zen benefits match [`pages/oasis-pricing.jsx`](../../pages/oasis-pricing.jsx)

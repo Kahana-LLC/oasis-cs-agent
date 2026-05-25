@@ -1,14 +1,9 @@
-Hi {{ contact.FIRSTNAME }},
-
 Adam Kershner
 Founder, Oasis
 
+Hey {{ contact.FIRSTNAME }},
+
 I wanted to welcome you personally. Oasis is a privacy-first AI browser you can train, and I am glad you are here.
-
-Oasis with the desert midnight theme:
-https://kahana.co/images/oasis-browser-assistant-screenshot.png
-
-Assistant themes: https://kahana.co/docs/assistant-themes
 
 If you need help getting started, here are the best places to learn, ask questions, and connect:
 
@@ -16,13 +11,29 @@ Browse the docs: https://kahana.co/docs
 Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
 Contact us: https://kahana.co/contact
 
-Browse docs: https://kahana.co/docs
+Here is your first mission in the Oasis — three steps for your first session:
 
-I'm here if you have questions, feedback, or just want to talk about Oasis.
+1. Import from your other browser (Chrome, Safari, Edge, or Brave). Migrate history, bookmarks, tabs, and passwords into Oasis instantly. We never see this data; it stays on your device.
 
-Connect with me on social media, reply to this email, or DM me. Either way, I'll be there to help along the way.
+2. Run your first AI command. Open the assistant and try one prompt.
 
-Connect with me: https://kahana.co/adam-kershner
+3. Submit a training. Train the assistant on your workflow. You earn +1,000 extra tokens every time you train.
+
+I'm here if you have questions, feedback, or just want to talk. Reply to this email anytime — my DMs are open on the links below. I'm here to help :)
+
+- Adam
+
+Work hard. Be kind. The rest will follow.
+
+All my socials: https://kahana.co/adam-kershner
+X: https://twitter.com/adam_kershner
+Instagram: https://www.instagram.com/adam_kershner/
+TikTok: https://www.tiktok.com/@adam_kershner
+YouTube: https://www.youtube.com/@adam_kershner
+
+P.S. Here is Oasis with the desert midnight theme (my favorite!). You can make it yours in Settings.
+Screenshot: https://kahana.co/images/oasis-browser-assistant-screenshot.png
+Assistant themes: https://kahana.co/docs/assistant-themes
 
 You're receiving this because you signed up for Oasis.
 Browse docs: https://kahana.co/docs

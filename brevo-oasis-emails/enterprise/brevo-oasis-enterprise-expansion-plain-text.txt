@@ -1,17 +1,25 @@
-Hi {{ contact.FIRSTNAME }},
-
 Adam Kershner
 Founder, Oasis
 
-Follow-up for engaged company-email users.
-Book time: https://kahana.co/adam-kershner
+Hi {{ contact.FIRSTNAME }},
 
-Let's talk expansion: https://kahana.co/adam-kershner
+It has been a while since you started using Oasis regularly. How is it going?
+I am eager to learn more about your use case and anything we could improve. Reply with feedback anytime, or book a few minutes on my calendar if that is easier.
+Book time: https://go.oncehub.com/AdamKershner
 
-I'm here if you have questions.
-Connect with me: https://kahana.co/adam-kershner
+I'm here if you have questions, feedback, or just want to talk. Reply to this email anytime — my DMs are open on the links below. I'm here to help :)
 
-You're receiving this because you use Oasis with a company email.
+- Adam
+
+Work hard. Be kind. The rest will follow.
+
+All my socials: https://kahana.co/adam-kershner
+X: https://twitter.com/adam_kershner
+Instagram: https://www.instagram.com/adam_kershner/
+TikTok: https://www.tiktok.com/@adam_kershner
+YouTube: https://www.youtube.com/@adam_kershner
+
+You're receiving this because you use Oasis.
 Docs: https://kahana.co/docs
 Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
 Contact: https://kahana.co/contact
