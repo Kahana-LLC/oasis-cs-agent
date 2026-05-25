@@ -741,8 +741,9 @@
         {
           "id": "template_ids_welcome",
           "label": "Set BREVO_TEMPLATE_ID_WELCOME + verified sender in .env / Edge secrets",
-          "status": "pending",
-          "owner": "You"
+          "status": "shipped",
+          "owner": "You",
+          "notes": "BREVO_TEMPLATE_ID_WELCOME=54 (Oasis Welcome) verified local send"
         },
         {
           "id": "lifecycle_send",
@@ -761,9 +762,10 @@
         {
           "id": "welcome_local_test",
           "label": "Local send: scripts/send_lifecycle_email.py --email …",
-          "status": "pending",
+          "status": "shipped",
           "owner": "You",
-          "artifact": "docs/LIFECYCLE_WELCOME.md"
+          "artifact": "docs/LIFECYCLE_WELCOME.md",
+          "notes": "adamthewrite@gmail.com sent 2026-05-25; dedup logged in cs_outreach_log"
         },
         {
           "id": "daily_cron",

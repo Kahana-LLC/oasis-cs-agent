@@ -104,12 +104,12 @@ New signups send welcome once; dedup prevents duplicates.
 
 ## 6. Done when
 
-- [ ] `cs_outreach_log` exists
-- [ ] `BREVO_TEMPLATE_ID_WELCOME` set
-- [ ] Local `send_lifecycle_email.py` returns `sent: true` for a test user
+- [x] `cs_outreach_log` exists
+- [x] `BREVO_TEMPLATE_ID_WELCOME` set (template **54** — Oasis Welcome)
+- [x] Local `send_lifecycle_email.py` returns `sent: true` (verified `adamthewrite@gmail.com` 2026-05-25)
 - [ ] Edge `lifecycle-send` dry-run OK
 - [ ] Webhook on `users` INSERT deployed
-- [ ] One real signup receives **Oasis Welcome** once
+- [ ] One real signup receives **Oasis Welcome** once (automatic path)
 
 ---
 
