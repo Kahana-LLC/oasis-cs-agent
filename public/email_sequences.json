@@ -8,7 +8,8 @@
       "beehiiv",
       "brevo",
       "emailoctopus",
-      "resend"
+      "resend",
+      "loops"
     ],
     "mcp_ready": [
       "beehiiv",
@@ -309,7 +310,7 @@
         "status": "ready",
         "api_key_configured": true,
         "domain_verified": true,
-        "notes": "Loops configured — lifecycle marketing fallback (not operational)."
+        "notes": "API key created — lifecycle marketing/product-help fallback (not legal or outage)."
       }
     },
     {

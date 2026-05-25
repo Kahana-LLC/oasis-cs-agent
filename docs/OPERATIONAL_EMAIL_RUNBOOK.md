@@ -48,7 +48,7 @@ Dedup pattern: `legal_{policy_slug}_{effective_date}`.
 
 ## Provider notes
 
-**Account setup (2026-05-25):** **SES** is operational primary (sandbox until production). **Resend** is Phase 2 paid interim + fallback pool — not for legal/outage. See [account setup](https://oasis-analytics.vercel.app/email-machine#provider-setup).
+**Account setup (2026-05-25):** **SES** is operational primary (sandbox until production). **Resend** is Phase 2 paid interim + fallback pool; **Loops** has API key for marketing fallback — not for legal/outage. See [account setup](https://oasis-analytics.vercel.app/email-machine#provider-setup).
 
 ### Amazon SES (primary)
 

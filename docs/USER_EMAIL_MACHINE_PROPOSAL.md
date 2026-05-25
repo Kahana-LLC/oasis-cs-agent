@@ -161,7 +161,7 @@ This is **not** the same as sequence `implementation_status` (automation shipped
 | **MailerLite** | Account recovery | — | Regain login before pool use |
 | **Mailgun** | Access blocked | — | Resolve account or defer paid path to HubSpot interim |
 
-**API keys in env (not in git):** `BEEHIIV_API_KEY`, `BREVO_API_KEY`, `EMAILOCTOPUS_API_KEY`, `RESEND_API_KEY` — see `.env.example`.
+**API keys in env (not in git):** `BEEHIIV_API_KEY`, `BREVO_API_KEY`, `EMAILOCTOPUS_API_KEY`, `RESEND_API_KEY`, `LOOPS_API_KEY` — see `.env.example`.
 
 **MCP in Cursor:**
 
