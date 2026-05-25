@@ -469,6 +469,82 @@
       </section>`;
     }
 
+    function readinessCellClass(pct, pending) {
+      if (pending) return "readiness-cell-pending";
+      if (pct == null) return "";
+      if (pct >= 75) return "readiness-cell-high";
+      if (pct < 25) return "readiness-cell-low";
+      return "";
+    }
+
+    function readinessMatrixRows(byBucket, milestones) {
+      if (!milestones?.length) return "";
+      const head = milestones
+        .map((m) => {
+          const short = (m.label || m.id || "").replace(/ \(.*\)/, "");
+          return `<th class="${m.status === "pending" ? "readiness-col-pending" : ""}" title="${escapeHtml(m.label || "")}">${escapeHtml(short)}${m.status === "pending" ? " *" : ""}</th>`;
+        })
+        .join("");
+      const body = DAU_BUCKET_ORDER.map(([key, label]) => {
+        const row = byBucket[key] || {};
+        const n = row.users ?? 0;
+        const cells = milestones
+          .map((m) => {
+            if (m.status === "pending") {
+              return `<td class="readiness-cell-pending" title="${escapeHtml(m.pending_reason || "Pending")}">—</td>`;
+            }
+            const stat = (row.milestones || {})[m.id] || {};
+            const pct = stat.pct;
+            const count = stat.count ?? 0;
+            const cls = readinessCellClass(pct, false);
+            const display = pct != null ? `${pct}%` : "—";
+            return `<td class="${cls}" title="${count}/${n} users">${escapeHtml(display)}<br><span class="section-cap">${count}/${n}</span></td>`;
+          })
+          .join("");
+        return `<tr class="readiness-row bucket-${escapeHtml(key)}"><th class="readiness-bucket-label bucket-${escapeHtml(key)}">${escapeHtml(label)}<br><span class="section-cap">${n} users</span></th>${cells}</tr>`;
+      }).join("");
+      return `<div class="readiness-matrix-wrap"><table class="readiness-matrix"><thead><tr><th>Bucket</th>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    function renderLifecycleReadiness(lr) {
+      const milestones = lr?.milestones || [];
+      const byBucket = lr?.by_bucket || {};
+      const totals = lr?.totals || {};
+      if (!milestones.length) {
+        return `<section id="lifecycle-readiness">
+          <h2>Lifecycle readiness by bucket</h2>
+          <p class="section-cap">Run <span class="code">main.py --baseline</span> to compute bucket × milestone coverage. <a href="/email-machine#funnel">Email machine milestones →</a></p>
+        </section>`;
+      }
+      const pending = milestones.filter((m) => m.status === "pending");
+      const live = milestones.filter((m) => m.status === "live");
+      const pendingBanner = pending.length
+        ? `<div class="banner banner-info">Email send columns (${pending.map((m) => escapeHtml(m.label || m.id)).join(", ")}) pending <span class="code">cs_outreach_log</span>. Product milestones below are live.</div>`
+        : "";
+      const summaryMetrics = live
+        .map((m) => {
+          const stat = (totals.milestones || {})[m.id] || {};
+          return metric(m.label || m.id, pct(stat.pct), {
+            tooltip: m.source_table ? `Source: ${m.source_table}` : "",
+          });
+        })
+        .join("");
+      const avgScore = totals.avg_readiness_score;
+      const maxScore = totals.max_score ?? live.length;
+      return `<section id="lifecycle-readiness">
+        <h2>Lifecycle readiness by bucket</h2>
+        <p class="section-cap">As of ${escapeHtml(lr.as_of || "—")} · Phase 1 milestones from <a href="/email-machine#funnel">email machine</a> · graduated readiness (more milestones = riper for Phase 2)</p>
+        ${pendingBanner}
+        <div class="metrics">${summaryMetrics}
+          ${metric("Avg product milestones / user", avgScore != null ? `${avgScore} / ${maxScore}` : "—")}
+          ${metric("Users with ≥1 product milestone", pct(totals.pct_with_any_product_milestone))}
+        </div>
+        ${readinessMatrixRows(byBucket, milestones)}
+        <p class="section-cap">* Email columns populate when outreach log is deployed. Cells show % and (met/total in bucket).</p>
+        <div class="chart-box"><h3>Avg product milestones met (by bucket)</h3><canvas id="readiness-score-chart"></canvas></div>
+      </section>`;
+    }
+
     function renderEmailProviderCapacity(capacity) {
       const providers = capacity?.providers || [];
       if (!providers.length) {
@@ -689,6 +765,7 @@
       const insights = data.key_insights || {};
       const corporateGoals = data.corporate_goals || {};
       const dauDefs = dau.definitions || {};
+      const lr = data.lifecycle_readiness || {};
 
       let chartId = 0;
       const nextId = () => `chart-${chartId++}`;
@@ -750,6 +827,8 @@
           <h3 style="font-size:0.95rem">Flow rates</h3>
           ${flowTableRows(dauFlow)}
         </section>
+
+        ${renderLifecycleReadiness(lr)}
 
         <section id="activation">
           <h2>Activation</h2>
@@ -838,6 +917,13 @@
         const values = DAU_BUCKET_ORDER.map(([key]) => dauBuckets[key] ?? 0);
         const colors = DAU_BUCKET_ORDER.map(([key]) => DAU_BUCKET_COLORS[key]);
         barChart(nextId(), labels, values, "Users", colors);
+      }
+      const lrBuckets = lr.by_bucket || {};
+      if (Object.keys(lrBuckets).length) {
+        const rLabels = DAU_BUCKET_ORDER.map(([, label]) => label);
+        const rValues = DAU_BUCKET_ORDER.map(([key]) => (lrBuckets[key]?.readiness?.avg_score ?? 0));
+        const rColors = DAU_BUCKET_ORDER.map(([key]) => DAU_BUCKET_COLORS[key]);
+        barChart("readiness-score-chart", rLabels, rValues, "Avg milestones", rColors);
       }
       if (Object.keys(rates).length) {
         barChart(nextId(), Object.keys(rates), Object.values(rates), "Activation %");

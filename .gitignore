@@ -24,5 +24,8 @@ reporting/sql_export.json
 public/emails/*.html
 public/emails/copy_manifest.json
 
+# Local /email-machine route mirror (vercel.json rewrite; see build_static_site.py)
+public/email-machine/index.html
+
 # MCP config (contains access tokens)
 .mcp.json

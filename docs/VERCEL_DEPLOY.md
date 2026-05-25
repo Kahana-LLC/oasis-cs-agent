@@ -81,7 +81,7 @@ Until history accumulates, delta badges show “—”. Run `.venv/bin/python ma
 
 | Mode | Command |
 |------|---------|
-| Static preview (cached JSON) | `.venv/bin/python reporting/build_static_site.py` then `npx serve public` |
+| Static preview (cached JSON) | `.venv/bin/python reporting/build_static_site.py` then `python3 reporting/serve_public.py` or `npx serve public` |
 | Full stack (live API) | `vercel dev` with `.env` containing `SUPABASE_URL` + `SUPABASE_KEY` |
 | Refresh snapshot file | `.venv/bin/python main.py --baseline` |
 | Streamlit | `.venv/bin/python main.py --baseline-view` |
@@ -100,6 +100,7 @@ Copy [`.env.example`](../.env.example) to `.env` (gitignored). Same variables as
 | API times out | Hobby plan 10s limit — upgrade Pro or optimize fetches; `maxDuration` is 60 in `vercel.json` (Pro) |
 | Slow first load | Cold start + Supabase fetch; normal for ~100+ users |
 | Uses cached file locally | Expected without `vercel dev`; API not running |
+| `/email-machine` 404 locally | Use `python3 reporting/serve_public.py`, `npx serve public`, or `vercel dev` — plain `python3 -m http.server` does not apply rewrites (or open `/email-machine.html`) |
 
 ---
 

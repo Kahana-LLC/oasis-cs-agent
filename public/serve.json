@@ -1,0 +1,3 @@
+{
+  "rewrites": [{ "source": "/email-machine", "destination": "/email-machine.html" }]
+}

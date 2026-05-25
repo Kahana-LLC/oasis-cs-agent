@@ -168,6 +168,70 @@ def _email_provider_capacity_insights(snapshot: dict[str, Any]) -> list[dict[str
     return items
 
 
+def _lifecycle_readiness_insights(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    """Bucket × product milestone gaps for email plan levers."""
+    items: list[dict[str, Any]] = []
+    lr = snapshot.get("lifecycle_readiness") or {}
+    by_bucket = lr.get("by_bucket") or {}
+    dau = snapshot.get("dau_model") or {}
+    bucket_counts = dau.get("bucket_counts") or {}
+
+    dead = by_bucket.get("dead") or {}
+    dead_n = dead.get("users") or bucket_counts.get("dead", 0)
+    dead_prompt = (dead.get("milestones") or {}).get("first_ai_prompt") or {}
+    dead_prompt_pct = dead_prompt.get("pct")
+
+    if dead_n >= 10 and dead_prompt_pct is not None and dead_prompt_pct < 30:
+        _add_item(
+            items,
+            severity="medium",
+            title="Most dead users never activated AI",
+            detail=(
+                f"{dead_n} dead users — only {dead_prompt_pct}% ever sent a first AI prompt. "
+                "Resurrection flows should assume low product depth."
+            ),
+            lever="Prioritize dead-bucket resurrection sequences; pair with browser-import onboarding for re-engaged users.",
+            metrics=["bucket_dead"],
+            anchor="lifecycle-readiness",
+        )
+
+    new_b = by_bucket.get("new") or {}
+    new_n = new_b.get("users") or bucket_counts.get("new", 0)
+    new_training = (new_b.get("milestones") or {}).get("training_done") or {}
+    new_training_pct = new_training.get("pct")
+
+    if new_n >= 3 and new_training_pct is not None and new_training_pct < 25:
+        _add_item(
+            items,
+            severity="info",
+            title="New users rarely training the AI assistant",
+            detail=(
+                f"{new_n} new users — {new_training_pct}% have trained the assistant (feedback_events). "
+                "Training is a sticky deep-feature signal before Phase 2 fork."
+            ),
+            lever="Nudge training in activation CS calendar outreach; highlight 1,000-token reward.",
+            metrics=["feedback_submission_rate_pct", "activation_24h_pct"],
+            anchor="lifecycle-readiness",
+        )
+
+    pending = [m for m in (lr.get("milestones") or []) if m.get("status") == "pending"]
+    if pending:
+        _add_item(
+            items,
+            severity="info",
+            title="Email send milestones not tracked yet",
+            detail=(
+                f"{len(pending)} readiness milestones (welcome, NPS, PMF) pending cs_outreach_log. "
+                "Product milestones (prompt, limit, training) are live in the matrix below."
+            ),
+            lever="Deploy cs_outreach_log and wire CS agent dedup before launch email scale.",
+            metrics=[],
+            anchor="lifecycle-readiness",
+        )
+
+    return items
+
+
 def generate_key_insights(
     snapshot: dict[str, Any],
     deltas: dict[str, Any],
@@ -188,6 +252,7 @@ def generate_key_insights(
         snapshot, deltas, corporate_goals or {}, period
     )
     items.extend(_email_provider_capacity_insights(snapshot))
+    items.extend(_lifecycle_readiness_insights(snapshot))
     d_dead = _delta_metric(deltas, period, "bucket_dead")
     d_at_wau = _delta_metric(deltas, period, "bucket_at_risk_wau")
     d_at_mau = _delta_metric(deltas, period, "bucket_at_risk_mau")

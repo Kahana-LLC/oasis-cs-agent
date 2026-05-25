@@ -54,6 +54,7 @@ class BaselineSnapshot:
     metric_tooltips: dict[str, str] = field(default_factory=dict)
     corporate_goals: dict[str, Any] = field(default_factory=dict)
     email_provider_capacity: dict[str, Any] = field(default_factory=dict)
+    lifecycle_readiness: dict[str, Any] = field(default_factory=dict)
     validation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -425,21 +426,20 @@ def _effective_daily_limits(
     plans: list[Plan],
     overrides: list[PlanOverride],
 ) -> dict[str, int]:
-    plan_limits = {p.plan_id: p.limit_daily or 100_000 for p in plans}
-    default = plan_limits.get("Free", 100_000)
-    override_map = {
-        str(o.user_id): o.limit_daily_override
-        for o in overrides
-        if o.limit_daily_override is not None
-    }
-    limits: dict[str, int] = {}
-    for _, row in users_df.iterrows():
-        uid = row["user_id"]
-        if uid in override_map:
-            limits[uid] = override_map[uid]
-        else:
-            limits[uid] = plan_limits.get(row["plan_id"], default)
-    return limits
+    from reporting.token_limits import effective_daily_limits
+
+    return effective_daily_limits(users_df, plans, overrides)
+
+
+def users_who_hit_daily_limit(
+    users_df: pd.DataFrame,
+    daily_df: pd.DataFrame,
+    plans: list[Plan],
+    overrides: list[PlanOverride],
+) -> tuple[set[str], int, list[int], dict[int, int], float, int]:
+    from reporting.token_limits import users_who_hit_daily_limit as _users_who_hit
+
+    return _users_who_hit(users_df, daily_df, plans, overrides)
 
 
 def _count_paid_subscribers(user_plans: list[UserPlan]) -> dict[str, int | set[str]]:
@@ -483,34 +483,14 @@ def _compute_monetization(
     today: date,
 ) -> dict[str, Any]:
     total_users = len(users_df)
-    limits = _effective_daily_limits(users_df, plans, overrides)
-
-    limit_hit_users: set[str] = set()
-    limit_hit_days = 0
-    first_limit_days: list[int] = []
-    hits_by_lifecycle: dict[int, int] = {}
-
-    if not daily_df.empty and total_users > 0:
-        signup_map = users_df.set_index("user_id")["signup_date"].to_dict()
-        for _, row in daily_df.iterrows():
-            uid = row["user_id"]
-            limit = limits.get(uid, 100_000)
-            if row["total_tokens"] >= limit:
-                limit_hit_days += 1
-                limit_hit_users.add(uid)
-                sd = signup_map.get(uid)
-                if sd:
-                    lifecycle = (row["usage_date"] - sd).days
-                    hits_by_lifecycle[lifecycle] = hits_by_lifecycle.get(lifecycle, 0) + 1
-                    first_limit_days.append(lifecycle)
-
-        users_with_daily = daily_df["user_id"].nunique()
-        limit_hit_rate = round(
-            100.0 * len(limit_hit_users) / users_with_daily, 1
-        ) if users_with_daily else 0.0
-    else:
-        limit_hit_rate = 0.0
-        users_with_daily = 0
+    (
+        limit_hit_users,
+        limit_hit_days,
+        first_limit_days,
+        hits_by_lifecycle,
+        limit_hit_rate,
+        _users_with_daily,
+    ) = users_who_hit_daily_limit(users_df, daily_df, plans, overrides)
 
     paid_counts = _count_paid_subscribers(user_plans)
     paid_subscribers = int(paid_counts["paid_subscribers"])
@@ -738,6 +718,18 @@ def compute_baseline_snapshot(
     )
     feedback_metrics = _compute_feedback(users_df, feedback)
     dau_model = compute_dau_model(users_df, activity, today)
+    from reporting.lifecycle_readiness import compute_lifecycle_readiness_by_bucket
+
+    lifecycle_readiness = compute_lifecycle_readiness_by_bucket(
+        users_df=users_df,
+        activity_df=activity,
+        usage_df=usage_df,
+        daily_df=daily_df,
+        feedback=feedback,
+        plans=plans,
+        overrides=overrides,
+        today=today,
+    )
     launch_kpis = compute_launch_kpis(
         activation=activation,
         engagement=engagement,
@@ -745,6 +737,7 @@ def compute_baseline_snapshot(
         monetization=monetization,
         feedback=feedback_metrics,
         dau_model=dau_model,
+        lifecycle_readiness=lifecycle_readiness,
         usage=usage,
         today=today,
         total_users=len(users_df),
@@ -782,5 +775,6 @@ def compute_baseline_snapshot(
         feedback=feedback_metrics,
         dau_model=dau_model,
         launch_kpis=launch_kpis,
+        lifecycle_readiness=lifecycle_readiness,
         validation=validation,
     )

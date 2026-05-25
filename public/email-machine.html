@@ -29,6 +29,156 @@
       return (emailData?.providers || []).find((p) => p.id === id);
     }
 
+    function funnelPhaseById(id) {
+      return (emailData?.funnel_phases || []).find((f) => f.id === id);
+    }
+
+    const FUNNEL_PHASE_LABELS = {
+      phase_1_activation: "Phase 1",
+      phase_2_paid: "Phase 2 paid",
+      phase_2_conversion: "Phase 2 conversion",
+      phase_3_terminal: "Phase 3",
+      ph_interim: "PH interim",
+    };
+
+    function funnelPhaseBadge(fp) {
+      if (!fp) return "";
+      const cls =
+        fp === "phase_1_activation"
+          ? "phase-1"
+          : fp === "phase_2_paid"
+            ? "phase-2-paid"
+            : fp === "phase_2_conversion"
+              ? "phase-2-conv"
+              : fp === "ph_interim"
+                ? "ph-interim"
+                : "phase-2-conv";
+      const label = FUNNEL_PHASE_LABELS[fp] || fp.replace(/_/g, " ");
+      return `<span class="funnel-phase-badge ${cls}">${escapeHtml(label)}</span>`;
+    }
+
+    function providerDisplayName(id) {
+      if (!id) return "Supabase / sheet";
+      if (id === "fallback_pool") return "Fallback pool (ML · OS · Brevo)";
+      const p = providerById(id);
+      return p?.name || id;
+    }
+
+    function cliffProviderName(id) {
+      if (id === "fallback_pool") return "Fallback pool (aggregate)";
+      return providerDisplayName(id);
+    }
+
+    function touchCount(seq) {
+      if (seq?.touches?.length) return seq.touches.length;
+      const map = emailData?.cadence_touch_counts || CADENCE_SENDS;
+      return map[seq?.cadence || "one-time"] || 1;
+    }
+
+    function fallbackTouchCell(touch) {
+      const fb = touch?.fallback || {};
+      if (fb.type === "none") return '<span class="section-cap">—</span>';
+      if (fb.type === "provider" && fb.provider_id) {
+        return escapeHtml(providerDisplayName(fb.provider_id));
+      }
+      return '<span class="routing-pill" title="When primary at cap — ops: migrate phase or upgrade tier">Fallback pool (ML · OS · Brevo)</span>';
+    }
+
+    function primaryTouchCell(touch, seq) {
+      const name = escapeHtml(providerDisplayName(touch.primary_provider_id));
+      let html = name;
+      if (touch.interim_provider_id) {
+        html += `<br><span class="section-cap">PH interim: ${escapeHtml(providerDisplayName(touch.interim_provider_id))}</span>`;
+      } else if (seq?.deployed_via && seq.deployed_via !== touch.primary_provider_id) {
+        html += `<br><span class="section-cap">PH interim: ${escapeHtml(providerDisplayName(seq.deployed_via))}</span>`;
+      }
+      return html;
+    }
+
+    function inventoryPhaseOrder() {
+      return ["ph_interim", "phase_1_activation", "phase_2_paid", "phase_2_conversion"];
+    }
+
+    function renderEmailInventory() {
+      const phases = inventoryPhaseOrder();
+      const fpLookup = Object.fromEntries((emailData?.funnel_phases || []).map((f) => [f.id, f]));
+      const seqById = Object.fromEntries((emailData?.sequences || []).map((s) => [s.id, s]));
+      let globalOrd = 0;
+      const sections = phases.map((fpId) => {
+        const fp = fpLookup[fpId] || { label: FUNNEL_PHASE_LABELS[fpId] || fpId };
+        const seqIds =
+          fpId === "ph_interim"
+            ? (emailData?.sequences || []).filter((s) => s.funnel_phase === "ph_interim").map((s) => s.id)
+            : fp.sequences || (emailData?.sequences || []).filter((s) => s.funnel_phase === fpId).map((s) => s.id);
+        const rows = [];
+        for (const sid of seqIds) {
+          const seq = seqById[sid];
+          if (!seq) continue;
+          const touches = seq.touches || [];
+          if (!touches.length) {
+            globalOrd++;
+            rows.push({ seq, touch: null, ord: globalOrd });
+            continue;
+          }
+          for (const touch of touches) {
+            globalOrd++;
+            rows.push({ seq, touch, ord: globalOrd });
+          }
+        }
+        if (!rows.length) return "";
+        const budget =
+          fp.emails_per_user_min != null
+            ? `<p class="section-cap phase-budget">${rows.length} touch(es) cataloged · user budget ${fp.emails_per_user_min}–${fp.emails_per_user_max} emails</p>`
+            : `<p class="section-cap phase-budget">${rows.length} touch(es) cataloged</p>`;
+        const phaseContext =
+          fpId === "phase_1_activation" && (fp.readiness_model || fp.nurture_model || fp.notes)
+            ? `<p class="section-cap phase-context">${escapeHtml(fp.readiness_model || fp.nurture_model || fp.notes)}</p>`
+            : "";
+        const tableRows = rows
+          .map(({ seq, touch, ord }) => {
+            const t = touch || {};
+            const when = t.day_offset != null ? `D${t.day_offset} · ${t.trigger_when || seq.trigger_when || ""}` : seq.trigger_when || "—";
+            const hasFallback = (t.fallback?.type === "fallback_pool") || seq.provider_overflow_id === "fallback_pool";
+            const interim = t.interim_provider_id || (["welcome", "activation_nudge"].includes(seq.id) ? "brevo" : "");
+            return `<tr class="touch-row seq-row" data-bucket="${escapeHtml((seq.buckets || []).join(","))}" data-provider="${escapeHtml(t.primary_provider_id || seq.provider_id)}" data-overflow="${escapeHtml(seq.provider_overflow_id || "")}" data-funnel-phase="${escapeHtml(seq.funnel_phase || fpId)}" data-has-fallback="${hasFallback ? "1" : "0"}" data-ph-interim="${interim ? "1" : "0"}" data-sequence-id="${escapeHtml(seq.id)}">
+              <td>${ord}</td>
+              <td><strong>${escapeHtml(t.name || seq.name)}</strong><br><span class="code section-cap">${escapeHtml(seq.id)}</span>${seq.inflection ? ' <span class="routing-pill">upgrade inflection</span>' : ""}</td>
+              <td>${bucketPills(seq.buckets)}</td>
+              <td>${escapeHtml(when)}</td>
+              <td>${touch ? primaryTouchCell(touch, seq) : providerCell(seq)}</td>
+              <td>${touch ? fallbackTouchCell(touch) : (seq.provider_overflow_id === "fallback_pool" ? fallbackTouchCell({ fallback: { type: "fallback_pool" } }) : '<span class="section-cap">—</span>')}</td>
+              <td><span class="code">${escapeHtml(t.dedup_trigger_name || seq.dedup_trigger_name || "")}</span></td>
+              <td>${implementationStatusBadge(seq)}</td>
+              <td>${touch && touch.ordinal === 1 ? previewCell(seq) : (touch ? "—" : previewCell(seq))}</td>
+            </tr>`;
+          })
+          .join("");
+          return `<div class="inventory-phase-group" data-funnel-phase-group="${escapeHtml(fpId)}">
+          <h3 class="inventory-phase-heading">${escapeHtml(fp.label || FUNNEL_PHASE_LABELS[fpId] || fpId)}</h3>
+          ${phaseContext}
+          ${budget}
+          <div class="seq-table-wrap">
+            <table class="seq-table inventory-table">
+              <thead><tr><th>#</th><th>Email</th><th>Audience</th><th>When</th><th>Primary</th><th>Fallback</th><th>Dedup</th><th>Status</th><th>Preview</th></tr></thead>
+              <tbody>${tableRows}</tbody>
+            </table>
+          </div>
+        </div>`;
+        })
+        .join("");
+      return `<div class="email-inventory">${sections}</div>`;
+    }
+
+    function sequenceImplementationStats() {
+      const seqs = emailData?.sequences || [];
+      const shipped = seqs.filter((s) => inferImplementationStatus(s) === "shipped").length;
+      return { shipped, total: seqs.length, pending: seqs.length - shipped };
+    }
+
+    function sequencesForPhase(phaseId) {
+      return (emailData?.sequences || []).filter((s) => s.funnel_phase === phaseId);
+    }
+
     function formatLimits(p) {
       if (!p?.free_limits) return "—";
       const lim = p.free_limits;
@@ -44,6 +194,9 @@
       }
       if (lim.contacts != null) {
         parts.push(`${lim.contacts.toLocaleString()} contacts`);
+      }
+      if (p.id === "beehiiv" && !lim.emails_per_month && !lim.emails_per_day) {
+        parts.push("unlimited sends");
       }
       return parts.join(" · ") || "—";
     }
@@ -137,6 +290,18 @@
       return html;
     }
 
+    function emailBudgetLine(seq) {
+      const fp = funnelPhaseById(seq.funnel_phase);
+      if (fp?.emails_per_user_min != null) {
+        return `<br><strong>Email budget:</strong> ${fp.emails_per_user_min}–${fp.emails_per_user_max} per user`;
+      }
+      const cc = emailData?.launch_config?.conversion_config;
+      if (seq.funnel_phase === "phase_2_conversion" && cc) {
+        return `<br><strong>Email budget:</strong> ${cc.phase_2_conversion_emails_min}–${cc.phase_2_conversion_emails_max} (part of ${cc.total_emails_before_perpetual_free_min}–${cc.total_emails_before_perpetual_free_max} total)`;
+      }
+      return "";
+    }
+
     function requirementsCell(seq) {
       const cadence = cadenceLabel(seq.cadence);
       return `<div class="requirements-cell">
@@ -144,7 +309,7 @@
           <strong>Audience:</strong> ${bucketPills(seq.buckets)}<br>
           <strong>Frequency:</strong> ${escapeHtml(cadence)}<br>
           <strong>When:</strong> ${escapeHtml(seq.trigger_when || "—")}<br>
-          ${escapeHtml(seq.trigger_summary || "")}
+          ${escapeHtml(seq.trigger_summary || "")}${emailBudgetLine(seq)}
         </div>
         <div class="requirements-tech">
           <span class="code">${escapeHtml(seq.trigger_implementation || "")}</span><br>
@@ -155,11 +320,15 @@
 
     function strategyProviderCell(seq) {
       const primary = providerById(seq.provider_id);
-      const overflow = seq.provider_overflow_id ? providerById(seq.provider_overflow_id) : null;
-      if (overflow) {
-        return `${escapeHtml(primary?.name || seq.provider_id)} <span class="section-cap">→ ${escapeHtml(overflow.name)}</span>`;
+      const primaryName = escapeHtml(primary?.name || seq.provider_id);
+      if (seq.provider_overflow_id === "fallback_pool") {
+        return `${primaryName} <span class="section-cap">→ fallback pool</span>`;
       }
-      return escapeHtml(primary?.name || seq.provider_id);
+      if (seq.provider_overflow_id) {
+        const overflow = providerById(seq.provider_overflow_id);
+        return `${primaryName} <span class="section-cap">→ ${escapeHtml(overflow?.name || seq.provider_overflow_id)}</span>`;
+      }
+      return primaryName;
     }
 
     function capacityForProvider(id) {
@@ -279,26 +448,95 @@
       </section>`;
     }
 
-    function renderProviders() {
-      const seqs = emailData?.sequences || [];
-      return (emailData?.providers || [])
-        .map((p) => {
-          const used = seqs
-            .filter((s) => s.provider_id === p.id || s.provider_overflow_id === p.id)
-            .map((s) => s.name);
-          const nameHtml = p.pricing_url
-            ? `<a href="${escapeHtml(p.pricing_url)}" target="_blank" rel="noopener">${escapeHtml(p.name)}</a>`
-            : escapeHtml(p.name);
-          return `<div class="provider-card ${providerStatusClass(p.id)}" data-provider-id="${escapeHtml(p.id)}">
-            <h3>${nameHtml} ${providerStatusPill(p.id)}</h3>
+    function renderProviderCard(p, seqs) {
+      const used = seqs
+        .filter(
+          (s) =>
+            s.provider_id === p.id ||
+            s.provider_overflow_id === p.id ||
+            (s.provider_overflow_id === "fallback_pool" && p.funnel_role === "fallback")
+        )
+        .map((s) => s.name);
+      const nameHtml = p.pricing_url
+        ? `<a href="${escapeHtml(p.pricing_url)}" target="_blank" rel="noopener">${escapeHtml(p.name)}</a>`
+        : escapeHtml(p.name);
+      const roleLabels = {
+        phase_1_primary: "Phase 1",
+        phase_2_paid: "Phase 2 paid",
+        phase_2_conversion: "Phase 2 conversion",
+        phase_3_terminal: "Phase 3 terminal",
+        fallback: "Fallback pool",
+      };
+      const roleLabel = roleLabels[p.funnel_role]
+        ? `<span class="routing-pill">${escapeHtml(roleLabels[p.funnel_role])}</span>`
+        : "";
+      const phTag = (p.funnel_tags || []).includes("ph_interim")
+        ? `<span class="routing-pill">PH interim</span>`
+        : "";
+      const deprecated = p.status === "deprecated" ? `<span class="section-cap"> (deprecated)</span>` : "";
+      return `<div class="provider-card ${providerStatusClass(p.id)}" data-provider-id="${escapeHtml(p.id)}">
+            <h3>${nameHtml} ${roleLabel} ${phTag} ${providerStatusPill(p.id)}${deprecated}</h3>
             <div class="limits">${escapeHtml(formatLimits(p))}</div>
             <div class="constraints">${(p.constraints || []).map(escapeHtml).join(" · ")}</div>
             <div class="upgrade"><strong>Upgrade when:</strong> ${escapeHtml(p.upgrade_trigger || "—")}</div>
             ${p.notes ? `<div class="upgrade">${escapeHtml(p.notes)}</div>` : ""}
             <div class="seq-list">Sequences: ${used.length ? escapeHtml(used.join(", ")) : "—"}</div>
           </div>`;
+    }
+
+    function renderProvidersGrouped() {
+      const seqs = emailData?.sequences || [];
+      const providers = emailData?.providers || [];
+      const pool = emailData?.fallback_pool || {};
+      const poolIds = new Set(pool.provider_ids || ["mailerlite", "omnisend", "brevo"]);
+      const primaryRoles = new Set(["phase_1_primary", "phase_2_paid", "phase_2_conversion", "phase_3_terminal"]);
+      const primary = providers.filter((p) => primaryRoles.has(p.funnel_role));
+      const fallbackMembers = providers.filter((p) => poolIds.has(p.id));
+      const agg = pool.aggregate_free_limits || {};
+      const aggLine = agg.contacts
+        ? `<p class="section-cap"><strong>Aggregate:</strong> ${Number(agg.contacts).toLocaleString()} contacts · ~${Number(agg.sends_per_month || 0).toLocaleString()} sends/mo</p>`
+        : "";
+      const cap = snapshotData?.email_provider_capacity?.pool_aggregate;
+      const livePool = cap?.provider_count
+        ? `<p class="section-cap"><strong>Live pool usage:</strong> ${Number(cap.contact_used).toLocaleString()} / ${Number(cap.contact_cap).toLocaleString()} contacts</p>`
+        : "";
+      const memberChips = fallbackMembers
+        .map((p) => {
+          const lim = pool.member_limits?.[p.id] || p.free_limits || {};
+          const parts = [];
+          if (lim.contacts) parts.push(`${lim.contacts.toLocaleString()} contacts`);
+          if (lim.emails_per_month) parts.push(`${lim.emails_per_month.toLocaleString()}/mo`);
+          else if (lim.emails_per_day) parts.push(`${lim.emails_per_day}/day`);
+          return `<div class="pool-member"><strong>${escapeHtml(p.name)}</strong>${parts.join(" · ")}</div>`;
         })
         .join("");
+      return `<div class="provider-grid-grouped">
+        <h3 class="provider-group-heading">Primary providers</h3>
+        <div class="provider-grid">${primary.map((p) => renderProviderCard(p, seqs)).join("")}</div>
+        <div class="fallback-pool-card">
+          <h3>Fallback pool <span class="routing-pill">when primary at cap</span></h3>
+          <p class="section-cap">${escapeHtml(pool.notes || "")}</p>
+          ${aggLine}${livePool}
+          <div class="pool-members">${memberChips}</div>
+          <div class="provider-grid">${fallbackMembers.map((p) => renderProviderCard(p, seqs)).join("")}</div>
+        </div>
+      </div>`;
+    }
+
+    function renderProviders() {
+      return renderProvidersGrouped();
+    }
+
+    function renderProviderCandidates() {
+      const candidates = emailData?.provider_candidates || [];
+      if (!candidates.length) return "";
+      const items = candidates
+        .map(
+          (c) =>
+            `<li>${c.pricing_url ? `<a href="${escapeHtml(c.pricing_url)}" target="_blank" rel="noopener">${escapeHtml(c.name)}</a>` : escapeHtml(c.name)} — ${escapeHtml(c.status || "pending")}${c.notes ? ` · ${escapeHtml(c.notes)}` : ""}</li>`
+        )
+        .join("");
+      return `<details class="section-cap" style="margin-top:1rem"><summary>Provider candidates (${candidates.length} pending limits)</summary><ul style="margin:0.5rem 0 0 1.25rem">${items}</ul></details>`;
     }
 
     function renderBucketsTable() {
@@ -352,9 +590,14 @@
           </tr>`;
         })
         .join("");
+      const pool = cap.pool_aggregate;
+      const poolBanner = pool?.provider_count
+        ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Number(pool.send_used).toLocaleString()} / ${Number(pool.send_cap).toLocaleString()} sends/mo · ${Number(pool.contact_used).toLocaleString()} / ${Number(pool.contact_cap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo — fallback when primary at cap).</p>`
+        : "";
       return `<section id="provider-capacity">
         <h2>Provider capacity &amp; near-limit</h2>
         <p class="section-cap">${escapeHtml(cap.estimation_note || "")} · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md#6-capacity-runway-and-upgrade-triggers">Proposal §6</a></p>
+        ${poolBanner}
         ${alert}
         <table class="capacity-table">
           <thead><tr><th>Provider</th><th>Contacts</th><th>Sends (mo)</th><th>Sends (day)</th><th>Runway</th><th>Status</th></tr></thead>
@@ -365,7 +608,7 @@
 
     const CADENCE_SENDS = {
       "one-time": 1,
-      "drip-2-4": 3,
+      "drip-2-4": 4,
       "one-time-plus-d7": 2,
       "campaign-2-touch": 2,
       "one-time-plus-d14": 2,
@@ -397,7 +640,7 @@
     }
 
     function seqEligible(seq, ctx) {
-      const cadence = CADENCE_SENDS[seq.cadence || "one-time"] || 1;
+      const cadence = touchCount(seq);
       let eligible = 0;
       for (const b of seq.buckets || []) {
         if (b in ctx.bucketCounts) eligible += ctx.bucketCounts[b];
@@ -405,65 +648,144 @@
         else if (b === "limit_hitter") eligible += ctx.limitHitters;
         else if (b === "cancelled_paid") eligible += ctx.cancelledPaid;
         else if (b === "waitlist") eligible += ctx.launchAudience;
+        else if (b === "company_domain") eligible += ctx.companyEmailUsers;
       }
       const signupVol = ctx.signupVol;
       if (seq.id === "welcome" || seq.id === "nps_day3") eligible = signupVol;
       else if (seq.id === "pmf_day10") eligible = Math.round(signupVol * ctx.pmfPct);
       else if (seq.id === "activation_nudge") eligible = Math.round(signupVol * (1 - ctx.activationPct));
+      else if (seq.id === "activation_cs_calendar") eligible = Math.round(signupVol * (1 - ctx.activationPct) * 0.5);
       else if (seq.id === "dead_resurrection") eligible = Math.min(ctx.bucketCounts.dead || 0, ctx.deadCap);
+      else if (seq.id === "enterprise_founder" || seq.id === "enterprise_expansion") {
+        eligible = Math.max(0, Math.round(ctx.companyEmailUsers * 0.12));
+      }
       else if (seq.id === "ph_teaser" || seq.id === "ph_launch") {
         eligible = ctx.mode === "launch_week" ? ctx.launchAudience : 0;
       }
       return { sends: eligible * cadence, eligible };
     }
 
-    function providerContactsSim(pid, ctx, byProvider) {
-      const signupVol = ctx.signupVol;
-      if (pid === "omnisend") {
-        return ctx.activeRules.includes("omnisend_to_brevo") ? 0 : ctx.paidSubs;
+    const PHASE1_SEQ_IDS = new Set(["welcome", "activation_nudge", "activation_cs_calendar", "nps_day3", "pmf_day10"]);
+    const FALLBACK_PROVIDER_IDS = new Set(["mailerlite", "omnisend", "brevo"]);
+    const PAID_SEQ_IDS = new Set(["upgrade_thank_you", "cancelled_winback"]);
+
+    const FALLBACK_CAPS = { mailerlite: 500, omnisend: 250, brevo: 2000 };
+
+    function conversionContactDemand(ctx) {
+      const conv =
+        (ctx.bucketCounts.at_risk_wau || 0) +
+        (ctx.bucketCounts.at_risk_mau || 0) +
+        Math.min(ctx.bucketCounts.dead || 0, ctx.deadCap) +
+        (ctx.bucketCounts.reactivated || 0) +
+        (ctx.bucketCounts.resurrected || 0);
+      return Math.max(0, conv - 2500);
+    }
+
+    function poolOverflowDemand(ctx) {
+      let demand = 0;
+      if (!ctx.activeRules.includes("ph_week_brevo_primary")) {
+        demand += Math.max(0, ctx.signupVol - 2000);
       }
-      if (pid === "hubspot") {
-        const usesHubspot = ctx.activeRules.includes("ph_week_brevo_primary") ? 0 : signupVol;
-        return usesHubspot;
+      demand += conversionContactDemand(ctx);
+      return demand;
+    }
+
+    function distributePoolOverflow(totalOverflow) {
+      const assigned = { mailerlite: 0, omnisend: 0, brevo: 0 };
+      let remaining = Math.max(0, totalOverflow);
+      while (remaining > 0) {
+        const headroom = {
+          mailerlite: FALLBACK_CAPS.mailerlite - assigned.mailerlite,
+          omnisend: FALLBACK_CAPS.omnisend - assigned.omnisend,
+          brevo: FALLBACK_CAPS.brevo - assigned.brevo,
+        };
+        const pid = Object.keys(headroom).reduce((a, b) => (headroom[a] >= headroom[b] ? a : b));
+        if (headroom[pid] <= 0) break;
+        const take = Math.min(remaining, headroom[pid]);
+        assigned[pid] += take;
+        remaining -= take;
       }
-      if (pid === "mailgun") return Math.round(signupVol * ctx.pmfPct);
+      return assigned;
+    }
+
+    function poolProviderWithHeadroom(poolAlloc) {
+      const headroom = {
+        mailerlite: FALLBACK_CAPS.mailerlite - (poolAlloc.mailerlite || 0),
+        omnisend: FALLBACK_CAPS.omnisend - (poolAlloc.omnisend || 0),
+        brevo: FALLBACK_CAPS.brevo - (poolAlloc.brevo || 0),
+      };
+      return Object.keys(headroom).reduce((a, b) => (headroom[a] >= headroom[b] ? a : b));
+    }
+
+    function providerContactsSim(pid, ctx, poolAlloc) {
+      const alloc = poolAlloc || distributePoolOverflow(poolOverflowDemand(ctx));
+      if (pid === "beehiiv") {
+        if (ctx.activeRules.includes("ph_week_brevo_primary")) return 0;
+        return Math.min(ctx.signupVol + ctx.limitHitters, 2500);
+      }
+      if (pid in FALLBACK_CAPS) {
+        let base = alloc[pid] || 0;
+        if (pid === "brevo") {
+          base += ctx.cancelledPaid;
+          if (ctx.mode === "launch_week") base += ctx.launchAudience;
+          if (ctx.activeRules.includes("ph_week_brevo_primary")) {
+            base += ctx.signupVol + Math.round(ctx.signupVol * (1 - ctx.activationPct));
+          }
+          return Math.min(ctx.totalUsers, base);
+        }
+        return base;
+      }
+      if (pid === "hubspot") return ctx.companyEmailUsers + ctx.paidSubs;
+      if (pid === "mailgun") return ctx.paidSubs + ctx.cancelledPaid;
       if (pid === "emailoctopus") {
-        const ar = (ctx.bucketCounts.at_risk_wau || 0) + (ctx.bucketCounts.at_risk_mau || 0);
-        const dead = Math.min(ctx.bucketCounts.dead || 0, ctx.deadCap);
-        const ret = (ctx.bucketCounts.reactivated || 0) + (ctx.bucketCounts.resurrected || 0);
-        return ar + dead + ret;
-      }
-      if (pid === "mailerlite") {
-        const eoCap = providerById("emailoctopus")?.free_limits?.contacts || 2500;
-        const eoUsed = providerContactsSim("emailoctopus", ctx, byProvider);
-        if (eoUsed > eoCap * 0.8) return Math.min(500, Math.round((eoUsed - eoCap * 0.8) * 0.5));
-        return 0;
-      }
-      if (pid === "brevo") {
-        let base = signupVol + ctx.limitHitters + ctx.cancelledPaid + ctx.paidSubs;
-        if (ctx.mode === "launch_week") base += ctx.launchAudience;
-        base += signupVol + Math.round(signupVol * ctx.pmfPct);
-        return Math.min(ctx.totalUsers, base);
+        const conv =
+          (ctx.bucketCounts.at_risk_wau || 0) +
+          (ctx.bucketCounts.at_risk_mau || 0) +
+          Math.min(ctx.bucketCounts.dead || 0, ctx.deadCap) +
+          (ctx.bucketCounts.reactivated || 0) +
+          (ctx.bucketCounts.resurrected || 0);
+        return Math.min(conv, 2500);
       }
       return ctx.totalUsers;
     }
 
     function computeDailyPeaks(ctx) {
-      const { newUsersDay, newUsersMonth, mode, launchAudience, launchDays, activationPct, pmfPct, agentReserve, activeRules } = ctx;
-      const npsDailyPeak = Math.round((newUsersMonth / 30) * 1.5);
+      const { newUsersDay, newUsersMonth, mode, launchAudience, launchDays, activationPct, agentReserve, activeRules, paidSubs, cancelledPaid, limitHitters } = ctx;
+      const npsDailyPeak = activeRules.includes("ph_week_brevo_primary") ? Math.round((newUsersMonth / 30) * 1.5) : 0;
       const launchBrevo = mode === "launch_week" ? launchAudience / 2 / launchDays : 0;
       const peaks = {};
       peaks.brevo =
-        newUsersDay +
-        Math.round(newUsersDay * (1 - activationPct)) +
+        (activeRules.includes("ph_week_brevo_primary") ? newUsersDay + Math.round(newUsersDay * (1 - activationPct)) : 0) +
         npsDailyPeak +
         launchBrevo +
         agentReserve;
-      peaks.mailgun = Math.max(Math.round((newUsersMonth * pmfPct) / 30), Math.round(newUsersDay * pmfPct / 5));
-      peaks.hubspot = activeRules.includes("ph_week_brevo_primary")
-        ? 0
-        : newUsersDay + Math.round(newUsersDay * (1 - activationPct));
+      const paidEvents = Math.max(paidSubs, cancelledPaid) / 30;
+      peaks.mailgun = Math.max(paidEvents, Math.round(paidSubs * 0.05));
+      peaks.hubspot = Math.max(1, Math.round(((ctx.companyEmailUsers || 0) + paidSubs) * 0.02));
       return peaks;
+    }
+
+    function computePoolAggregate(providerRows, providers) {
+      const poolIds = (providers || [])
+        .filter((p) => FALLBACK_PROVIDER_IDS.has(p.id) && p.status !== "deprecated")
+        .map((p) => p.id);
+      let sendUsed = 0;
+      let sendCap = 0;
+      let contactUsed = 0;
+      let contactCap = 0;
+      for (const row of providerRows || []) {
+        if (!poolIds.includes(row.id)) continue;
+        sendUsed += row.monthly || 0;
+        const prov = providerById(row.id);
+        const lim = prov?.free_limits || {};
+        const mo = lim.marketing_emails_per_month ?? lim.emails_per_month ?? (lim.emails_per_day ? lim.emails_per_day * 30 : 0);
+        if (mo) sendCap += mo;
+        if (lim.contacts) {
+          contactCap += lim.contacts;
+          contactUsed += row.contacts || 0;
+        }
+      }
+      return { sendUsed, sendCap, contactUsed, contactCap, providerCount: poolIds.length };
     }
 
     function simulateCapacity(opts) {
@@ -479,8 +801,12 @@
       const paidConversion = lc.paid_conversion_pct ?? 0.015;
       const agentReserve = lc.agent_brevo_daily_reserve ?? 50;
 
+      const companyEmailPct =
+        opts.companyEmailPct != null ? opts.companyEmailPct : lc.company_email_pct ?? 0.15;
+
       const signupVol = newUsersMonth;
       const totalUsers = baseline.totalUsers + newUsersMonth;
+      const companyEmailUsers = Math.round(totalUsers * companyEmailPct);
       const autoPaid = Math.max(baseline.monetization.paid_subscribers || 0, Math.round(totalUsers * paidConversion));
       const paidSubs = opts.paidOverride != null ? opts.paidOverride : autoPaid;
       const bucketCounts = projectBucketsForSim(totalUsers, newUsersMonth);
@@ -488,8 +814,8 @@
 
       let deadCap = 20;
       const activeRules = [];
-      if (mode === "launch_week" || newUsersMonth >= 1) activeRules.push("ph_week_brevo_primary");
-      if (paidSubs >= 1) activeRules.push("omnisend_to_brevo");
+      if (mode === "launch_week") activeRules.push("ph_week_brevo_primary");
+      if (paidSubs >= 1) activeRules.push("paid_hubspot_sync");
 
       const ctx = {
         newUsersDay,
@@ -497,6 +823,8 @@
         mode,
         signupVol,
         totalUsers,
+        companyEmailUsers,
+        companyEmailPct,
         paidSubs,
         limitHitters: Math.max(baseline.monetization.users_hit_limit || 0, Math.round(newUsersMonth * 0.05)),
         cancelledPaid: baseline.monetization.cancelled_paid_subscribers || 0,
@@ -510,8 +838,18 @@
         agentReserve,
       };
 
-      const eoContacts = providerContactsSim("emailoctopus", ctx, {});
-      if (eoContacts > 2000) {
+      const poolDemand = poolOverflowDemand(ctx);
+      const poolAlloc = distributePoolOverflow(poolDemand);
+      const beehiivContacts = providerContactsSim("beehiiv", ctx, poolAlloc);
+      const eoContacts = providerContactsSim("emailoctopus", ctx, poolAlloc);
+      const poolContactsUsed =
+        providerContactsSim("mailerlite", ctx, poolAlloc) +
+        providerContactsSim("omnisend", ctx, poolAlloc) +
+        providerContactsSim("brevo", ctx, poolAlloc);
+
+      if (poolDemand > 0 || beehiivContacts >= 2000) activeRules.push("fallback_pool");
+      if (beehiivContacts >= 2000) activeRules.push("beehiiv_prune_to_phase2");
+      if (eoContacts >= 2000) {
         activeRules.push("emailoctopus_cap");
         ctx.deadCap = 10;
       }
@@ -522,9 +860,12 @@
         if (activeRules.includes("ph_week_brevo_primary") && ["welcome", "activation_nudge"].includes(seq.id)) {
           pid = "brevo";
         }
-        if (activeRules.includes("omnisend_to_brevo") && ["upgrade_thank_you", "cancelled_winback"].includes(seq.id)) {
-          pid = "brevo";
-        }
+        const needsPool =
+          activeRules.includes("fallback_pool") &&
+          (PHASE1_SEQ_IDS.has(seq.id) ||
+            PAID_SEQ_IDS.has(seq.id) ||
+            seq.funnel_phase === "phase_2_conversion");
+        if (needsPool) pid = poolProviderWithHeadroom(poolAlloc);
         return pid;
       }
 
@@ -534,31 +875,20 @@
         if (sends <= 0) continue;
         let pid = effectiveProvider(seq);
         byProvider[pid] = (byProvider[pid] || 0) + sends;
-        if (seq.provider_overflow_id && newUsersMonth >= 600) {
-          byProvider[seq.provider_overflow_id] = (byProvider[seq.provider_overflow_id] || 0) + sends * 0.15;
+        if (seq.provider_overflow_id === "fallback_pool" && activeRules.includes("fallback_pool")) {
+          const spillPid = poolProviderWithHeadroom(poolAlloc);
+          byProvider[spillPid] = (byProvider[spillPid] || 0) + sends * 0.15;
         }
       }
 
       const dailyPeaks = computeDailyPeaks(ctx);
-      if (dailyPeaks.brevo > 240) {
-        activeRules.push("brevo_daily_overflow");
-        const pmfSeq = (emailData?.sequences || []).find((s) => s.id === "pmf_day10");
-        if (pmfSeq) {
-          const { sends: pmfSends } = seqEligible(pmfSeq, ctx);
-          byProvider.brevo = Math.max(0, (byProvider.brevo || 0) - pmfSends);
-          byProvider.mailgun = (byProvider.mailgun || 0) + pmfSends;
-        }
-      }
+      if (dailyPeaks.mailgun > 80) activeRules.push("fallback_pool");
+      if (companyEmailUsers >= 1) activeRules.push("company_email_hubspot_sync");
       ctx.activeRules = activeRules;
 
       const brevoProv = providerById("brevo");
-      const brevoFree = brevoProv?.free_limits || {};
       const brevoStarterLimits = brevoProv?.paid_tier?.limits || null;
-      const brevoContactsEst = providerContactsSim("brevo", ctx, byProvider);
-      const useBrevoStarter =
-        paidSubs >= 1 ||
-        dailyPeaks.brevo > (brevoFree.emails_per_day ?? Infinity) ||
-        brevoContactsEst > (brevoFree.contacts ?? Infinity);
+      const useBrevoStarter = opts.brevoStarter === true;
 
       const providerRows = [];
       const failures = [];
@@ -572,7 +902,7 @@
             : { ...(prov.free_limits || {}) };
         const monthly = byProvider[pid] || 0;
         const dailyAvg = monthly / 30;
-        const contacts = providerContactsSim(pid, ctx, byProvider);
+        const contacts = providerContactsSim(pid, ctx, poolAlloc);
         const metrics = [];
 
         const moLim = lim.marketing_emails_per_month ?? lim.emails_per_month;
@@ -634,26 +964,20 @@
 
       const triggeredCliffs = [];
       for (const cliff of emailData?.capacity_cliffs || []) {
-        const row = providerRows.find((p) => p.id === cliff.provider_id);
-        if (!row) continue;
         let fire = false;
-        if (cliff.id === "brevo_launch_peak") {
+        if (cliff.id === "fallback_pool_aggregate") {
+          fire = poolContactsUsed > 2200;
+        } else if (cliff.id === "brevo_launch_peak") {
           fire = dailyPeaks.brevo > 240;
-        } else if (cliff.id === "brevo_contacts") {
-          fire = (providerRows.find((p) => p.id === "brevo")?.contacts || 0) > 1600;
-        } else if (cliff.id === "hubspot_defer_ph") {
-          fire = mode === "launch_week" || newUsersMonth > 400 || newUsersDay * 7 > 400;
-        } else if (cliff.id === "omnisend_200") {
-          fire = paidSubs >= 1;
-        } else if (cliff.id === "mailgun_pmf_primary") {
-          fire = newUsersMonth > 80 || newUsersDay * 7 > 80;
-        } else if (cliff.id === "emailoctopus_2000") {
-          fire = providerContactsSim("emailoctopus", ctx, byProvider) > 2000;
-        } else if (cliff.id === "mailerlite_overflow") {
-          fire = activeRules.includes("emailoctopus_cap");
-        } else if (cliff.id === "brevo_starter_monthly") {
-          const brevoRow = providerRows.find((p) => p.id === "brevo");
-          fire = useBrevoStarter && (brevoRow?.monthly || 0) > 16000;
+        } else if (cliff.id === "hubspot_send_budget") {
+          const hsRow = providerRows.find((p) => p.id === "hubspot");
+          fire = (hsRow?.monthly || 0) > 1600;
+        } else if (cliff.id === "beehiiv_2500") {
+          fire = beehiivContacts >= 2000;
+        } else if (cliff.id === "mailgun_paid_daily") {
+          fire = dailyPeaks.mailgun > 80;
+        } else if (cliff.id === "emailoctopus_2500") {
+          fire = eoContacts >= 2000;
         } else if (cliff.id === "brevo_agent") {
           fire = dailyPeaks.brevo > 250;
         }
@@ -661,8 +985,10 @@
       }
 
       const goalsNote = useBrevoStarter
-        ? "Brevo Starter ($29/mo · 20k sends/mo): OmniSend deprecated; watch 20k/month ceiling."
-        : "Before first paid sub: free Brevo (300/day · 2k contacts). Upgrade to Starter at $29/mo when PH or paid lifecycle binds.";
+        ? "Brevo Starter ($29/mo · 20k sends/mo · 500k contacts): OmniSend deprecated; watch 20k/month ceiling."
+        : "Free Brevo (300/day · 2k contacts). Toggle Starter above to model post-upgrade headroom.";
+
+      const poolAggregate = computePoolAggregate(providerRows, emailData?.providers);
 
       return {
         providerRows,
@@ -672,10 +998,16 @@
         goalsNote,
         autoPaid,
         totalUsers,
+        companyEmailUsers,
+        companyEmailPct,
+        poolAggregate,
+        poolAlloc,
+        poolDemand,
         newUsersDay,
         newUsersMonth,
         rateInconsistent,
         dailyPeaks,
+        useBrevoStarter,
       };
     }
 
@@ -708,6 +1040,16 @@
             <input type="number" id="scenario-month-max-num" min="0" max="${monthMax}" step="1" value="${monthDefault}" />
           </div>
           <div class="scenario-control-group">
+            <label for="scenario-company-pct">Company email % <span class="section-cap">(non-consumer domains → HubSpot)</span></label>
+            <input type="range" id="scenario-company-pct" min="0" max="50" step="1" value="${Math.round((lc.company_email_pct ?? 0.15) * 100)}" />
+            <input type="number" id="scenario-company-pct-num" min="0" max="50" step="1" value="${Math.round((lc.company_email_pct ?? 0.15) * 100)}" />
+          </div>
+          <div class="scenario-control-group">
+            <label>Brevo tier</label>
+            <label class="scenario-override-toggle"><input type="checkbox" id="scenario-brevo-starter" /> Starter ($29/mo · 20k sends · 500k contacts)</label>
+            <p class="section-cap">Default: free (300/day · 2k contacts). Enable Starter to compare post-upgrade headroom.</p>
+          </div>
+          <div class="scenario-control-group">
             <label for="scenario-paid">Paid subscribers <span id="scenario-paid-mode" class="section-cap">(auto)</span></label>
             <input type="range" id="scenario-paid" min="0" max="500" step="5" value="0" />
             <input type="number" id="scenario-paid-num" min="0" max="500" step="1" value="0" />
@@ -735,11 +1077,15 @@
       const mode = document.querySelector('input[name="scenario-mode"]:checked')?.value || "launch_week";
       const paidOverrideOn = paidOverrideCb?.checked;
       const paidVal = Number(document.getElementById("scenario-paid-num")?.value || 0);
+      const brevoStarterOn = document.getElementById("scenario-brevo-starter")?.checked ?? false;
+      const companyPctVal = Number(document.getElementById("scenario-company-pct-num")?.value || 15);
       const sim = simulateCapacity({
         newUsersPerDayMax: newUsersDay,
         newUsersPerMonthMax: newUsersMonth,
         mode,
         paidOverride: paidOverrideOn ? paidVal : null,
+        brevoStarter: brevoStarterOn,
+        companyEmailPct: companyPctVal / 100,
       });
 
       const modeEl = document.getElementById("scenario-paid-mode");
@@ -774,7 +1120,19 @@
               .map((c) => `<a href="#cliff-${escapeHtml(c.id)}">${escapeHtml(c.id)}</a>`)
               .join(" · ")}</p>`
           : "";
-        summaryEl.innerHTML = `${rateWarn}${stallBanner}${rules}${cliffs}<p class="section-cap">${escapeHtml(sim.goalsNote)} · Total users: ${sim.totalUsers.toLocaleString()} · Brevo peak day: ~${Math.round(sim.dailyPeaks?.brevo || 0).toLocaleString()}/300</p>`;
+        const pool = sim.poolAggregate || {};
+        const poolPct = pool.sendCap ? Math.round((100 * pool.sendUsed) / pool.sendCap) : 0;
+        const poolAllocLine =
+          sim.activeRules.includes("fallback_pool") && sim.poolAlloc
+            ? `<p class="section-cap"><strong>Pool allocation (sim):</strong> ${Object.entries(sim.poolAlloc)
+                .filter(([, v]) => v > 0)
+                .map(([pid, n]) => `${providerDisplayName(pid)} +${Math.round(n).toLocaleString()}`)
+                .join(" · ") || "demand below pool caps"}${sim.poolDemand ? ` · total overflow demand ${Math.round(sim.poolDemand).toLocaleString()}` : ""}</p>`
+            : "";
+        const poolLine = pool.providerCount
+          ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Math.round(pool.sendUsed).toLocaleString()} / ${Math.round(pool.sendCap).toLocaleString()} sends/mo (${poolPct}%) · ${Math.round(pool.contactUsed).toLocaleString()} / ${Math.round(pool.contactCap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo — fallback when primary at cap) · <strong>HubSpot Phase 3:</strong> ~${(sim.companyEmailUsers + sim.autoPaid).toLocaleString()} CRM contacts</p>${poolAllocLine}`
+          : poolAllocLine;
+        summaryEl.innerHTML = `${rateWarn}${stallBanner}${rules}${cliffs}${poolLine}<p class="section-cap"><strong>Brevo tier:</strong> ${sim.useBrevoStarter ? "Starter ($29/mo)" : "Free (300/day · 2k contacts)"} · ${escapeHtml(sim.goalsNote)} · Total users: ${sim.totalUsers.toLocaleString()} · Brevo peak day: ~${Math.round(sim.dailyPeaks?.brevo || 0).toLocaleString()}/${sim.useBrevoStarter ? "—" : "300"}</p>`;
       }
 
       const cardsEl = document.getElementById("scenario-provider-cards");
@@ -810,8 +1168,10 @@
       syncPair("scenario-day-max", "scenario-day-max-num");
       syncPair("scenario-month-max", "scenario-month-max-num");
       syncPair("scenario-paid", "scenario-paid-num");
+      syncPair("scenario-company-pct", "scenario-company-pct-num");
 
       document.getElementById("scenario-paid-override")?.addEventListener("change", updateScenarioUI);
+      document.getElementById("scenario-brevo-starter")?.addEventListener("change", updateScenarioUI);
       document.querySelectorAll('input[name="scenario-mode"]').forEach((el) => {
         el.addEventListener("change", updateScenarioUI);
       });
@@ -845,13 +1205,256 @@
       updateScenarioUI();
     }
 
+    function seqNamesByIds(ids) {
+      const seqs = emailData?.sequences || [];
+      return (ids || [])
+        .map((id) => seqs.find((s) => s.id === id)?.name || id)
+        .join(", ");
+    }
+
+    function funnelPhaseReadinessList(phase) {
+      const milestones = phase?.phase_2_readiness_milestones || [];
+      if (!milestones.length) return "";
+      const emailItems = milestones
+        .filter((m) => m.type === "email")
+        .map(
+          (m) =>
+            `<li class="funnel-readiness-email">${escapeHtml(m.label)}${m.dedup_trigger_name ? ` <span class="code">${escapeHtml(m.dedup_trigger_name)}</span>` : ""}</li>`
+        )
+        .join("");
+      const productItems = milestones
+        .filter((m) => m.type === "product")
+        .map(
+          (m) =>
+            `<li class="funnel-readiness-product">${escapeHtml(m.label)}${m.source_table ? ` <span class="code">${escapeHtml(m.source_table)}</span>` : ""}</li>`
+        )
+        .join("");
+      const lists = [];
+      if (emailItems) lists.push(`<p class="section-cap"><strong>Email milestones:</strong></p><ul class="funnel-readiness-list">${emailItems}</ul>`);
+      if (productItems) lists.push(`<p class="section-cap"><strong>Product milestones:</strong></p><ul class="funnel-readiness-list">${productItems}</ul>`);
+      const model = phase.readiness_model ? `<p class="section-cap"><strong>Readiness:</strong> ${escapeHtml(phase.readiness_model)}</p>` : "";
+      const prune = phase.prune_override ? `<p class="section-cap"><strong>Prune override:</strong> ${escapeHtml(phase.prune_override)}</p>` : "";
+      return `<p><strong>Phase 2 readiness milestones:</strong></p>${lists.join("")}${model}${prune}`;
+    }
+
+    function funnelPhaseKpiList(phase) {
+      const kpis = phase?.kpis || [];
+      if (!kpis.length) return "";
+      const items = kpis
+        .map((k) => {
+          const anchor = k.anchor || k.metric;
+          return `<li><a class="metric-link" href="/#${escapeHtml(anchor)}">${escapeHtml(k.label || k.metric)}</a> <span class="code">${escapeHtml(k.metric)}</span></li>`;
+        })
+        .join("");
+      return `<p><strong>Major KPIs:</strong></p><ul class="funnel-kpi-list">${items}</ul>`;
+    }
+
+    function funnelPhaseGoalsList(phase) {
+      const goals = phase?.activation_goals || [];
+      if (!goals.length) return "";
+      return `<p><strong>Activation goals:</strong></p><ul class="funnel-activation-goals">${goals.map((g) => `<li>${escapeHtml(g)}</li>`).join("")}</ul>`;
+    }
+
+    function funnelPhaseExitList(phase) {
+      const triggers = phase?.exit_triggers || [];
+      if (triggers.length) {
+        return `<p><strong>Exit:</strong></p><ul class="funnel-exit-triggers">${triggers.map((t) => `<li>${escapeHtml(t)}</li>`).join("")}</ul>`;
+      }
+      return phase?.exit ? `<p class="section-cap"><strong>Exit:</strong> ${escapeHtml(phase.exit)}</p>` : "";
+    }
+
+    function renderFunnelArchitecture() {
+      const phases = emailData?.funnel_phases || [];
+      const p1 = phases.find((f) => f.id === "phase_1_activation");
+      const p2paid = phases.find((f) => f.id === "phase_2_paid");
+      const p2conv = phases.find((f) => f.id === "phase_2_conversion");
+      const p3 = phases.find((f) => f.id === "phase_3_terminal");
+      const pool = emailData?.fallback_pool || {};
+      const cap = snapshotData?.email_provider_capacity?.pool_aggregate;
+      const beehiiv = providerById("beehiiv");
+      const ascii = `Signup → Beehiiv Phase 1 nurture
+         ├─ track milestones (welcome · prompt · limit · training · NPS · PMF)
+         ├─ ripe enough? → Phase 2 fork
+         ├─ upgraded? → Phase 2 paid (Mailgun + HubSpot)
+         └─ Beehiiv full / enough days? → prune to Phase 2
+Any phase cap hit → Fallback pool (MailerLite | OmniSend | Brevo)`;
+      const poolMembers = (pool.provider_ids || [])
+        .map((id) => {
+          const p = providerById(id);
+          const lim = pool.member_limits?.[id] || {};
+          const parts = [];
+          if (lim.contacts) parts.push(`${lim.contacts} contacts`);
+          if (lim.emails_per_month) parts.push(`${lim.emails_per_month}/mo`);
+          else if (lim.emails_per_day) parts.push(`${lim.emails_per_day}/day`);
+          return `<div class="pool-member"><strong>${escapeHtml(p?.name || id)}</strong>${parts.join(" · ")}</div>`;
+        })
+        .join("");
+      const livePool = cap?.provider_count
+        ? `<p class="section-cap"><strong>Live fallback pool:</strong> ${Number(cap.contact_used).toLocaleString()} / ${Number(cap.contact_cap).toLocaleString()} contacts · ${Number(cap.send_used).toLocaleString()} / ${Number(cap.send_cap).toLocaleString()} sends/mo</p>`
+        : "";
+      return `<section id="funnel">
+        <h2>Funnel architecture</h2>
+        <p class="section-cap">Three lifecycle phases + redundant fallback pool. Data from <span class="code">email_sequences.json</span> → <span class="code">funnel_phases</span>.</p>
+        <pre class="funnel-flow-ascii">${escapeHtml(ascii)}</pre>
+        <div class="funnel-grid">
+          <div class="funnel-phase-card phase-1">
+            <h3>${escapeHtml(p1?.label || "Phase 1")}</h3>
+            <p><strong>${escapeHtml(beehiiv?.name || "Beehiiv")}</strong> · nurture while list capacity allows · ${p1?.emails_per_user_min}–${p1?.emails_per_user_max} emails toward lifecycle cap</p>
+            <p class="section-cap">${escapeHtml(p1?.notes || "")}</p>
+            ${funnelPhaseGoalsList(p1)}
+            ${funnelPhaseReadinessList(p1)}
+            ${funnelPhaseKpiList(p1)}
+            <p><strong>Sequences:</strong> ${escapeHtml(seqNamesByIds(p1?.sequences))}</p>
+            ${p1?.nurture_model ? `<p class="section-cap"><strong>Nurture:</strong> ${escapeHtml(p1.nurture_model)}</p>` : ""}
+            ${funnelPhaseExitList(p1)}
+          </div>
+          <div class="funnel-phase-card phase-2">
+            <h3>Phase 2 — Fork</h3>
+            <div class="funnel-fork">
+              <div class="funnel-fork-path">
+                <strong>${escapeHtml(p2paid?.label || "Upgraded")}</strong><br>
+                ${escapeHtml((p2paid?.primary_provider_ids || []).map(providerDisplayName).join(" + "))}<br>
+                <span class="section-cap">${escapeHtml(p2paid?.notes || "")}</span><br>
+                <strong>Seq:</strong> ${escapeHtml(seqNamesByIds(p2paid?.sequences))}
+              </div>
+              <div class="funnel-fork-path">
+                <strong>${escapeHtml(p2conv?.label || "Not upgraded")}</strong><br>
+                ${escapeHtml(providerDisplayName(p2conv?.primary_provider_id))} · ${p2conv?.emails_per_user_min}–${p2conv?.emails_per_user_max} emails<br>
+                <span class="section-cap">${escapeHtml(p2conv?.notes || "")}</span><br>
+                <strong>Seq:</strong> ${escapeHtml(seqNamesByIds(p2conv?.sequences))}
+              </div>
+            </div>
+          </div>
+          <div class="funnel-phase-card phase-3">
+            <h3>${escapeHtml(p3?.label || "Phase 3 — Terminal")}</h3>
+            ${(p3?.paths || [])
+              .map(
+                (path) =>
+                  `<div class="terminal-path path-${path.id === "paid" ? "paid" : "free"}"><strong>${escapeHtml(path.id)}</strong> → ${escapeHtml(path.destination)}<br><span class="section-cap">${escapeHtml(path.notes || "")}</span></div>`
+              )
+              .join("")}
+            <p class="section-cap">${escapeHtml(p3?.notes || "")}</p>
+          </div>
+        </div>
+        <div class="fallback-pool-card">
+          <h3>Fallback pool <span class="routing-pill">when primary at cap</span></h3>
+          <p class="section-cap">${escapeHtml(pool.notes || "")}</p>
+          ${livePool}
+          <div class="pool-members">${poolMembers}</div>
+        </div>
+      </section>`;
+    }
+
+    function renderImplementationGuide() {
+      const cc = emailData?.launch_config?.conversion_config || {};
+      const stats = sequenceImplementationStats();
+      const pending = (emailData?.sequences || []).filter((s) => inferImplementationStatus(s) !== "shipped");
+      const byPhase = {};
+      for (const seq of pending) {
+        const fp = seq.funnel_phase || "other";
+        if (!byPhase[fp]) byPhase[fp] = [];
+        byPhase[fp].push(seq);
+      }
+      const checklist = Object.entries(byPhase)
+        .map(
+          ([fp, seqs]) =>
+            `<li><strong>${escapeHtml(FUNNEL_PHASE_LABELS[fp] || fp)}</strong><ul class="impl-checklist">${seqs
+              .map((s) => `<li>${escapeHtml(s.name)} — <span class="code">${escapeHtml(s.dedup_trigger_name || s.id)}</span></li>`)
+              .join("")}</ul></li>`
+        )
+        .join("");
+      const states = [
+        ["phase_1_beehiiv", "Signup", "Graduated readiness (6 milestones) OR upgrade OR Beehiiv prune (time + emails sent)", "Phase 2 fork"],
+        ["phase_2_paid", "Stripe upgrade / company email", "Paid lifecycle on Mailgun", "Phase 3 HubSpot CRM"],
+        ["phase_2_conversion", "Phase 1 readiness met or pruned, no upgrade", "3–4 conversion emails", "Phase 3 perpetual free or upgrade"],
+        ["phase_3_perpetual_free", `${cc.total_emails_before_perpetual_free_min}–${cc.total_emails_before_perpetual_free_max} emails, no upgrade`, "No more marketing email", "Google sheet + Supabase flag"],
+        ["phase_3_paid_crm", "Paid subscriber", "HubSpot CRM", "Ongoing paid comms"],
+      ];
+      const stateRows = states
+        .map(
+          ([state, entry, exit, next]) =>
+            `<tr><td><span class="code">${escapeHtml(state)}</span></td><td>${escapeHtml(entry)}</td><td>${escapeHtml(exit)}</td><td>${escapeHtml(next)}</td></tr>`
+        )
+        .join("");
+      const readinessCode = `# triggers/evaluate.py — graduated Phase 2 readiness (not hard AND)
+milestones = count_met(user_id, phase_2_readiness_milestones)
+# email: welcome_email, nps_day3, pmf_day10 (cs_outreach_log)
+# product: llm_usage, llm_daily_usage limit hit, feedback_events training
+emails_sent = lifecycle_emails_sent(user_id)
+days_on_beehiiv = days_since_signup(user_id)
+if upgraded(user_id):
+    → phase_2_paid
+elif milestones >= STRONG_THRESHOLD or (emails_sent >= PRUNE_EMAIL_MIN and days_on_beehiiv >= PRUNE_DAYS_MIN):
+    → phase_2_fork  # paid or conversion path
+elif beehiiv_at_capacity():
+    → prune_to_phase_2`;
+      const spillCode = `# Pick pool member with most contact headroom (triggers/evaluate.py)
+pool_ids = fallback_pool["provider_ids"]  # mailerlite, omnisend, brevo
+headroom = {pid: caps[pid] - used[pid] for pid in pool_ids}
+provider = max(headroom, key=headroom.get)`;
+      return `<section id="implementation">
+        <h2>Implementation guide</h2>
+        <p class="section-cap">Wiring spec for CS agent + Supabase. <strong>${stats.pending} of ${stats.total} sequences</strong> need implementation (${stats.shipped} shipped).</p>
+        <div class="banner banner-info"><strong>PH interim:</strong> Welcome + activation ship on <strong>Brevo</strong> until Beehiiv automations live (<span class="code">ph_week_brevo_primary</span>). Target provider in sequence table is Beehiiv.</div>
+        <h3>User lifecycle states</h3>
+        <table class="impl-state-table">
+          <thead><tr><th>State</th><th>Entry</th><th>Exit condition</th><th>Next</th></tr></thead>
+          <tbody>${stateRows}</tbody>
+        </table>
+        <h3>Supabase fields</h3>
+        <div class="impl-code-block">${escapeHtml(`email_funnel_status  — phase_1 | phase_2_paid | phase_2_conversion | perpetual_free
+lifecycle_emails_sent — counter toward ${cc.total_emails_before_perpetual_free_min}–${cc.total_emails_before_perpetual_free_max} cap
+email_provider        — beehiiv | emailoctopus | mailgun | mailerlite | omnisend | brevo
+dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)}</div>
+        <h3>Readiness evaluation</h3>
+        <div class="impl-code-block">${escapeHtml(readinessCode)}</div>
+        <h3>Fallback selection</h3>
+        <div class="impl-code-block">${escapeHtml(spillCode)}</div>
+        <h3>Build checklist (${stats.pending} remaining)</h3>
+        <ul class="impl-checklist">${checklist || "<li>All sequences shipped</li>"}</ul>
+      </section>`;
+    }
+
+    function renderRoutingRules() {
+      const rows = (emailData?.routing_rules || [])
+        .map((r) => {
+          const seqList = (r.sequences || []).join(", ");
+          let prov = providerDisplayName(r.provider_id);
+          if (r.provider_id === "fallback_pool") {
+            prov = `<span class="routing-pill">Any pool member (ML · OS · Brevo)</span>`;
+          } else if (!r.provider_id) {
+            prov = `<span class="section-cap">Supabase / sheet action</span>`;
+          }
+          return `<tr id="rule-${escapeHtml(r.id)}">
+            <td><span class="code">${escapeHtml(r.id)}</span></td>
+            <td>${escapeHtml(r.label)}</td>
+            <td>${escapeHtml(r.trigger)}</td>
+            <td>${escapeHtml(seqList)}</td>
+            <td>${prov}</td>
+            <td>${escapeHtml(r.notes || "")}</td>
+          </tr>`;
+        })
+        .join("");
+      return `<section id="routing">
+        <h2>Routing rules</h2>
+        <p class="section-cap">Active rules light up in the <a href="#capacity-scenarios">scenario planner</a> when triggers fire. See also <a href="#capacity">capacity cliffs</a>.</p>
+        <table class="routing-table">
+          <thead><tr><th>ID</th><th>Label</th><th>Trigger</th><th>Sequences</th><th>Provider</th><th>Notes</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </section>`;
+    }
+
     function renderCharterNav() {
       return `<nav class="charter-toc" aria-label="Charter sections">
-        <a href="#overview">Charter</a>
+        <a href="#overview">Overview</a>
+        <a href="#funnel">Funnel</a>
+        <a href="#implementation">Implementation</a>
         <a href="#sequences">Sequences</a>
+        <a href="#routing">Routing</a>
         <a href="#buckets">DAU buckets</a>
-        <a href="#provider-capacity">Capacity</a>
         <a href="#capacity-scenarios">Scenario planner</a>
+        <a href="#provider-capacity">Live capacity</a>
         <a href="#capacity">Cliffs</a>
         <a href="#providers">Providers</a>
         <a href="#preview-gallery">Previews</a>
@@ -864,10 +1467,9 @@
         <thead><tr><th>Cliff</th><th>Provider</th><th>Trigger</th><th>Action</th></tr></thead>
         <tbody>${(emailData?.capacity_cliffs || [])
           .map((c) => {
-            const p = providerById(c.provider_id);
             return `<tr id="cliff-${escapeHtml(c.id)}">
               <td>${escapeHtml(c.id)}</td>
-              <td>${escapeHtml(p?.name || c.provider_id)}</td>
+              <td>${escapeHtml(cliffProviderName(c.provider_id))}</td>
               <td>${escapeHtml(c.trigger)}</td>
               <td>${escapeHtml(c.action)}</td>
             </tr>`;
@@ -879,8 +1481,9 @@
     function renderSequenceTable() {
       const rows = (emailData?.sequences || [])
         .map((seq) => {
-          return `<tr class="seq-row" data-bucket="${escapeHtml((seq.buckets || []).join(","))}" data-provider="${escapeHtml(seq.provider_id)}" data-overflow="${escapeHtml(seq.provider_overflow_id || "")}" data-phase="${escapeHtml(seq.phase)}">
+          return `<tr class="seq-row" data-bucket="${escapeHtml((seq.buckets || []).join(","))}" data-provider="${escapeHtml(seq.provider_id)}" data-overflow="${escapeHtml(seq.provider_overflow_id || "")}" data-phase="${escapeHtml(seq.phase || "")}" data-funnel-phase="${escapeHtml(seq.funnel_phase || "")}">
             <td><strong>${escapeHtml(seq.name)}</strong>${phaseBadge(seq.phase)}</td>
+            <td>${funnelPhaseBadge(seq.funnel_phase)}</td>
             <td>${implementationStatusBadge(seq)}</td>
             <td>${providerCell(seq)}</td>
             <td>${requirementsCell(seq)}</td>
@@ -892,7 +1495,7 @@
       return `<div class="seq-table-wrap">
         <table class="seq-table">
           <thead><tr>
-            <th>Sequence</th><th>Status</th><th>Provider</th><th>Requirements</th><th>Metrics</th><th>Preview</th>
+            <th>Sequence</th><th>Funnel phase</th><th>Status</th><th>Provider</th><th>Requirements</th><th>Metrics</th><th>Preview</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -901,6 +1504,7 @@
 
     function renderFilters() {
       const providers = emailData?.providers || [];
+      const funnelPhases = [...new Set((emailData?.sequences || []).map((s) => s.funnel_phase).filter(Boolean))].sort();
       const buckets = [
         ...(emailData?.buckets || []).map((b) => [b.key, b.label]),
         ...(emailData?.pseudo_buckets || []).map((b) => [b.key, b.label]),
@@ -908,7 +1512,8 @@
       return `<div class="filter-bar">
         <label>Bucket <select id="filter-bucket"><option value="">All</option>${buckets.map(([k, l]) => `<option value="${escapeHtml(k)}">${escapeHtml(l)}</option>`).join("")}</select></label>
         <label>Provider <select id="filter-provider"><option value="">All</option>${providers.map((p) => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join("")}</select></label>
-        <label>Phase <select id="filter-phase"><option value="">All</option><option value="1-adam">Adam (Phase 1)</option><option value="1-new">New additions</option></select></label>
+        <label>Funnel phase <select id="filter-funnel-phase"><option value="">All</option>${funnelPhases.map((fp) => `<option value="${escapeHtml(fp)}">${escapeHtml(FUNNEL_PHASE_LABELS[fp] || fp)}</option>`).join("")}</select></label>
+        <label>Routing <select id="filter-routing"><option value="">All</option><option value="has-fallback">Has fallback</option><option value="primary-only">Primary only</option><option value="ph-interim">PH interim</option></select></label>
         <span id="filter-count" class="section-cap"></span>
       </div>`;
     }
@@ -916,27 +1521,39 @@
     function applyFilters() {
       const bucket = document.getElementById("filter-bucket")?.value || "";
       const provider = document.getElementById("filter-provider")?.value || "";
-      const phase = document.getElementById("filter-phase")?.value || "";
-      const rows = document.querySelectorAll(".seq-row");
+      const funnelPhase = document.getElementById("filter-funnel-phase")?.value || "";
+      const routing = document.getElementById("filter-routing")?.value || "";
+      const poolIds = new Set(emailData?.fallback_pool?.provider_ids || []);
+      const rows = document.querySelectorAll(".touch-row, .seq-row");
       let visible = 0;
       rows.forEach((row) => {
         const buckets = (row.getAttribute("data-bucket") || "").split(",");
         const matchBucket = !bucket || buckets.includes(bucket);
+        const rowProvider = row.getAttribute("data-provider") || "";
+        const rowOverflow = row.getAttribute("data-overflow") || "";
         const matchProvider =
           !provider ||
-          row.getAttribute("data-provider") === provider ||
-          row.getAttribute("data-overflow") === provider;
-        const matchPhase = !phase || row.getAttribute("data-phase") === phase;
-        const show = matchBucket && matchProvider && matchPhase;
+          rowProvider === provider ||
+          rowOverflow === provider ||
+          (rowOverflow === "fallback_pool" && poolIds.has(provider));
+        const matchFunnelPhase = !funnelPhase || row.getAttribute("data-funnel-phase") === funnelPhase;
+        const hasFallback = row.getAttribute("data-has-fallback") === "1";
+        const phInterim = row.getAttribute("data-ph-interim") === "1";
+        const matchRouting =
+          !routing ||
+          (routing === "has-fallback" && hasFallback) ||
+          (routing === "primary-only" && !hasFallback) ||
+          (routing === "ph-interim" && phInterim);
+        const show = matchBucket && matchProvider && matchFunnelPhase && matchRouting;
         row.classList.toggle("hidden", !show);
         if (show) visible++;
       });
       const el = document.getElementById("filter-count");
-      if (el) el.textContent = `Showing ${visible} of ${rows.length} sequences`;
+      if (el) el.textContent = `Showing ${visible} of ${rows.length} email touches`;
     }
 
     function bindFilters() {
-      ["filter-bucket", "filter-provider", "filter-phase"].forEach((id) => {
+      ["filter-bucket", "filter-provider", "filter-funnel-phase", "filter-routing"].forEach((id) => {
         document.getElementById(id)?.addEventListener("change", applyFilters);
       });
       applyFilters();
@@ -954,46 +1571,46 @@
 
     function renderPage() {
       const app = document.getElementById("app");
+      const implStats = sequenceImplementationStats();
+      const cc = emailData?.launch_config?.conversion_config || {};
       app.innerHTML = `
         <nav class="site-nav">
           <a href="/">Dashboard</a>
           <a href="/email-machine" aria-current="page">Email machine</a>
         </nav>
         <h1>User Email Machine</h1>
-        <p class="caption">Project charter &amp; engineer reference — multi-provider lifecycle email system. Spec: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md">USER_EMAIL_MACHINE_PROPOSAL.md</a> · Agent: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/PLAN.md">PLAN.md</a></p>
+        <p class="caption">Engineer implementation guide — multi-provider lifecycle email. Spec: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/USER_EMAIL_MACHINE_PROPOSAL.md">USER_EMAIL_MACHINE_PROPOSAL.md</a> · Agent: <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/PLAN.md">PLAN.md</a></p>
         ${liveBanner()}
         ${renderCharterNav()}
         <section id="overview">
-          <h2>Charter overview</h2>
-          <p class="section-cap">Implementation guide for engineers wiring Oasis lifecycle email across six free-tier providers. Goals: <strong>500 paid subscribers by Dec 31, 2026</strong>, <strong>4.5× DAU</strong> vs Product Hunt launch week, <strong>80% gross margin</strong>.</p>
+          <h2>Overview</h2>
+          <p class="section-cap">Goals: <strong>500 paid subscribers by Dec 31, 2026</strong>, <strong>4.5× DAU</strong> vs Product Hunt launch week, <strong>80% gross margin</strong>. Lifecycle email budget: <strong>${cc.phase_1_emails_min ?? 4}–${cc.phase_1_emails_max ?? 7}</strong> Phase 1 + <strong>${cc.phase_2_conversion_emails_min ?? 3}–${cc.phase_2_conversion_emails_max ?? 4}</strong> Phase 2 conversion = <strong>${cc.total_emails_before_perpetual_free_min ?? 7}–${cc.total_emails_before_perpetual_free_max ?? 11}</strong> total before perpetual free.</p>
+          <p class="section-cap">Three-phase funnel + redundant fallback pool — see <a href="#funnel">Funnel architecture</a> and <a href="#implementation">Implementation guide</a>.</p>
           <div class="info">
             <ul style="margin:0;padding-left:1.25rem">
-              <li><strong>Provider</strong> — strategy routing per proposal; muted line when Brevo interim template differs from target</li>
-              <li><strong>Requirements</strong> — audience, cadence, when, Supabase trigger spec, and outreach_log dedup (implementation spec for engineers)</li>
-              <li><strong>Status</strong> — multi-provider / CS agent implementation (<span class="code">shipped</span> vs <span class="code">needs_implementation</span>)</li>
-              <li><strong>Near limit</strong> — alert at 80% of contacts/sends or &lt;2 months runway (<span class="code">email_provider_capacity</span> in snapshot)</li>
+              <li><strong>Sequence table</strong> — funnel phase, provider routing, Supabase trigger spec, dedup keys</li>
+              <li><strong>Routing rules</strong> — what fires when a cap hits (including fallback pool)</li>
+              <li><strong>Scenario planner</strong> — stress-test signup volume against free-tier limits</li>
+              <li><strong>Near limit</strong> — alert at 80% of contacts/sends (<span class="code">email_provider_capacity</span> in snapshot)</li>
             </ul>
           </div>
-          <div class="flow-diagram">
-            <strong>DAU buckets (active):</strong> New + Current + Reactivated + Resurrected = DAU<br>
-            <strong>Inactive:</strong> At-risk WAU → At-risk MAU → Dead → (Resurrection_Rate) → Resurrected<br>
-            <strong>Monetization cross-cuts:</strong> Limit hitters → Brevo · Stripe paid → Brevo Starter $29/mo (replaces OmniSend)<br>
-            <strong>Acquisition funnel:</strong> PH teaser / launch (<span class="code">ph-waitlist/</span>) — reusable for future launches.
-          </div>
         </section>
+        ${renderFunnelArchitecture()}
+        ${renderImplementationGuide()}
         <section id="sequences">
-          <h2>Sequence reference</h2>
-          <p class="section-cap">Requirements column = implementation spec for engineers (audience, cadence, Supabase trigger, dedup). Filter to find a cohort. <strong>2 of 12 sequences implemented</strong> (PH waitlist only).</p>
+          <h2>Email inventory</h2>
+          <p class="section-cap">One row per email touch — primary provider and fallback routing when primary hits cap. Filter by funnel phase, provider, or routing. <strong>${implStats.shipped} of ${implStats.total} sequences shipped</strong> · ${implStats.pending} need implementation.</p>
           ${renderFilters()}
-          ${renderSequenceTable()}
+          ${renderEmailInventory()}
         </section>
+        ${renderRoutingRules()}
         <section id="buckets">
           <h2>DAU buckets</h2>
           <p class="section-cap">Classified daily from sessions ∪ llm_usage · same logic as <span class="code">reporting/dau_model.py</span></p>
           ${renderBucketsTable()}
         </section>
-        ${renderProviderCapacity()}
         ${renderScenarioPlannerShell()}
+        ${renderProviderCapacity()}
         <section id="capacity">
           <h2>Capacity cliffs</h2>
           <p class="section-cap">When free tiers break — simulation-backed triggers. Use <a href="#capacity-scenarios">scenario planner</a> to test signup volume.</p>
@@ -1001,24 +1618,25 @@
         </section>
         <section id="providers">
           <h2>Email providers (free tier)</h2>
-          <p class="section-cap">Six providers; each sequence uses one primary and optional overflow. Names link to official pricing.</p>
-          <div class="provider-grid">${renderProviders()}</div>
+          <p class="section-cap"><strong>Phase 1</strong> Beehiiv · <strong>Phase 2</strong> Mailgun/HubSpot (paid) or EmailOctopus (free) · <strong>Phase 3</strong> terminal · <strong>Fallback pool</strong> = MailerLite + OmniSend + Brevo (fallback when primary at cap).</p>
+          ${renderProvidersGrouped()}
+          ${renderProviderCandidates()}
         </section>
         ${renderPreviewGallery()}
         <section id="ops">
           <h2>Operational loop</h2>
           <div class="info">
             <ol style="margin:0;padding-left:1.25rem">
-              <li><span class="code">main.py --baseline</span> → snapshot with <span class="code">dau_model</span> + <span class="code">corporate_goals</span></li>
-              <li>Classify users into buckets (future CS agent daily run)</li>
-              <li>Evaluate sequence triggers → route to provider queue</li>
-              <li>Log sends in <span class="code">outreach_log</span> via <span class="code">dedup_trigger_name</span></li>
-              <li>Monitor weekly deltas on at-risk WAU, dead, Resurrection_Rate, paid_subscribers</li>
+              <li><span class="code">main.py --baseline</span> → snapshot with <span class="code">dau_model</span> + bucket classification</li>
+              <li>Read <span class="code">email_funnel_status</span> + <span class="code">lifecycle_emails_sent</span> per user</li>
+              <li>Evaluate sequence triggers for user's funnel phase</li>
+              <li>Route send to primary provider or fallback pool member with most headroom; if fallback fires, queue phase migration or provider upgrade review</li>
+              <li>Log to <span class="code">outreach_log</span> via <span class="code">dedup_trigger_name</span>; on phase exit update Supabase + provider list prune</li>
             </ol>
           </div>
         </section>
         <footer>
-          Strategy spec only — no sends implemented yet ·
+          ${implStats.shipped} of ${implStats.total} sequences shipped · ${implStats.pending} pending implementation ·
           <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/PLAN.md">CS agent PLAN.md</a> ·
           <a href="/">← Dashboard</a>
         </footer>

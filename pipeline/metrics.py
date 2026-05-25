@@ -1,18 +1,32 @@
 from datetime import date, timedelta
+from pathlib import Path
+import json
 
 from models.db import User, Session, LLMUsage, LLMDailyUsage, FeedbackEvent
 from models.metrics import UserMetrics
 
-_CONSUMER_DOMAINS = {
+_CONSUMER_DOMAINS_FALLBACK = {
     "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "hotmail.co.uk",
     "icloud.com", "protonmail.com", "protonmail.ch", "me.com", "mac.com",
     "live.com", "live.co.uk", "yahoo.co.uk", "googlemail.com", "msn.com",
 }
 
 
+def _consumer_domains() -> set[str]:
+    manifest_path = Path(__file__).resolve().parents[1] / "public" / "email_sequences.json"
+    try:
+        lc = json.loads(manifest_path.read_text(encoding="utf-8")).get("launch_config") or {}
+        domains = lc.get("consumer_email_domains")
+        if domains:
+            return {d.lower() for d in domains}
+    except (OSError, json.JSONDecodeError):
+        pass
+    return _CONSUMER_DOMAINS_FALLBACK
+
+
 def _is_company_domain(email: str) -> bool:
     domain = email.rsplit("@", 1)[-1].lower()
-    return domain not in _CONSUMER_DOMAINS
+    return domain not in _consumer_domains()
 
 
 def compute_metrics(

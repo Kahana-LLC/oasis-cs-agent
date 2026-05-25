@@ -568,6 +568,52 @@ th {
   color: var(--muted);
 }
 
+.readiness-matrix-wrap {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.readiness-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.readiness-matrix th,
+.readiness-matrix td {
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.55rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.readiness-matrix th.readiness-bucket-label {
+  text-align: left;
+  min-width: 8rem;
+}
+
+.readiness-matrix th.readiness-bucket-label.bucket-new { border-left: 3px solid #3d8bfd; }
+.readiness-matrix th.readiness-bucket-label.bucket-current { border-left: 3px solid #3d8b6e; }
+.readiness-matrix th.readiness-bucket-label.bucket-reactivated { border-left: 3px solid #9b59b6; }
+.readiness-matrix th.readiness-bucket-label.bucket-resurrected { border-left: 3px solid #e67e22; }
+.readiness-matrix th.readiness-bucket-label.bucket-at_risk_wau { border-left: 3px solid #ffc107; }
+.readiness-matrix th.readiness-bucket-label.bucket-at_risk_mau { border-left: 3px solid #ff9800; }
+.readiness-matrix th.readiness-bucket-label.bucket-dead { border-left: 3px solid #6b7280; }
+
+.readiness-col-pending,
+.readiness-cell-pending {
+  color: var(--muted);
+  opacity: 0.65;
+}
+
+.readiness-cell-high {
+  background: rgba(61, 139, 110, 0.12);
+}
+
+.readiness-cell-low {
+  background: rgba(255, 107, 107, 0.08);
+}
+
 .scenario-controls {
   display: flex;
   flex-wrap: wrap;
@@ -656,4 +702,244 @@ th {
 
 #scenario-summary .banner {
   margin-bottom: 0.5rem;
+}
+
+/* Email machine — funnel architecture */
+.funnel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+@media (max-width: 900px) {
+  .funnel-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.funnel-phase-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.82rem;
+}
+
+.funnel-phase-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.funnel-phase-card.phase-1 { border-top: 3px solid var(--ok); }
+.funnel-phase-card.phase-1 .funnel-activation-goals,
+.funnel-phase-card.phase-1 .funnel-kpi-list,
+.funnel-phase-card.phase-1 .funnel-exit-triggers,
+.funnel-phase-card.phase-1 .funnel-readiness-list {
+  margin: 0.35rem 0 0.5rem;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.funnel-phase-card.phase-1 .funnel-readiness-list .code {
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+.funnel-phase-card.phase-1 .funnel-readiness-email,
+.funnel-phase-card.phase-1 .funnel-readiness-product {
+  margin-bottom: 0.15rem;
+}
+.funnel-phase-card.phase-1 .funnel-kpi-list .code {
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+.funnel-phase-card.phase-2 { border-top: 3px solid var(--warn); }
+.funnel-phase-card.phase-3 { border-top: 3px solid var(--muted); }
+
+.funnel-fork {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.funnel-fork-path {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 0.65rem;
+  font-size: 0.78rem;
+}
+
+.terminal-path {
+  margin: 0.35rem 0;
+  padding: 0.5rem 0.65rem;
+  background: var(--surface);
+  border-radius: 6px;
+  border-left: 3px solid var(--border);
+}
+
+.terminal-path.path-paid { border-left-color: var(--accent); }
+.terminal-path.path-free { border-left-color: var(--muted); }
+
+.funnel-flow-ascii {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--muted);
+}
+
+.fallback-pool-card,
+.spillover-pool-card {
+  background: var(--card);
+  border: 1px solid rgba(61, 139, 110, 0.35);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.fallback-pool-card h3,
+.spillover-pool-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.pool-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.pool-member {
+  flex: 1;
+  min-width: 140px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+.pool-member strong {
+  display: block;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.funnel-phase-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+.funnel-phase-badge.phase-1 { background: rgba(61, 139, 110, 0.2); color: #6dd4a8; }
+.funnel-phase-badge.phase-2-paid { background: rgba(234, 179, 8, 0.15); color: #fbbf24; }
+.funnel-phase-badge.phase-2-conv { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+.funnel-phase-badge.ph-interim { background: #243044; color: var(--muted); }
+
+.impl-state-table,
+.routing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 0.75rem 0;
+}
+
+.impl-state-table th,
+.impl-state-table td,
+.routing-table th,
+.routing-table td {
+  border: 1px solid var(--border);
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.impl-state-table thead th,
+.routing-table thead th {
+  background: var(--surface);
+}
+
+.impl-code-block {
+  background: #0f1419;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  white-space: pre-wrap;
+}
+
+.impl-checklist {
+  margin: 0.5rem 0 0 1.25rem;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.impl-checklist li {
+  margin: 0.25rem 0;
+}
+
+.provider-group-heading {
+  font-size: 1rem;
+  margin: 1.5rem 0 0.75rem;
+  color: var(--text);
+}
+
+.provider-grid-grouped .provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.fallback-pool-card .provider-grid,
+.spillover-pool-card .provider-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .fallback-pool-card .provider-grid,
+  .spillover-pool-card .provider-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.email-inventory {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.inventory-phase-heading {
+  font-size: 1.05rem;
+  margin: 0 0 0.35rem;
+  color: var(--text);
+}
+
+.phase-budget {
+  margin-bottom: 0.5rem;
+}
+
+.inventory-table th,
+.inventory-table td {
+  font-size: 0.82rem;
+  vertical-align: top;
 }

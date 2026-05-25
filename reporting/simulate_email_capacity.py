@@ -13,13 +13,18 @@ BASELINE_PATH = ROOT / "public" / "baseline_snapshot.json"
 
 CADENCE = {
     "one-time": 1,
-    "drip-2-4": 3,
+    "drip-2-4": 4,
     "one-time-plus-d7": 2,
     "campaign-2-touch": 2,
     "one-time-plus-d14": 2,
 }
 
 FAILURE_PRIORITY = {"launch_peak": 0, "daily": 1, "monthly": 2, "contacts": 3}
+
+PHASE1_SEQ_IDS = frozenset({"welcome", "activation_nudge", "activation_cs_calendar", "nps_day3", "pmf_day10"})
+FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo"})
+FALLBACK_CONTACT_CAPS = {"mailerlite": 500, "omnisend": 250, "brevo": 2000}
+PAID_SEQ_IDS = frozenset({"upgrade_thank_you", "cancelled_winback"})
 
 
 @dataclass
@@ -29,6 +34,8 @@ class SimContext:
     mode: str
     signup_vol: int
     total_users: int
+    company_email_users: int
+    company_email_pct: float
     paid_subs: int
     limit_hitters: int
     cancelled_paid: int
@@ -43,25 +50,55 @@ class SimContext:
 
 
 def _compute_daily_peaks(ctx: SimContext) -> dict[str, float]:
-    nps_daily_peak = round((ctx.new_users_month / 30) * 1.5)
+    nps_daily_peak = round((ctx.new_users_month / 30) * 1.5) if "ph_week_brevo_primary" in ctx.active_rules else 0
     peaks: dict[str, float] = {}
     peaks["brevo"] = (
-        ctx.new_users_day
-        + round(ctx.new_users_day * (1 - ctx.activation_pct))
+        (ctx.new_users_day + round(ctx.new_users_day * (1 - ctx.activation_pct)) if "ph_week_brevo_primary" in ctx.active_rules else 0)
         + nps_daily_peak
         + (ctx.launch_audience / 2 / ctx.launch_days if ctx.mode == "launch_week" else 0)
         + ctx.agent_reserve
     )
-    peaks["mailgun"] = max(
-        round((ctx.new_users_month * ctx.pmf_pct) / 30),
-        round(ctx.new_users_day * ctx.pmf_pct / 5),
-    )
-    peaks["hubspot"] = (
-        0
-        if "ph_week_brevo_primary" in ctx.active_rules
-        else ctx.new_users_day + round(ctx.new_users_day * (1 - ctx.activation_pct))
-    )
+    paid_events = max(ctx.paid_subs, ctx.cancelled_paid) / 30
+    peaks["mailgun"] = max(paid_events, round(ctx.paid_subs * 0.05))
+    peaks["hubspot"] = max(1, round((ctx.company_email_users + ctx.paid_subs) * 0.02))
     return peaks
+
+
+def _compute_pool_aggregate(
+    provider_rows: list[dict[str, Any]],
+    providers: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Universal fallback pool — MailerLite + OmniSend + Brevo (any phase)."""
+    pool_ids = [
+        p["id"]
+        for p in providers
+        if p["id"] in FALLBACK_PROVIDER_IDS and p.get("status") != "deprecated"
+    ]
+    send_used = 0.0
+    send_cap = 0.0
+    contact_used = 0
+    contact_cap = 0
+    for row in provider_rows:
+        if row["id"] not in pool_ids:
+            continue
+        send_used += row.get("monthly_sends", 0)
+        prov = next((p for p in providers if p["id"] == row["id"]), None)
+        lim = (prov or {}).get("free_limits") or {}
+        mo = lim.get("marketing_emails_per_month") or lim.get("emails_per_month")
+        if not mo and lim.get("emails_per_day"):
+            mo = lim["emails_per_day"] * 30
+        if mo:
+            send_cap += mo
+        if lim.get("contacts"):
+            contact_cap += lim["contacts"]
+            contact_used += row.get("contacts", 0)
+    return {
+        "send_used": send_used,
+        "send_cap": send_cap,
+        "contact_used": contact_used,
+        "contact_cap": contact_cap,
+        "provider_count": len(pool_ids),
+    }
 
 
 def _load_manifest(path: Path | None = None) -> dict[str, Any]:
@@ -108,8 +145,16 @@ def project_buckets(total_users: int, new_monthly: int) -> dict[str, int]:
     }
 
 
-def _seq_eligible(seq: dict[str, Any], ctx: SimContext) -> tuple[float, int]:
-    cadence = CADENCE.get(seq.get("cadence") or "one-time", 1)
+def _touch_count(seq: dict[str, Any], manifest: dict[str, Any]) -> int:
+    touches = seq.get("touches")
+    if touches:
+        return len(touches)
+    cadence_map = manifest.get("cadence_touch_counts") or CADENCE
+    return cadence_map.get(seq.get("cadence") or "one-time", 1)
+
+
+def _seq_eligible(seq: dict[str, Any], ctx: SimContext, manifest: dict[str, Any]) -> tuple[float, int]:
+    cadence = _touch_count(seq, manifest)
     eligible = 0
     for b in seq.get("buckets") or []:
         if b in ctx.bucket_counts:
@@ -122,6 +167,8 @@ def _seq_eligible(seq: dict[str, Any], ctx: SimContext) -> tuple[float, int]:
             eligible += ctx.cancelled_paid
         elif b == "waitlist":
             eligible += ctx.launch_audience
+        elif b == "company_domain":
+            eligible += ctx.company_email_users
 
     sid = seq["id"]
     if sid in ("welcome", "nps_day3"):
@@ -130,56 +177,110 @@ def _seq_eligible(seq: dict[str, Any], ctx: SimContext) -> tuple[float, int]:
         eligible = round(ctx.signup_vol * ctx.pmf_pct)
     elif sid == "activation_nudge":
         eligible = round(ctx.signup_vol * (1 - ctx.activation_pct))
+    elif sid == "activation_cs_calendar":
+        eligible = round(ctx.signup_vol * (1 - ctx.activation_pct) * 0.5)
     elif sid == "dead_resurrection":
         eligible = min(ctx.bucket_counts.get("dead", 0), ctx.dead_cap)
+    elif sid in ("enterprise_founder", "enterprise_expansion"):
+        eligible = max(0, round(ctx.company_email_users * 0.12))
     elif sid in ("ph_teaser", "ph_launch"):
         eligible = ctx.launch_audience if ctx.mode == "launch_week" else 0
 
     return eligible * cadence, eligible
 
 
+def _conversion_contact_demand(ctx: SimContext) -> int:
+    conv = ctx.bucket_counts.get("at_risk_wau", 0) + ctx.bucket_counts.get("at_risk_mau", 0)
+    conv += min(ctx.bucket_counts.get("dead", 0), ctx.dead_cap)
+    conv += ctx.bucket_counts.get("reactivated", 0) + ctx.bucket_counts.get("resurrected", 0)
+    return max(0, conv - 2500)
+
+
+def _pool_overflow_demand(ctx: SimContext) -> int:
+    """Total contacts that need fallback pool from any phase."""
+    demand = 0
+    if "ph_week_brevo_primary" not in ctx.active_rules:
+        demand += max(0, ctx.signup_vol - 2000)
+    demand += _conversion_contact_demand(ctx)
+    return demand
+
+
+def _distribute_pool_overflow(total_overflow: int) -> dict[str, int]:
+    """Assign overflow across redundant pool members by most headroom (any order)."""
+    assigned = {pid: 0 for pid in FALLBACK_CONTACT_CAPS}
+    remaining = max(0, total_overflow)
+    while remaining > 0:
+        headroom = {pid: FALLBACK_CONTACT_CAPS[pid] - assigned[pid] for pid in FALLBACK_CONTACT_CAPS}
+        pid = max(headroom, key=headroom.get)
+        if headroom[pid] <= 0:
+            break
+        take = min(remaining, headroom[pid])
+        assigned[pid] += take
+        remaining -= take
+    return assigned
+
+
+def _pool_provider_with_headroom(pool_alloc: dict[str, int]) -> str:
+    headroom = {pid: FALLBACK_CONTACT_CAPS[pid] - pool_alloc.get(pid, 0) for pid in FALLBACK_CONTACT_CAPS}
+    return max(headroom, key=headroom.get)
+
+
+def _phase1_beehiiv_contacts(ctx: SimContext) -> int:
+    if "ph_week_brevo_primary" in ctx.active_rules:
+        return 0
+    return min(ctx.signup_vol, 2000)
+
+
 def _provider_contacts(
     pid: str,
     ctx: SimContext,
     limits: dict[str, dict[str, Any]],
+    pool_alloc: dict[str, int] | None = None,
 ) -> int:
+    pool_alloc = pool_alloc or _distribute_pool_overflow(_pool_overflow_demand(ctx))
     signup_vol = ctx.signup_vol
-    if pid == "omnisend":
-        if "omnisend_to_brevo" in ctx.active_rules:
-            return 0
-        return ctx.paid_subs
+    if pid == "beehiiv":
+        return min(_phase1_beehiiv_contacts(ctx) + ctx.limit_hitters, 2500)
+    if pid in FALLBACK_CONTACT_CAPS:
+        base = pool_alloc.get(pid, 0)
+        if pid == "brevo":
+            base += ctx.cancelled_paid
+            if ctx.mode == "launch_week":
+                base += ctx.launch_audience
+            if "ph_week_brevo_primary" in ctx.active_rules:
+                base += signup_vol + round(signup_vol * (1 - ctx.activation_pct))
+        return min(ctx.total_users, base) if pid == "brevo" else base
     if pid == "hubspot":
-        if "ph_week_brevo_primary" in ctx.active_rules:
-            return 0
-        return signup_vol
+        return ctx.company_email_users + ctx.paid_subs
     if pid == "mailgun":
-        return round(signup_vol * ctx.pmf_pct)
+        return ctx.paid_subs + ctx.cancelled_paid
     if pid == "emailoctopus":
-        ar = ctx.bucket_counts.get("at_risk_wau", 0) + ctx.bucket_counts.get("at_risk_mau", 0)
-        dead = min(ctx.bucket_counts.get("dead", 0), ctx.dead_cap)
-        ret = ctx.bucket_counts.get("reactivated", 0) + ctx.bucket_counts.get("resurrected", 0)
-        return ar + dead + ret
-    if pid == "mailerlite":
-        cap = limits.get("emailoctopus", {}).get("contacts", 2500)
-        eo_used = _provider_contacts("emailoctopus", ctx, limits)
-        if eo_used > cap * 0.8:
-            return min(500, round((eo_used - cap * 0.8) * 0.5))
-        return 0
-    if pid == "brevo":
-        base = signup_vol + ctx.limit_hitters + ctx.cancelled_paid + ctx.paid_subs
-        if ctx.mode == "launch_week":
-            base += ctx.launch_audience
-        base += signup_vol + round(signup_vol * ctx.pmf_pct)
-        return min(ctx.total_users, base)
+        conv = ctx.bucket_counts.get("at_risk_wau", 0) + ctx.bucket_counts.get("at_risk_mau", 0)
+        conv += min(ctx.bucket_counts.get("dead", 0), ctx.dead_cap)
+        conv += ctx.bucket_counts.get("reactivated", 0) + ctx.bucket_counts.get("resurrected", 0)
+        return min(conv, 2500)
     return ctx.total_users
 
 
-def _effective_provider(seq: dict[str, Any], active_rules: list[str]) -> str:
+def _effective_provider(
+    seq: dict[str, Any],
+    active_rules: list[str],
+    pool_alloc: dict[str, int],
+) -> str:
     pid = seq["provider_id"]
-    if "ph_week_brevo_primary" in active_rules and seq["id"] in ("welcome", "activation_nudge"):
+    sid = seq["id"]
+    if "ph_week_brevo_primary" in active_rules and sid in ("welcome", "activation_nudge"):
         return "brevo"
-    if "omnisend_to_brevo" in active_rules and seq["id"] in ("upgrade_thank_you", "cancelled_winback"):
-        return "brevo"
+    needs_pool = (
+        "fallback_pool" in active_rules
+        and (
+            sid in PHASE1_SEQ_IDS
+            or sid in PAID_SEQ_IDS
+            or seq.get("funnel_phase") == "phase_2_conversion"
+        )
+    )
+    if needs_pool:
+        return _pool_provider_with_headroom(pool_alloc)
     return pid
 
 
@@ -190,6 +291,8 @@ def simulate_scenario(
     new_users_per_month_max: int | None = None,
     mode: str = "launch_week",
     paid_override: int | None = None,
+    brevo_starter: bool = False,
+    company_email_pct: float | None = None,
     snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return scenario simulation matching email-machine.js simulateCapacity()."""
@@ -213,6 +316,8 @@ def simulate_scenario(
 
     signup_vol = new_users_month
     total_users = base["total_users"] + new_users_month
+    company_pct = float(company_email_pct if company_email_pct is not None else lc.get("company_email_pct") or 0.15)
+    company_email_users = round(total_users * company_pct)
     auto_paid = max(
         int(base["monetization"].get("paid_subscribers") or 0),
         round(total_users * paid_conversion),
@@ -221,10 +326,10 @@ def simulate_scenario(
     bucket_counts = project_buckets(total_users, new_users_month)
 
     active_rules: list[str] = []
-    if mode == "launch_week" or new_users_month >= 1:
+    if mode == "launch_week":
         active_rules.append("ph_week_brevo_primary")
     if paid_subs >= 1:
-        active_rules.append("omnisend_to_brevo")
+        active_rules.append("paid_hubspot_sync")
 
     brevo_prov = next((p for p in manifest.get("providers") or [] if p["id"] == "brevo"), None)
     brevo_starter_limits = (brevo_prov or {}).get("paid_tier", {}).get("limits")
@@ -235,6 +340,8 @@ def simulate_scenario(
         mode=mode,
         signup_vol=signup_vol,
         total_users=total_users,
+        company_email_users=company_email_users,
+        company_email_pct=company_pct,
         paid_subs=paid_subs,
         limit_hitters=max(
             int(base["monetization"].get("users_hit_limit") or 0),
@@ -252,42 +359,40 @@ def simulate_scenario(
     )
 
     limits = {p["id"]: p.get("free_limits") or {} for p in manifest.get("providers") or []}
-    eo_contacts = _provider_contacts("emailoctopus", ctx, limits)
-    if eo_contacts > 2000:
+    pool_demand = _pool_overflow_demand(ctx)
+    pool_alloc = _distribute_pool_overflow(pool_demand)
+    beehiiv_contacts = _provider_contacts("beehiiv", ctx, limits, pool_alloc)
+    eo_contacts = _provider_contacts("emailoctopus", ctx, limits, pool_alloc)
+    pool_contacts_used = sum(_provider_contacts(pid, ctx, limits, pool_alloc) for pid in FALLBACK_CONTACT_CAPS)
+
+    if pool_demand > 0 or beehiiv_contacts >= 2000:
+        active_rules.append("fallback_pool")
+    if beehiiv_contacts >= 2000:
+        active_rules.append("beehiiv_prune_to_phase2")
+    if eo_contacts >= 2000:
         active_rules.append("emailoctopus_cap")
         ctx.dead_cap = 10
     ctx.active_rules = active_rules
 
     by_provider: dict[str, float] = {}
     for seq in manifest.get("sequences") or []:
-        sends, _ = _seq_eligible(seq, ctx)
+        sends, _ = _seq_eligible(seq, ctx, manifest)
         if sends <= 0:
             continue
-        pid = _effective_provider(seq, active_rules)
+        pid = _effective_provider(seq, active_rules, pool_alloc)
         by_provider[pid] = by_provider.get(pid, 0) + sends
-        if seq.get("provider_overflow_id") and new_users_month >= 600:
-            ov = seq["provider_overflow_id"]
-            by_provider[ov] = by_provider.get(ov, 0) + sends * 0.15
+        if seq.get("provider_overflow_id") == "fallback_pool" and "fallback_pool" in active_rules:
+            spill_pid = _pool_provider_with_headroom(pool_alloc)
+            by_provider[spill_pid] = by_provider.get(spill_pid, 0) + sends * 0.15
 
     daily_peaks = _compute_daily_peaks(ctx)
-    if daily_peaks.get("brevo", 0) > 240:
-        active_rules.append("brevo_daily_overflow")
-        pmf_seq = next((s for s in manifest.get("sequences") or [] if s["id"] == "pmf_day10"), None)
-        if pmf_seq:
-            pmf_sends, _ = _seq_eligible(pmf_seq, ctx)
-            by_provider["brevo"] = max(0, by_provider.get("brevo", 0) - pmf_sends)
-            by_provider["mailgun"] = by_provider.get("mailgun", 0) + pmf_sends
+    if daily_peaks.get("mailgun", 0) > 80:
+        active_rules.append("fallback_pool")
+    if company_email_users >= 1:
+        active_rules.append("company_email_hubspot_sync")
     ctx.active_rules = active_rules
 
-    brevo_prov = next((p for p in manifest.get("providers") or [] if p["id"] == "brevo"), None)
-    brevo_free = (brevo_prov or {}).get("free_limits") or {}
-    brevo_starter_limits = (brevo_prov or {}).get("paid_tier", {}).get("limits")
-    brevo_contacts_est = _provider_contacts("brevo", ctx, limits)
-    use_brevo_starter = (
-        paid_subs >= 1
-        or daily_peaks.get("brevo", 0) > brevo_free.get("emails_per_day", float("inf"))
-        or brevo_contacts_est > brevo_free.get("contacts", float("inf"))
-    )
+    use_brevo_starter = brevo_starter is True
 
     failures: list[dict[str, Any]] = []
     provider_rows: list[dict[str, Any]] = []
@@ -300,7 +405,7 @@ def simulate_scenario(
             lim = limits.get(pid, {})
         monthly = by_provider.get(pid, 0)
         daily_avg = monthly / 30
-        contacts = _provider_contacts(pid, ctx, limits)
+        contacts = _provider_contacts(pid, ctx, limits, pool_alloc)
         metrics: list[dict[str, Any]] = []
 
         mo_lim = lim.get("marketing_emails_per_month") or lim.get("emails_per_month")
@@ -373,26 +478,23 @@ def simulate_scenario(
         fire = False
         if cid == "brevo_launch_peak":
             fire = daily_peaks.get("brevo", 0) > 240
-        elif cid == "brevo_contacts":
-            brevo_row = next((p for p in provider_rows if p["id"] == "brevo"), None)
-            fire = bool(brevo_row and brevo_row["contacts"] > 1600)
-        elif cid == "hubspot_defer_ph":
-            fire = mode == "launch_week" or new_users_month > 400 or new_users_day * 7 > 400
-        elif cid == "omnisend_200":
-            fire = paid_subs >= 1
-        elif cid == "mailgun_pmf_primary":
-            fire = new_users_month > 80 or new_users_day * 7 > 80
-        elif cid == "emailoctopus_2000":
-            fire = eo_contacts > 2000
-        elif cid == "mailerlite_overflow":
-            fire = "emailoctopus_cap" in active_rules
-        elif cid == "brevo_starter_monthly":
-            brevo_row = next((p for p in provider_rows if p["id"] == "brevo"), None)
-            fire = use_brevo_starter and bool(brevo_row and brevo_row.get("monthly_sends", 0) > 16000)
+        elif cid == "fallback_pool_aggregate":
+            fire = pool_contacts_used > 2200
+        elif cid == "hubspot_send_budget":
+            hs_row = next((p for p in provider_rows if p["id"] == "hubspot"), None)
+            fire = bool(hs_row and hs_row.get("monthly_sends", 0) > 1600)
+        elif cid == "beehiiv_2500":
+            fire = beehiiv_contacts >= 2000
+        elif cid == "emailoctopus_2500":
+            fire = eo_contacts >= 2000
+        elif cid == "mailgun_paid_daily":
+            fire = daily_peaks.get("mailgun", 0) > 80
         elif cid == "brevo_agent":
             fire = daily_peaks.get("brevo", 0) > 250
         if fire:
             triggered_cliffs.append(cid)
+
+    pool_aggregate = _compute_pool_aggregate(provider_rows, manifest.get("providers") or [])
 
     return {
         "new_users_per_day_max": new_users_day,
@@ -401,7 +503,10 @@ def simulate_scenario(
         "paid_subs": paid_subs,
         "auto_paid": auto_paid,
         "total_users": total_users,
+        "company_email_users": company_email_users,
+        "company_email_pct": company_pct,
         "providers": provider_rows,
+        "pool_aggregate": pool_aggregate,
         "first_stall": failures[0] if failures else None,
         "active_rules": active_rules,
         "triggered_cliffs": triggered_cliffs,

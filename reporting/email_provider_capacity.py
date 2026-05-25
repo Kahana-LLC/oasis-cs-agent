@@ -24,6 +24,8 @@ DEFAULT_NEAR_LIMIT = {
     "runway_months_min": 2,
 }
 
+FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo"})
+
 
 def _load_manifest(path: Path | None = None) -> dict[str, Any]:
     p = path or MANIFEST_PATH
@@ -53,9 +55,18 @@ def _eligible_cohort(
     return total
 
 
+def _touch_count(seq: dict[str, Any], manifest: dict[str, Any]) -> int:
+    touches = seq.get("touches")
+    if touches:
+        return len(touches)
+    cadence_map = manifest.get("cadence_touch_counts") or CADENCE_SENDS
+    return cadence_map.get(seq.get("cadence") or "one-time", 1)
+
+
 def _projected_sends_for_provider(
     provider_id: str,
     sequences: list[dict[str, Any]],
+    manifest: dict[str, Any],
     *,
     bucket_counts: dict[str, int],
     monetization: dict[str, Any],
@@ -65,8 +76,7 @@ def _projected_sends_for_provider(
     for seq in sequences:
         if seq.get("provider_id") != provider_id:
             continue
-        cadence = seq.get("cadence") or "one-time"
-        sends_per_user = CADENCE_SENDS.get(cadence, 1)
+        sends_per_user = _touch_count(seq, manifest)
         eligible = _eligible_cohort(
             seq.get("buckets") or [],
             bucket_counts=bucket_counts,
@@ -77,14 +87,88 @@ def _projected_sends_for_provider(
     return monthly
 
 
+def _consumer_domains(manifest: dict[str, Any]) -> set[str]:
+    lc = manifest.get("launch_config") or {}
+    domains = lc.get("consumer_email_domains")
+    if domains:
+        return {d.lower() for d in domains}
+    return {
+        "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "hotmail.co.uk",
+        "icloud.com", "protonmail.com", "protonmail.ch", "me.com", "mac.com",
+        "live.com", "live.co.uk", "yahoo.co.uk", "googlemail.com", "msn.com",
+    }
+
+
+def _company_email_users(total_users: int, manifest: dict[str, Any]) -> int:
+    lc = manifest.get("launch_config") or {}
+    pct = float(lc.get("company_email_pct") or 0.15)
+    return round(total_users * pct)
+
+
+def _pool_aggregate(
+    provider_rows: list[dict[str, Any]],
+    providers: list[dict[str, Any]],
+) -> dict[str, Any]:
+    pool_ids = [
+        p["id"]
+        for p in providers
+        if p["id"] in FALLBACK_PROVIDER_IDS and p.get("status") != "deprecated"
+    ]
+    send_used = 0.0
+    send_cap = 0.0
+    contact_used = 0
+    contact_cap = 0
+    for row in provider_rows:
+        if row["id"] not in pool_ids:
+            continue
+        send_used += float(row.get("monthly_sends_projected") or 0)
+        prov = next((p for p in providers if p["id"] == row["id"]), None)
+        lim = (prov or {}).get("free_limits") or {}
+        mo = lim.get("marketing_emails_per_month") or lim.get("emails_per_month")
+        if not mo and lim.get("emails_per_day"):
+            mo = lim["emails_per_day"] * 30
+        if mo:
+            send_cap += mo
+        if lim.get("contacts"):
+            contact_cap += lim["contacts"]
+            contact_used += int(row.get("contacts_used") or 0)
+    return {
+        "send_used": round(send_used, 1),
+        "send_cap": round(send_cap, 1),
+        "contact_used": contact_used,
+        "contact_cap": contact_cap,
+        "provider_count": len(pool_ids),
+    }
+
+
 def _contact_usage(
     provider_id: str,
     *,
     total_users: int,
     monetization: dict[str, Any],
+    manifest: dict[str, Any],
+    bucket_counts: dict[str, int],
 ) -> int:
+    if provider_id == "beehiiv":
+        return total_users
     if provider_id == "omnisend":
-        return int(monetization.get("paid_subscribers") or 0)
+        return 0
+    if provider_id == "hubspot":
+        paid = int(monetization.get("paid_subscribers") or 0)
+        return _company_email_users(total_users, manifest) + paid
+    if provider_id == "emailoctopus":
+        ar = int(bucket_counts.get("at_risk_wau") or 0) + int(bucket_counts.get("at_risk_mau") or 0)
+        dead = int(bucket_counts.get("dead") or 0)
+        ret = int(bucket_counts.get("reactivated") or 0) + int(bucket_counts.get("resurrected") or 0)
+        return ar + dead + ret
+    if provider_id == "mailerlite":
+        return min(500, max(0, total_users - 2000)) if total_users > 2000 else 0
+    if provider_id == "mailgun":
+        return int(monetization.get("paid_subscribers") or 0) + int(
+            monetization.get("cancelled_paid_subscribers") or 0
+        )
+    if provider_id == "brevo":
+        return min(total_users, total_users)
     return int(total_users)
 
 
@@ -191,15 +275,24 @@ def compute_email_provider_capacity(
     any_near_limit = False
 
     for prov in providers:
+        if prov.get("status") == "deprecated":
+            continue
         pid = prov["id"]
         name = prov.get("name") or pid
         limits = prov.get("free_limits") or {}
         thresholds = {**DEFAULT_NEAR_LIMIT, **(prov.get("near_limit") or {})}
 
-        contacts_used = _contact_usage(pid, total_users=total_users, monetization=monetization)
+        contacts_used = _contact_usage(
+            pid,
+            total_users=total_users,
+            monetization=monetization,
+            manifest=manifest,
+            bucket_counts=bucket_counts,
+        )
         monthly_sends = _projected_sends_for_provider(
             pid,
             sequences,
+            manifest,
             bucket_counts=bucket_counts,
             monetization=monetization,
             corporate_goals=corporate_goals,
@@ -251,6 +344,7 @@ def compute_email_provider_capacity(
             {
                 "id": pid,
                 "name": name,
+                "funnel_role": prov.get("funnel_role"),
                 "status": status,
                 "contacts_used": contacts_used,
                 "contacts_limit": limits.get("contacts"),
@@ -264,13 +358,15 @@ def compute_email_provider_capacity(
             }
         )
 
+    pool = _pool_aggregate(provider_rows, providers)
+
     return {
         "as_of": as_of,
         "providers": provider_rows,
+        "pool_aggregate": pool,
         "any_near_limit": any_near_limit,
         "estimation_note": (
-            "v1 estimates: contacts from total_users (OmniSend from paid_subscribers); "
-            "sends from DAU bucket counts × sequence cadence. Replace with outreach_log "
-            "when CS agent Phase 4 ships."
+            "v1 estimates: Beehiiv Phase 1 contacts; EmailOctopus Phase 2 conversion; "
+            "fallback pool = MailerLite + OmniSend + Brevo (used when primary at cap); HubSpot = paid + company email."
         ),
     }

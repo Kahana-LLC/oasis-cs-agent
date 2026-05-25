@@ -25,8 +25,9 @@ cp .env.example .env
 Set `SUPABASE_URL` and `SUPABASE_KEY` in Vercel project env vars (see **[docs/VERCEL_DEPLOY.md](docs/VERCEL_DEPLOY.md)**).
 
 ```bash
-vercel dev          # local: live API + static UI
-npx serve public    # local: offline JSON fallback only
+vercel dev          # local: live API + static UI (applies vercel.json rewrites)
+python3 reporting/serve_public.py --port 3456   # static UI + /email-machine rewrite
+npx serve public    # static UI; serve.json applies /email-machine rewrite
 ```
 
 ## Docs

@@ -49,6 +49,7 @@ def compute_launch_kpis(
     monetization: dict[str, Any],
     feedback: dict[str, Any],
     dau_model: dict[str, Any],
+    lifecycle_readiness: dict[str, Any] | None = None,
     usage: list[LLMUsage],
     today: date,
     total_users: int,
@@ -241,6 +242,35 @@ def compute_launch_kpis(
         row("DAU", "WAU (model)", _fmt_num(dau_totals.get("wau"))),
         row("DAU", "MAU (model)", _fmt_num(dau_totals.get("mau"))),
     ]
+
+    lr = lifecycle_readiness or {}
+    by_bucket = lr.get("by_bucket") or {}
+    new_bucket = by_bucket.get("new") or {}
+    totals_lr = lr.get("totals") or {}
+
+    def _bucket_pct(bucket: dict, mid: str) -> str:
+        m = (bucket.get("milestones") or {}).get(mid) or {}
+        return _fmt_pct(m.get("pct"))
+
+    kpi_rows.extend(
+        [
+            row(
+                "Lifecycle readiness",
+                "New users — first AI prompt",
+                _bucket_pct(new_bucket, "first_ai_prompt"),
+            ),
+            row(
+                "Lifecycle readiness",
+                "New users — AI assistant trained",
+                _bucket_pct(new_bucket, "training_done"),
+            ),
+            row(
+                "Lifecycle readiness",
+                "All users — ≥1 product milestone",
+                _fmt_pct(totals_lr.get("pct_with_any_product_milestone")),
+            ),
+        ]
+    )
 
     headlines = {
         "activation_24h_pct": act_rates.get("24h"),

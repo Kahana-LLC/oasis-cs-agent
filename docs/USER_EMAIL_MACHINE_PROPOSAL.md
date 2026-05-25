@@ -12,7 +12,7 @@
 
 Oasis can run a **multi-provider, free-tier email stack** that maps each lifecycle stage to the cheapest provider with capacity left — stretching runway while we pursue **500 paid subscribers by Dec 31, 2026**, **4.5× DAU vs Product Hunt launch week**, and **80% gross margin**.
 
-Adam’s initial five-sequence split (HubSpot welcome, Brevo NPS, Mailgun PMF, OmniSend upgrade thank-you, MailerLite at-risk nurture) is the right foundation. This proposal **preserves those five** as Phase 1 and adds sequences the dashboard already flags as high-leverage gaps:
+Adam’s initial five-sequence split is the right foundation, now mapped to a **three-phase Beehiiv funnel** with a **redundant fallback pool** (MailerLite + OmniSend + Brevo — interchangeable, not sequential). **Phase 1** activation on Beehiiv (welcome, browser import, first AI command, AI assistant training — graduated readiness milestones before Phase 2 fork); **Phase 2** forks to Mailgun + HubSpot (paid) or EmailOctopus (3–4 emails, non-upgraders); **Phase 3** terminal — paid in HubSpot or perpetual free (Google sheet + Supabase, 6mo inactive → delete). This proposal **preserves Adam’s five sequences** and adds dashboard-driven gaps:
 
 - **Activation nudges** (32% 24h activation today — room to improve NURR before PH)
 - **Limit-hitter upgrade** (direct path to paid subs; currently 0% limit-hitter conversion)
@@ -96,42 +96,113 @@ These rates appear on the dashboard and in Key insights. Moving them grows DAU c
 
 ---
 
-## 3. Provider stack and free-tier constraints
+## 3. Provider stack — three phases + universal fallback pool
 
-Six free-tier providers; **EmailOctopus** is the primary nurture/resurrection provider (2,500 contacts · 10,000 emails/mo), displacing **MailerLite** (500 contact cap) on at-risk, dead, and return sequences. MailerLite remains as overflow/legacy.
+Lifecycle email routes through **three phases**. **MailerLite, OmniSend, and Brevo** form a shared **fallback pool** usable by any phase when a primary provider hits its cap — easier to visualize and plan capacity. See `funnel_phases`, `fallback_pool`, and `routing_rules` in `email_sequences.json`.
 
-| Provider | Free limit | Primary role (Adam’s draft) | Hard constraints |
-|----------|------------|----------------------------|------------------|
-| **HubSpot** | 2,000 marketing emails / month | Welcome (all new users) | No custom HTML; built-in templates only |
-| **Brevo** | 300 emails / day · 2,000 contacts | NPS (all new users) | Also CS agent transactional ([`PLAN.md`](../PLAN.md)) |
-| **Mailgun** | 100 emails / day | PMF (new WAU) | Transactional-oriented |
-| **OmniSend** | 500 emails / month · **250 contacts** | Upgrade thank-you (Stripe) | **250 paid cap** — below 500 subs goal |
-| **EmailOctopus** | 10,000 emails / month · **2,500 contacts** | At-risk nurture, dead resurrection, return reinforcement | Primary nurture provider (displaces MailerLite) |
-| **MailerLite** | 12,000 emails / month · **500 contacts** | Overflow / legacy nurture | Contact ceiling; secondary to EmailOctopus |
+```mermaid
+flowchart TB
+  signup[Signup] --> p1[Phase 1 Beehiiv]
+  p1 -->|"4–7 emails, list full"| fork{Upgraded?}
+  fork -->|Yes| p2p[Phase 2 Paid]
+  fork -->|No| p2c[Phase 2 Conversion]
+  p2p --> MG[Mailgun 100/day]
+  p2p --> HS[HubSpot 1M contacts]
+  p2c --> EO[EmailOctopus 2.5k · 10k/mo]
+  p2c -->|"3–4 more emails"| p3f[Phase 3 Perpetual free]
+  p2p --> p3p[Phase 3 Paid in HubSpot]
+  p2c -->|Upgrade| p2p
+  company[Company email] --> HS
 
-### Monthly send budget (theoretical max)
+  subgraph spill [Fallback pool — redundant, any phase]
+    ML[MailerLite 500]
+    OS[OmniSend 250]
+    BR[Brevo 2k · 300/day]
+  end
 
-| Provider | Monthly send cap | Contact cap |
-|----------|-----------------|-------------|
-| HubSpot | 2,000 | — |
-| Brevo | ~9,000 (300 × 30) | 2,000 |
-| Mailgun | ~3,000 (100 × 30) | — |
-| OmniSend | 500 | 250 |
-| EmailOctopus | 10,000 | 2,500 |
-| MailerLite | 12,000 | 500 |
+  p1 -.->|cap hit| spill
+  p2c -.->|cap hit| spill
+  p2p -.->|100/day| spill
+```
+
+### Universal fallback pool (redundant)
+
+**MailerLite, OmniSend, and Brevo** are not a waterfall — they function as **one redundant pool**. When any primary provider (Beehiiv, EmailOctopus, Mailgun) hits its cap, route overflow to **whichever pool member has headroom**. Any of the three can absorb spill from any phase.
+
+| Provider | Free limit | Pool role |
+|----------|------------|-----------|
+| **MailerLite** | 12,000/mo · **500 contacts** | Pool member — interchangeable |
+| **OmniSend** | 500/mo · **250 contacts** | Pool member — interchangeable |
+| **Brevo** | 300/day · **2,000 contacts** | Pool member — interchangeable; also PH interim + limit-hitter + CS agent |
+
+**Aggregate pool headroom:** ~2,750 contacts · ~13,500 sends/mo. Scenario planner shows combined **fallback pool** KPI — think of it as one bucket with three redundant backends.
+
+### Phase 1 — Welcome / onboarding / activation (Beehiiv)
+
+| Provider | Free limit | Role |
+|----------|------------|------|
+| **Beehiiv** Launch | **2,500 subscribers** · **unlimited sends** | **Primary** — welcome, browser import onboarding, first AI command, AI training, NPS, PMF, limit-hitter |
+
+**Activation milestones:** welcome and orient to Oasis → complete onboarding by importing data from a prior browser (Chrome, Safari, Brave, Edge, Firefox) → run first AI command (`llm_usage` row) → train the AI assistant at least once (`feedback_events`; earns **1,000 tokens** — sticky deep-feature signal). Continue nurture on Beehiiv **while list headroom exists**.
+
+**Phase 2 readiness milestones** (graduated — more met = riper for fork; **no hard AND rule**, no single milestone alone triggers Phase 2):
+
+| Milestone | Type | Source |
+|-----------|------|--------|
+| Welcome email sent | email | `cs_outreach_log` / `welcome_email` |
+| First AI prompt | product | `llm_usage` |
+| Daily limit hit ≥1 | product | `llm_daily_usage` vs plan limit |
+| AI assistant trained ≥1 | product | `feedback_events` (1,000-token reward) |
+| NPS email sent (D3) | email | `nps_day3` |
+| PMF email sent (D10) | email | `pmf_day10` |
+
+**Move to Phase 2 when:**
+- **User upgrades (Stripe)** → Phase 2 paid immediately
+- **Strong readiness** — most milestones met (especially limit hit, training, core emails) → evaluate Phase 2 fork
+- **Capacity prune** — received most Phase 1 emails + sufficient days on Beehiiv → move even if product milestones incomplete, to free contacts for new signups
+
+The **4–7 email range** is a **lifecycle budget** toward perpetual free (Phase 3), not a hard Phase 1 stop.
+
+**Major KPIs:** `token_limit_hit_rate_pct`, speed to first limit hit / first prompt, `limit_hitter_conversion_pct`, `activation_24h_pct`, `feedback_submission_rate_pct` (% who trained AI assistant), median hours to first training/feedback.
+
+**PH interim:** Welcome + activation still **deployed on Brevo** until Beehiiv automations live.
+
+### Phase 2 — Fork after Phase 1
+
+#### Path A — Upgraded → Mailgun + HubSpot
+
+| Provider | Free limit | Role |
+|----------|------------|------|
+| **Mailgun** | 100 emails/day · **no contact cap** | Upgrade thank-you, downgrade win-back |
+| **HubSpot** | **1,000,000 contacts** · 2,000/mo | CRM sync for all paid users + company email |
+
+#### Path B — Not upgraded → EmailOctopus
+
+| Provider | Free limit | Role |
+|----------|------------|------|
+| **EmailOctopus** | 2,500 contacts · 10,000/mo | At-risk, dead, return nurture |
+
+Each user receives **3–4 more conversion emails**. Combined with Phase 1 (4–7), a user has seen **7–11 lifecycle emails** — at that point we treat them as **will never upgrade**.
+
+If user upgrades during conversion → redirect to **Mailgun + HubSpot** (Phase 2 paid).
+
+### Phase 3 — Terminal (no further lifecycle email)
+
+| Path | Destination | Action |
+|------|-------------|--------|
+| **Paid** | HubSpot | Remain in CRM; paid lifecycle via Mailgun |
+| **Perpetual free** | Google sheet + Supabase | Set `email_funnel_status`; no more marketing email |
+| **Inactive 6 months** | Account removal | Notice then delete from Supabase |
 
 ### Pros / cons summary
 
-| Provider | Best for | Watch out for |
-|----------|----------|---------------|
-| HubSpot | High-volume one-shot welcome at signup | Entire PH burst can consume one month |
-| Brevo | Day-7 NPS + CS agent + limit-hitter overflow | Shared with agent sends; contact cap |
-| Mailgun | WAU PMF survey | Lower daily cap than Brevo |
-| OmniSend | Paid upgrade celebration | Hits 250 contacts before 500 subs goal |
-| EmailOctopus | Multi-touch nurture + resurrection drips | 2,500 contact cliff post-PH |
-| MailerLite | Overflow when EmailOctopus near cap | 500 contacts fills fast post-PH |
-
----
+| Layer | Best for | Watch out for |
+|-------|----------|---------------|
+| Beehiiv Phase 1 | Unlimited activation sends; graduated readiness scoring | 2,500 sub cliff — tune prune policy (emails sent + days); no hard milestone AND gate |
+| Fallback pool | One redundant bucket — pick any member with headroom | Track aggregate utilization, not tier order |
+| Mailgun + HubSpot | Paid path; no Mailgun contact cap | 100/day Mailgun; HubSpot 2k sends/mo |
+| EmailOctopus | Last-chance conversion | 3–4 emails then exit; 2,500 contact cliff |
+| Phase 3 perpetual free | Clean list hygiene | 6mo inactive deletion policy |
 
 ## 4. Sequence catalog
 
@@ -141,63 +212,77 @@ Adam’s five sequences are **Phase 1 — approved draft**. Five additional sequ
 
 | # | Sequence | Provider | Audience | Trigger | Cadence | Adam’s capacity runway |
 |---|----------|----------|----------|---------|---------|------------------------|
-| 1 | **Welcome** | HubSpot | All new signups | Account created / first bucket = new | One-time | Until new signups > **2,000/month** |
-| 2 | **NPS** | Brevo | All new users | Day 7 post-signup | One-time | Until daily signups > **300/day** |
-| 3 | **PMF survey** | Mailgun | New WAU-eligible users | First week with WAU activity | One-time | Until net new WAU/week > **100** |
-| 4 | **Upgrade thank-you** | OmniSend | Stripe upgrades | New `user_plans` row (`paid_subscribers` +1) | One-time | Until **250 paid** ($5k MRR) |
-| 5 | **At-risk nurture** | EmailOctopus (overflow: MailerLite) | At-risk WAU + at-risk MAU | Bucket transition into at-risk | Drip (2–4 touches) | Until **2,500 contacts** on EmailOctopus |
+| 1 | **Welcome** | Beehiiv (fallback pool) | All new signups | Account created / first bucket = new | One-time | Readiness milestone; transfer when graduated readiness or prune |
+| 2 | **NPS** | Beehiiv | All new users | Day 3 post-signup | One-time | Phase 2 readiness milestone (D3) |
+| 3 | **PMF survey** | Beehiiv | New signups | Day 10 post-signup | One-time | Phase 2 readiness milestone (D10) |
+| 4 | **Upgrade thank-you** | Mailgun (fallback pool) | Stripe upgrades | New `user_plans` row | One-time | No contact cap; 100/day |
+| 5 | **At-risk nurture** | EmailOctopus (Phase 2 conversion) | Non-upgraders after Phase 1 | At-risk WAU/MAU | Drip (**3–4 emails**) | **7–11 total** then Phase 3 perpetual free |
 
 ### Phase 1 additions (dashboard-driven)
 
 | # | Sequence | Provider | Audience | Trigger | Cadence | Primary goal |
 |---|----------|----------|----------|---------|---------|--------------|
-| 6 | **Activation nudge** | HubSpot (overflow: Brevo) | Signups with no AI prompt in 24h | `activation_24h_pct` cohort; no `llm_usage` in first 24h | One-time (+ optional D3) | 4.5× DAU · NURR |
-| 7 | **Limit-hitter upgrade** | Brevo (overflow: Mailgun) | Free users who hit token cap | `users_hit_limit` + not in `paid_subscribers` | One-time + D7 reminder | **500 subs** · `limit_hitter_conversion_pct` |
-| 8 | **Dead resurrection** | EmailOctopus (capped queue) | Dead bucket, eligible | `bucket=dead` · not emailed in 30d · not 12mo absent | 2-touch campaign | 4.5× DAU · Resurrection_Rate |
-| 9 | **Return reinforcement** | EmailOctopus | Reactivated / resurrected | First day in bucket | One-time | RURR · SURR · prevent 1-RURR / 1-SURR |
-| 10 | **Cancelled sub win-back** | Brevo (post-250: paid tier) | `cancelled_paid_subscribers` | `user_plans.is_active=false` | One-time + D14 | **500 subs** · retention |
+| 6 | **Activation nudge** | Beehiiv (fallback pool) | Signups with no AI prompt in 24h | No `llm_usage` in first 24h | One-time | Drives first prompt readiness milestone |
+| 7 | **Limit-hitter upgrade** | Beehiiv (fallback pool) | Free users who hit token cap | `users_hit_limit` + not in `paid_subscribers` | One-time + D7 reminder | **500 subs** · `limit_hitter_conversion_pct` |
+| 8 | **Dead resurrection** | EmailOctopus (Phase 2 conversion) | Dead bucket non-upgraders | `bucket=dead` | 2-touch | Counts toward 3–4 Phase 2 emails |
+| 9 | **Return reinforcement** | EmailOctopus (Phase 2 conversion) | Reactivated / resurrected | First day in bucket | One-time | RURR · SURR · prevent 1-RURR / 1-SURR |
+| 11 | **Enterprise founder** | HubSpot | Company email · session_count ≥ 8 | Day 55 post-signup | One-time | B2B pipeline |
+| 12 | **Enterprise expansion** | HubSpot | Company email · session_count ≥ 10 | Day 85 post-signup | One-time | B2B pipeline |
+
+| 10 | **Cancelled sub win-back** | Mailgun (overflow: Brevo) | `cancelled_paid_subscribers` | `user_plans.is_active=false` | One-time + D14 | **500 subs** · retention |
 
 ### Per-sequence detail
 
 Each sequence should log to CS agent `outreach_log` (see [`PLAN.md`](../PLAN.md)) with `{user_id, trigger_name, channel: "email", provider}` to prevent duplicate sends.
 
-#### 1. Welcome (HubSpot) — Adam
+#### 1. Welcome (Beehiiv) — Adam
 
 - **Audience:** Every new signup (including PH waitlist converts).
 - **Send:** Within 1 hour of signup.
 - **Success metrics:** `activation_24h_pct`, `flow_NURR`, `time_to_first_hours.median`.
 - **Dedup:** Once per user (`trigger_name: welcome_email`).
 
-#### 2. NPS (Brevo) — Adam
+#### 2. NPS (Beehiiv) — Adam
 
 - **Audience:** All users day 7 post-signup who received welcome.
 - **Success metrics:** Feedback submission rate; qualitative NPS trend.
 - **Dedup:** Once per user (`nps_day7`).
 
-#### 3. PMF survey (Mailgun) — Adam
+#### 3. PMF survey (Beehiiv) — Adam
 
-- **Audience:** Users who become WAU-eligible in their first 7 days (active on 2+ days in first week).
+- **Audience:** All signups day 10 post-signup (same Beehiiv list as welcome/NPS).
 - **Success metrics:** `latest_wau`, `multi_day_ai_first_7d_pct`.
 - **Dedup:** Once per user (`pmf_wau_week1`).
 
-#### 4. Upgrade thank-you (OmniSend) — Adam
+#### 4. Upgrade thank-you (Mailgun) — Adam
 
 - **Audience:** New Stripe subscribers (`user_plans.start_date >= 2026-05-24`).
 - **Success metrics:** `paid_subscribers`, `active_paid_subscribers`, `corporate_goals.subscribers.month_target`.
 - **Dedup:** Once per upgrade event.
 
-#### 5. At-risk nurture (EmailOctopus) — Adam
+#### 5. At-risk nurture (EmailOctopus — Phase 2 conversion) — Adam
 
-- **Audience:** Priority queue — at-risk WAU first, then at-risk MAU. Cap dead resurrection separately (seq 8).
+- **Audience:** Non-upgraders after Phase 1 (4–7 emails received). Priority — at-risk WAU first, then at-risk MAU. **3–4 Phase 2 emails**; then Phase 3 perpetual free (7–11 total lifecycle emails).
 - **Success metrics:** `bucket_at_risk_wau`, `bucket_at_risk_mau`, `flow_iWAURR`, `flow_iMAURR`, `flow_MAU_Loss_Rate`.
 - **Dashboard lever (verbatim):** *“Re-engage within 7 days — improve iWAURR before they slide to at-risk MAU or dead.”*
 - **Dedup:** Max one nurture email per 7 days per user.
+
+#### 6a. Activation nudge (automated)
+
+- **Audience:** Signups with zero `llm_usage` after 24h.
+- **Provider:** Beehiiv Phase 1; PH interim on Brevo.
+
+#### 6b. Activation CS outreach (calendar) — new
+
+- **Audience:** 48–72h post-signup if still no `llm_usage` or low engagement after nudge.
+- **Message:** Direct founder/CS email with calendar link.
+- **Provider:** Beehiiv; fallback pool on cap.
 
 #### 6. Activation nudge (new)
 
 - **Why:** Only **32%** of users activate within 24h today; PH may add 200–2,000 signups in ~3 days.
 - **Audience:** Signups with zero `llm_usage` after 24h (and optional 72h follow-up).
-- **Provider:** HubSpot if monthly budget remains; else Brevo transactional list.
+- **Provider:** Beehiiv Phase 1; PH interim on Brevo (`ph_week_brevo_primary`).
 - **Success metrics:** `activation.activation_rate_pct.24h`, `flow_NURR`, `flow_1-NURR` (lower is better).
 
 #### 7. Limit-hitter upgrade (new) — critical for 500 subs
@@ -205,14 +290,14 @@ Each sequence should log to CS agent `outreach_log` (see [`PLAN.md`](../PLAN.md)
 - **Why:** `premium_conversion_among_limit_hitters_pct` = **0%** at baseline; limit hitters are the highest-intent free users.
 - **Audience:** Users in `users_hit_limit` who are not counted in `paid_subscribers`.
 - **Message:** $20/mo value prop at moment of cap hit; optional D7 reminder if still free.
-- **Provider:** Brevo (dedicated transactional list, separate from NPS marketing).
+- **Provider:** Beehiiv Phase 1 (unlimited sends within 2k contacts; fallback pool on cap). Upgrade inflection — user has onboarded and activated.
 - **Success metrics:** `limit_hitter_conversion_pct`, `paid_subscribers` vs `month_target` (~17 in May 2026).
 
 #### 8. Dead resurrection (new)
 
 - **Why:** **95 dead users (77.9%)** with Resurrection_Rate ≈ **0.3%** — email is the primary win-back channel.
 - **Audience:** Dead bucket; exclude users with 12+ months no login and no email opens (Adam’s hygiene rule).
-- **Provider:** MailerLite contact slots (lowest priority after at-risk WAU/MAU when cap tight).
+- **Provider:** EmailOctopus Phase 2 conversion (3–4 emails toward 7–11 total before perpetual free).
 - **Cadence:** 2-email campaign (day 0 + day 14), then stop.
 - **Success metrics:** `bucket_dead`, `flow_Resurrection_Rate`, `flow_MAU_Loss_Rate` (prevent new dead).
 
@@ -225,8 +310,8 @@ Each sequence should log to CS agent `outreach_log` (see [`PLAN.md`](../PLAN.md)
 #### 10. Cancelled sub win-back (new)
 
 - **Audience:** `cancelled_paid_subscribers` (`user_plans.is_active=false`).
-- **Provider:** Brevo after OmniSend contact cap; or OmniSend paid tier.
-- **Trigger at:** 250 paid subs when OmniSend free tier is full.
+- **Provider:** Mailgun primary; redundant fallback pool when >100 paid events/day.
+- **All paid users** sync to HubSpot → Phase 3 terminal (paid path).
 - **Success metrics:** `active_paid_subscribers`, `cancelled_paid_subscribers`, net `paid_subscribers`.
 
 ---
@@ -235,14 +320,14 @@ Each sequence should log to CS agent `outreach_log` (see [`PLAN.md`](../PLAN.md)
 
 | Bucket | Primary sequences | Provider(s) | Flow rate to improve |
 |--------|-------------------|-------------|----------------------|
-| New | Welcome, Activation nudge, NPS (D7) | HubSpot, Brevo | NURR ↓ 1-NURR |
+| New | Welcome, Activation nudge | EmailOctopus (PH interim: Brevo) | NURR ↓ 1-NURR |
 | Current | (Light touch only — defer until post-PH) | — | CURR ↑ 1-CURR ↓ |
-| At-risk WAU | At-risk nurture | MailerLite | iWAURR ↑ |
-| At-risk MAU | At-risk nurture | MailerLite | iMAURR ↑ |
-| Dead | Dead resurrection | MailerLite (capped) | Resurrection_Rate ↑ |
-| Reactivated | Return reinforcement | MailerLite | RURR ↑ 1-RURR ↓ |
-| Resurrected | Return reinforcement | MailerLite | SURR ↑ 1-SURR ↓ |
-| Limit hitters (cross-bucket) | Limit-hitter upgrade | Brevo / Mailgun | limit_hitter_conversion_pct ↑ |
+| At-risk WAU | At-risk nurture | EmailOctopus | iWAURR ↑ |
+| At-risk MAU | At-risk nurture | EmailOctopus | iMAURR ↑ |
+| Dead | Dead resurrection | EmailOctopus (capped) | Resurrection_Rate ↑ |
+| Reactivated | Return reinforcement | EmailOctopus | RURR ↑ 1-RURR ↓ |
+| Resurrected | Return reinforcement | EmailOctopus | SURR ↑ 1-SURR ↓ |
+| Limit hitters (cross-bucket) | Limit-hitter upgrade | Beehiiv (fallback pool) | limit_hitter_conversion_pct ↑ |
 | Paid (Stripe) | Upgrade thank-you | OmniSend → Brevo | paid_subscribers vs month_target |
 | Cancelled paid | Cancelled win-back | Brevo (post-250) | active_paid_subscribers ↑ |
 
@@ -274,13 +359,13 @@ MailerLite remains viable until inflow approaches **500/month** — i.e. ~10× c
 
 **Launch audience (Brevo):** 222 recipients on PH teaser + launch — **175 waitlist + 47 internal team**. This is separate from organic PH signups and counts toward Brevo daily peak and contacts.
 
-Use the interactive **[`/email-machine#capacity-scenarios`](/email-machine#capacity-scenarios)** planner to model any signup volume. Presets below match `scenario_presets` in `email_sequences.json`.
+Use the interactive **[`/email-machine#capacity-scenarios`](/email-machine#capacity-scenarios)** planner to model any signup volume. Presets below match `scenario_presets` in `email_sequences.json`. **Default: Brevo free tier** (300/day · 2k contacts); toggle Starter to compare post-upgrade headroom.
 
 #### A. Baseline (May 24 — pre-PH)
 
 | Sequence | Eligible users | Sends/mo | Provider | Headroom |
 |----------|---------------:|---------:|----------|----------|
-| Welcome | ~0 new | 0 | Brevo (strategy: HubSpot) | Full |
+| Welcome | ~0 new | 0 | Brevo (PH interim; strategy: EmailOctopus) | Full |
 | NPS | ~0 | 0 | Brevo | Full |
 | At-risk nurture | 26 | ~78 (3× drip) | EmailOctopus | 2,500 contacts · 10k sends |
 | Dead resurrection | 95 (cap 20/mo) | 40 | EmailOctopus | Contact headroom |
@@ -314,7 +399,7 @@ Use the interactive **[`/email-machine#capacity-scenarios`](/email-machine#capac
 **Mitigations for PH high (simulation-backed):**
 
 1. **Brevo daily peak:** Stagger NPS over days 3–7; route PMF to Mailgun; reserve 50/day for CS agent.
-2. **HubSpot defer:** Do **not** enable HubSpot primary during PH week — Brevo already hosts welcome template.
+2. **EmailOctopus post-PH:** Move welcome/activation from Brevo interim to EmailOctopus automations.
 3. **Brevo contacts:** 122 + 2,000 + 222 ≈ **2,344** — exceeds 2,000. Prune 12-month inactive before PH.
 4. **EmailOctopus:** ~352 contacts at 2,122 users — comfortable; MailerLite overflow not needed.
 
@@ -325,7 +410,7 @@ Use the interactive **[`/email-machine#capacity-scenarios`](/email-machine#capac
 | OmniSend | Free tier caps at **250 contacts** | **Skip OmniSend** — use **Brevo Starter** ($29/mo) for paid lifecycle |
 | Brevo free | 300/day · 2,000 contacts | **Brevo Starter**: $29/mo · **20,000 sends/mo** · **500,000 contacts** ($26.08/mo annual) |
 | EmailOctopus | 2,500 contact cap at scale | Upgrade ~$8/mo at 2,000 contacts |
-| HubSpot | 2,000/mo vs sustained growth | Post-PH only when signups < 500/mo |
+| HubSpot | 2,000/mo B2B budget | Company-email cohort only; not consumer welcome |
 
 **Brevo Starter vs free (verified pricing):** Not unlimited — **20k emails/month** and **500k contacts**. PH high simulation ≈ **5,800 Brevo sends/mo** — fits Starter with headroom. Watch the **20k/month** ceiling if most lifecycle email consolidates on Brevo; daily peak (300/day free) goes away on Starter.
 
@@ -337,12 +422,13 @@ Rules are encoded in `email_sequences.json` → `routing_rules` and applied auto
 
 | Rule ID | Trigger | Sequences affected | Provider override |
 |---------|---------|-------------------|-------------------|
-| `ph_week_brevo_primary` | PH week OR `ph_signups >= 1` | welcome, activation_nudge | **brevo** (skip HubSpot) |
+| `ph_week_brevo_primary` | PH week mode | welcome, activation_nudge | **brevo** (interim; strategy EmailOctopus) |
 | `brevo_daily_overflow` | Brevo projected daily > 240 | pmf_day10 | **mailgun**; stagger NPS 24h |
 | `omnisend_to_brevo` | `paid_subscribers >= 1` OR Brevo free tier binds | upgrade_thank_you, cancelled_winback | **brevo** (Starter $29/mo) |
 | `emailoctopus_cap` | EmailOctopus contacts > 2,000 | at_risk_nurture, dead_resurrection | overflow mailerlite; cap dead at 10/mo |
+| `company_email_hubspot_sync` | `company_domain == true` | enterprise_founder, enterprise_expansion | **hubspot** (B2B only) |
 
-**Do not enable HubSpot primary during PH week.** Welcome and activation run on Brevo (already deployed); HubSpot monthly cap (2,000) cannot absorb a PH burst.
+**HubSpot is B2B-only** (`company_email_hubspot_sync`). Consumer welcome/activation never route to HubSpot.
 
 ### Known cliffs — summary
 
@@ -350,7 +436,7 @@ Rules are encoded in `email_sequences.json` → `routing_rules` and applied auto
 |-------|---------|--------|
 | Brevo launch peak | Peak > 240/day (222 audience + signups ÷ 3) | Stagger NPS; PMF → Mailgun; reserve 50/day for agent |
 | Brevo contacts | Contacts > 1,600 (80%) | Prune dead; upgrade if > 2,000 |
-| HubSpot defer PH | PH week OR signups > 400/week | Brevo primary; HubSpot post-PH only |
+| HubSpot company budget | B2B sends > 1,600/mo (80% of 2k) | Tighten enterprise qualification |
 | OmniSend 200 paid | `paid_subscribers >= 200` on free stack | Upgrade to **Brevo Starter**; deprecate OmniSend |
 | Brevo Starter 20k/mo | Projected Brevo sends > 16,000/mo | Split PMF/nurture to Mailgun/EmailOctopus or Brevo Business |
 | Mailgun PMF primary | Signups > 80/week sustained | Enforce Mailgun for PMF |
@@ -399,7 +485,7 @@ From Adam’s draft, extended:
 
 ## 9. CS agent integration notes
 
-The CS agent ([`PLAN.md`](../PLAN.md)) already uses **Brevo** for transactional email and team alerts. This proposal adds **four other marketing providers**.
+The CS agent ([`PLAN.md`](../PLAN.md)) already uses **Brevo** for transactional email and team alerts. This proposal adds a **funnel pool** plus **HubSpot B2B** overlay.
 
 | Concern | Recommendation |
 |---------|----------------|
@@ -407,7 +493,9 @@ The CS agent ([`PLAN.md`](../PLAN.md)) already uses **Brevo** for transactional 
 | Trigger logic | CS agent rule-based triggers (`triggers/evaluate.py`) should map 1:1 to sequences above. Claude generates copy only; never decides who gets email. |
 | `outreach_log` | Single dedup table across all providers. |
 | Daily run | Agent batch classifies users → evaluates triggers → routes to provider queue → logs send. |
-| Reporting | Extend cohort report with emails sent per provider vs free-tier budget remaining. |
+| Reporting | Extend cohort report with emails sent per provider vs free-tier budget remaining; include `pool_aggregate`. |
+| HubSpot sync (Phase 3) | On signup/batch: if `company_domain`, create/update HubSpot contact (`email`, `oasis_user_id`, `segment`, `session_count`). Dedup: `hubspot_contact_synced` in `outreach_log`. Route `enterprise_founder` / `enterprise_expansion` to HubSpot email (not Alert). Requires `integrations/hubspot.py` + private app token. |
+| Suppression | Unsub on any provider → sync to HubSpot + funnel pool lists. |
 
 ---
 
@@ -452,7 +540,7 @@ The CS agent ([`PLAN.md`](../PLAN.md)) already uses **Brevo** for transactional 
 | # | Question | Decision (simulation-backed) |
 |---|----------|------------------------------|
 | 1 | Dead resurrection when EmailOctopus full? | Upgrade EmailOctopus at 2,000 contacts; MailerLite overflow WAU-only |
-| 2 | HubSpot PH overflow? | **Default: Brevo primary during PH week** — do not enable HubSpot |
+| 2 | HubSpot role? | **B2B overlay only** — company-domain users via `company_email_hubspot_sync` |
 | 3 | OmniSend post-250? | **Skip OmniSend** — Brevo Starter $29/mo (20k sends · 500k contacts) from first paid sub or when free Brevo binds |
 | 4 | Activation D3 follow-up? | No (single 24h nudge only) — doubles Brevo load during PH |
 | 5 | Current-user nurture? | Defer until DAU > PH baseline · Never (in-app only) |
@@ -470,7 +558,7 @@ Where **deployed** Brevo automations differ from the multi-provider **strategy**
 
 | Sequence | Strategy provider | Shipped (Brevo interim) | Trigger (deployed) |
 |----------|-------------------|---------|-------------------|
-| Welcome | HubSpot | **Brevo** — `brevo-oasis-welcome.html` | On signup |
+| Welcome | EmailOctopus | **Brevo** interim — `brevo-oasis-welcome.html` | On signup |
 | NPS | Brevo (day 7 in strategy) | **Brevo** — `brevo-oasis-nps-day3.html` | **Day 3** after signup |
 | PMF | Mailgun (WAU week 1) | **Brevo** — `brevo-oasis-pmf-day10.html` | **Day 10** after signup |
 | Upgrade thank-you | OmniSend | **Brevo** — `brevo-oasis-paid-zen-welcome.html` | Stripe paid (Zen plan) |
@@ -491,6 +579,8 @@ The baseline snapshot includes **`email_provider_capacity`**: per-provider conta
 | `AT_LIMIT_*` | Same metrics at ≥100% |
 
 Surfaced on: main dashboard KPI row, Key insights, [`/email-machine#provider-capacity`](/email-machine#provider-capacity) (live), and [`/email-machine#capacity-scenarios`](/email-machine#capacity-scenarios) (what-if PH signup projections).
+
+The main dashboard also includes **`lifecycle_readiness`**: a bucket × milestone matrix (`#lifecycle-readiness`) showing what share of users in each DAU bucket have met Phase 1 product milestones (first prompt, limit hit, training). Email send columns activate when `cs_outreach_log` is deployed.
 
 v1 uses DAU bucket estimates; replace with `outreach_log` counts when CS agent Phase 4 ships.
 

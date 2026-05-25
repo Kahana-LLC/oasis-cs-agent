@@ -1,105 +1,249 @@
 {
-  "version": 2,
+  "version": 4,
   "doc_ref": "docs/USER_EMAIL_MACHINE_PROPOSAL.md",
   "providers": [
     {
       "id": "hubspot",
       "name": "HubSpot",
+      "funnel_role": "phase_3_terminal",
       "pricing_url": "https://www.hubspot.com/pricing/suite?tier=starter",
-      "free_limits": { "marketing_emails_per_month": 2000 },
+      "free_limits": {
+        "marketing_emails_per_month": 2000,
+        "contacts": 1000000
+      },
       "near_limit": {
         "contacts_pct": 0.8,
         "sends_monthly_pct": 0.8,
         "sends_daily_pct": 0.8,
         "runway_months_min": 2
       },
-      "constraints": ["No custom HTML", "Built-in templates only"],
-      "upgrade_trigger": "New signups consistently > 2,000/month",
-      "notes": "PH high scenario (2,000 signups) can consume entire monthly cap in launch week."
+      "constraints": [
+        "1M contact limit (verified)",
+        "2,000 marketing emails/mo",
+        "All paid users + company email on signup"
+      ],
+      "upgrade_trigger": "Marketing sends > 1,600/mo sustained",
+      "notes": "Phase 3 terminal — paid CRM + company email. 1M contacts."
+    },
+    {
+      "id": "beehiiv",
+      "name": "Beehiiv",
+      "funnel_role": "phase_1_primary",
+      "pricing_url": "https://www.beehiiv.com/pricing",
+      "free_limits": {
+        "contacts": 2500
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "Launch plan $0/mo",
+        "Unlimited email sends",
+        "No Send API on free tier",
+        "2,500 subscriber cap"
+      ],
+      "upgrade_trigger": "Contacts > 2,000 — prune users by graduated readiness or time-on-list; fallback pool or Phase 2",
+      "notes": "Phase 1 primary — nurture on Beehiiv while list headroom exists; track readiness milestones until upgrade or contact prune."
     },
     {
       "id": "brevo",
       "name": "Brevo",
+      "funnel_role": "fallback",
+      "funnel_tags": [
+        "ph_interim",
+        "transactional",
+        "cs_agent"
+      ],
       "pricing_url": "https://www.brevo.com/pricing/",
-      "free_limits": { "emails_per_day": 300, "contacts": 2000 },
+      "free_limits": {
+        "emails_per_day": 300,
+        "contacts": 2000
+      },
       "near_limit": {
         "contacts_pct": 0.8,
         "sends_monthly_pct": 0.8,
         "sends_daily_pct": 0.8,
         "runway_months_min": 2
       },
-      "constraints": ["Shared with CS agent transactional sends (PLAN.md)"],
-      "upgrade_trigger": "Contacts > 2,000 or daily signups > 300/day sustained",
-      "notes": "Use separate lists: transactional-agent, nps, limit-hitter. Lifecycle + PH templates deployed here.",
+      "constraints": [
+        "Shared with CS agent transactional sends (PLAN.md)"
+      ],
+      "upgrade_trigger": "Pool aggregate > 80% — any member may absorb overflow from any phase",
+      "notes": "Fallback pool member — interchangeable with other pool providers. Used when primary provider hits cap or errors.",
       "paid_tier": {
         "name": "Starter",
         "pricing_url": "https://www.brevo.com/pricing/",
         "price_usd_monthly": 29,
         "price_usd_annual_monthly": 26.08,
-        "limits": { "emails_per_month": 20000, "contacts": 500000 },
-        "replaces_providers": ["omnisend"],
+        "limits": {
+          "emails_per_month": 20000,
+          "contacts": 500000
+        },
+        "replaces_providers": [
+          "omnisend"
+        ],
         "notes": "Removes free-tier 300/day and 2,000 contact caps. Replaces OmniSend for paid lifecycle; keep Mailgun/EmailOctopus on free tiers."
       }
     },
     {
       "id": "mailgun",
       "name": "Mailgun",
+      "funnel_role": "phase_2_paid",
       "pricing_url": "https://www.mailgun.com/pricing/",
-      "free_limits": { "emails_per_day": 100 },
+      "free_limits": {
+        "emails_per_day": 100
+      },
       "near_limit": {
         "contacts_pct": 0.8,
         "sends_monthly_pct": 0.8,
         "sends_daily_pct": 0.8,
         "runway_months_min": 2
       },
-      "constraints": ["Transactional-oriented"],
-      "upgrade_trigger": "Net new WAU/week > 100 sustained",
-      "notes": "~3,000 emails/month theoretical max."
+      "constraints": [
+        "Transactional-oriented"
+      ],
+      "upgrade_trigger": "Paid lifecycle daily > 80 — spill to Brevo",
+      "notes": "Phase 2 (upgraded) — transactional paid lifecycle. No contact cap."
     },
     {
       "id": "omnisend",
       "name": "OmniSend",
+      "funnel_role": "fallback",
       "pricing_url": "https://www.omnisend.com/pricing/",
-      "free_limits": { "emails_per_month": 500, "contacts": 250 },
+      "free_limits": {
+        "emails_per_month": 500,
+        "contacts": 250
+      },
       "near_limit": {
         "contacts_pct": 0.8,
         "sends_monthly_pct": 0.8,
         "sends_daily_pct": 0.8,
         "runway_months_min": 2
       },
-      "constraints": ["250 contact cap below 500 subs year-end goal"],
-      "upgrade_trigger": "Deprecate — use Brevo Starter ($29/mo) for paid lifecycle instead",
-      "notes": "Free tier placeholder only. Upgrade thank-you already on Brevo (deployed_via). Skip OmniSend onboarding; consolidate on Brevo Starter at first paid sub or when Brevo free tier binds."
+      "constraints": [
+        "250 contact cap below 500 subs year-end goal"
+      ],
+      "upgrade_trigger": "Pool aggregate > 80% — any member may absorb overflow from any phase",
+      "notes": "Fallback pool member — interchangeable with other pool providers. Used when primary provider hits cap or errors."
     },
     {
       "id": "mailerlite",
       "name": "MailerLite",
+      "funnel_role": "fallback",
       "pricing_url": "https://www.mailerlite.com/pricing",
-      "free_limits": { "emails_per_month": 12000, "contacts": 500 },
+      "free_limits": {
+        "emails_per_month": 12000,
+        "contacts": 500
+      },
       "near_limit": {
         "contacts_pct": 0.8,
         "sends_monthly_pct": 0.8,
         "sends_daily_pct": 0.8,
         "runway_months_min": 2
       },
-      "constraints": ["Contact cap binds before send cap"],
-      "upgrade_trigger": "Contacts > 400 or sustained PH growth",
-      "notes": "Overflow for EmailOctopus nurture when contact cap tight; 500 contacts vs EmailOctopus 2,500."
+      "constraints": [
+        "Contact cap binds before send cap"
+      ],
+      "upgrade_trigger": "Pool aggregate > 80% — any member may absorb overflow from any phase",
+      "notes": "Fallback pool member — interchangeable with other pool providers. Used when primary provider hits cap or errors."
     },
     {
       "id": "emailoctopus",
       "name": "EmailOctopus",
+      "funnel_role": "phase_2_conversion",
       "pricing_url": "https://emailoctopus.com/pricing",
-      "free_limits": { "contacts": 2500, "emails_per_month": 10000 },
+      "free_limits": {
+        "contacts": 2500,
+        "emails_per_month": 10000
+      },
       "near_limit": {
         "contacts_pct": 0.8,
         "sends_monthly_pct": 0.8,
         "sends_daily_pct": 0.8,
         "runway_months_min": 2
       },
-      "constraints": ["Free tier: 2,500 subscribers · 10,000 emails/mo"],
-      "upgrade_trigger": "Contacts > 2,500 or sustained PH growth beyond 10k sends/mo",
-      "notes": "Primary nurture provider — displaces MailerLite (500 contact cap) for at-risk, resurrection, return sequences."
+      "constraints": [
+        "Free tier: 2,500 subscribers · 10,000 emails/mo"
+      ],
+      "upgrade_trigger": "Contacts > 2,000 — fallback pool (MailerLite, OmniSend, or Brevo) or Phase 3 transfer",
+      "notes": "Phase 2 (no upgrade) — 3–4 conversion emails; then Phase 3 perpetual free."
+    }
+  ],
+  "provider_candidates": [
+    {
+      "id": "moosend",
+      "name": "Moosend",
+      "pricing_url": "https://moosend.com/pricing/",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "activecampaign",
+      "name": "ActiveCampaign",
+      "pricing_url": "https://www.activecampaign.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "aweber",
+      "name": "AWeber",
+      "pricing_url": "https://www.aweber.com/pricing.htm",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "campaign_monitor",
+      "name": "Campaign Monitor",
+      "pricing_url": "https://www.campaignmonitor.com/pricing/",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "constant_contact",
+      "name": "Constant Contact",
+      "pricing_url": "https://www.constantcontact.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "getresponse",
+      "name": "GetResponse",
+      "pricing_url": "https://www.getresponse.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "kit",
+      "name": "Kit (ConvertKit)",
+      "pricing_url": "https://kit.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "mad_mimi",
+      "name": "Mad Mimi",
+      "pricing_url": "https://madmimi.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "sendy",
+      "name": "Sendy",
+      "pricing_url": "https://sendy.co/",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel",
+      "notes": "Self-hosted — not SaaS free tier; evaluate separately"
+    },
+    {
+      "id": "tinyletter",
+      "name": "TinyLetter",
+      "pricing_url": "https://tinyletter.com/",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel",
+      "notes": "Deprecated service — likely skip"
     }
   ],
   "buckets": [
@@ -108,7 +252,10 @@
       "label": "New users",
       "definition": "First day of engagement ever in the app",
       "dashboard_field": "dau_model.bucket_counts.new",
-      "flow_rates": ["NURR", "1-NURR"],
+      "flow_rates": [
+        "NURR",
+        "1-NURR"
+      ],
       "rollup": "DAU"
     },
     {
@@ -116,7 +263,10 @@
       "label": "Current users",
       "definition": "Active today and at least one other day in the prior 6 days",
       "dashboard_field": "dau_model.bucket_counts.current",
-      "flow_rates": ["CURR", "1-CURR"],
+      "flow_rates": [
+        "CURR",
+        "1-CURR"
+      ],
       "rollup": "DAU"
     },
     {
@@ -124,7 +274,10 @@
       "label": "Reactivated users",
       "definition": "First day back after 7–29 days away",
       "dashboard_field": "dau_model.bucket_counts.reactivated",
-      "flow_rates": ["RURR", "1-RURR"],
+      "flow_rates": [
+        "RURR",
+        "1-RURR"
+      ],
       "rollup": "DAU"
     },
     {
@@ -132,7 +285,10 @@
       "label": "Resurrected users",
       "definition": "First day back after 30+ days away",
       "dashboard_field": "dau_model.bucket_counts.resurrected",
-      "flow_rates": ["SURR", "1-SURR"],
+      "flow_rates": [
+        "SURR",
+        "1-SURR"
+      ],
       "rollup": "DAU"
     },
     {
@@ -140,7 +296,10 @@
       "label": "At-risk WAU",
       "definition": "Inactive today, active on at least one of the prior 6 days",
       "dashboard_field": "dau_model.bucket_counts.at_risk_wau",
-      "flow_rates": ["iWAURR", "WAU_Loss_Rate"],
+      "flow_rates": [
+        "iWAURR",
+        "WAU_Loss_Rate"
+      ],
       "rollup": "At-risk WAU + DAU = WAU"
     },
     {
@@ -148,7 +307,10 @@
       "label": "At-risk MAU",
       "definition": "Inactive today and prior 6 days; active 7–29 days ago",
       "dashboard_field": "dau_model.bucket_counts.at_risk_mau",
-      "flow_rates": ["iMAURR", "MAU_Loss_Rate"],
+      "flow_rates": [
+        "iMAURR",
+        "MAU_Loss_Rate"
+      ],
       "rollup": "At-risk MAU + WAU = MAU"
     },
     {
@@ -156,7 +318,10 @@
       "label": "Dead users",
       "definition": "No activity in the last 30 days",
       "dashboard_field": "dau_model.bucket_counts.dead",
-      "flow_rates": ["Resurrection_Rate", "MAU_Loss_Rate"],
+      "flow_rates": [
+        "Resurrection_Rate",
+        "MAU_Loss_Rate"
+      ],
       "rollup": "Dead + MAU = total user base"
     }
   ],
@@ -166,109 +331,208 @@
     "launch_brevo_audience": 222,
     "launch_window_days": 3,
     "activation_24h_pct": 0.32,
-    "pmf_wau_eligible_pct": 0.40,
+    "pmf_wau_eligible_pct": 0.4,
     "paid_conversion_pct": 0.015,
     "agent_brevo_daily_reserve": 50,
     "default_new_users_per_day_max": 7,
     "default_new_users_per_month_max": 200,
     "slider_day_max": 1000,
-    "slider_month_max": 3000
+    "slider_month_max": 3000,
+    "brevo_starter_default": false,
+    "company_email_pct": 0.15,
+    "consumer_email_domains": [
+      "gmail.com",
+      "yahoo.com",
+      "outlook.com",
+      "hotmail.com",
+      "hotmail.co.uk",
+      "icloud.com",
+      "protonmail.com",
+      "protonmail.ch",
+      "me.com",
+      "mac.com",
+      "live.com",
+      "live.co.uk",
+      "yahoo.co.uk",
+      "googlemail.com",
+      "msn.com"
+    ],
+    "conversion_config": {
+      "phase_1_emails_min": 4,
+      "phase_1_emails_max": 7,
+      "phase_2_conversion_emails_min": 3,
+      "phase_2_conversion_emails_max": 4,
+      "total_emails_before_perpetual_free_min": 7,
+      "total_emails_before_perpetual_free_max": 11,
+      "perpetual_free_sheet": true,
+      "supabase_status_field": "email_funnel_status",
+      "inactive_delete_notice_months": 6
+    }
   },
   "routing_rules": [
     {
       "id": "ph_week_brevo_primary",
-      "label": "PH week: Brevo primary",
-      "trigger": "ph_signups >= 1 OR launch_week mode",
-      "sequences": ["welcome", "activation_nudge"],
+      "label": "PH week: Brevo interim",
+      "trigger": "launch_week mode",
+      "sequences": [
+        "welcome",
+        "activation_nudge"
+      ],
       "provider_id": "brevo",
-      "notes": "Skip HubSpot primary during launch; welcome already deployed on Brevo."
+      "notes": "Until Beehiiv automations live."
     },
     {
-      "id": "brevo_daily_overflow",
-      "label": "Brevo daily overflow",
-      "trigger": "brevo projected daily > 240",
-      "sequences": ["pmf_day10"],
-      "provider_id": "mailgun",
-      "notes": "Route PMF to Mailgun; stagger NPS sends over 24h when Brevo daily exceeds 240."
+      "id": "fallback_pool",
+      "label": "Fallback pool",
+      "trigger": "Any primary provider (Beehiiv, EmailOctopus, Mailgun) > 80% cap",
+      "sequences": [
+        "*"
+      ],
+      "provider_id": "fallback_pool",
+      "notes": "Fallback pool — used only when a primary provider hits a cap or errors. Route to whichever member (MailerLite / OmniSend / Brevo) has headroom. When fallback fires: migrate users to next phase OR upgrade constrained provider tier."
     },
     {
-      "id": "omnisend_to_brevo",
-      "label": "OmniSend → Brevo Starter",
-      "trigger": "paid_subscribers >= 1 OR Brevo free tier binds",
-      "sequences": ["upgrade_thank_you", "cancelled_winback"],
-      "provider_id": "brevo",
-      "notes": "OmniSend free tier caps at 250 contacts — migrate to Brevo Starter ($29/mo · 20k sends/mo · 500k contacts)."
+      "id": "beehiiv_prune_to_phase2",
+      "label": "Beehiiv prune → Phase 2",
+      "trigger": "user received 4–7 Phase 1 emails AND beehiiv contacts > 2,000",
+      "sequences": [
+        "welcome",
+        "activation_nudge",
+        "activation_cs_calendar",
+        "nps_day3",
+        "pmf_day10"
+      ],
+      "provider_id": null,
+      "notes": "Move to Phase 2 paid or conversion track."
     },
     {
-      "id": "emailoctopus_cap",
-      "label": "EmailOctopus contact cap",
-      "trigger": "emailoctopus contacts > 2000",
-      "sequences": ["at_risk_nurture", "dead_resurrection"],
-      "provider_id": "mailerlite",
-      "notes": "Overflow at-risk WAU to MailerLite; cap dead resurrection at 10/mo."
+      "id": "paid_hubspot_sync",
+      "label": "Paid → HubSpot",
+      "trigger": "paid_subscribers >= 1",
+      "sequences": [
+        "upgrade_thank_you"
+      ],
+      "provider_id": "hubspot",
+      "notes": "Phase 3 terminal path for paid."
+    },
+    {
+      "id": "company_email_hubspot_sync",
+      "label": "Company email → HubSpot",
+      "trigger": "company_domain on signup",
+      "sequences": [
+        "enterprise_founder",
+        "enterprise_expansion"
+      ],
+      "provider_id": "hubspot",
+      "notes": "Immediate HubSpot sync."
+    },
+    {
+      "id": "phase_3_perpetual_free",
+      "label": "Phase 3 perpetual free",
+      "trigger": "7–11 lifecycle emails without upgrade",
+      "sequences": [
+        "at_risk_nurture",
+        "dead_resurrection",
+        "return_reinforcement"
+      ],
+      "provider_id": null,
+      "notes": "Google sheet + Supabase email_funnel_status; 6mo inactive → delete."
+    },
+    {
+      "id": "fallback_pool_ops",
+      "label": "Fallback triggered — ops response",
+      "trigger": "fallback_pool rule active",
+      "sequences": [
+        "*"
+      ],
+      "provider_id": null,
+      "notes": "Migrate users to next funnel phase OR pay to expand the constrained primary provider tier."
     }
   ],
   "scenario_presets": [
-    { "id": "pre_ph", "label": "Pre-PH", "new_users_per_day_max": 0, "new_users_per_month_max": 0, "mode": "launch_week", "paid_override": null },
-    { "id": "ph_low", "label": "PH low", "new_users_per_day_max": 67, "new_users_per_month_max": 200, "mode": "launch_week", "paid_override": null },
-    { "id": "ph_medium", "label": "PH medium", "new_users_per_day_max": 200, "new_users_per_month_max": 600, "mode": "launch_week", "paid_override": null },
-    { "id": "ph_high", "label": "PH high", "new_users_per_day_max": 667, "new_users_per_month_max": 2000, "mode": "launch_week", "paid_override": null },
-    { "id": "q4_target", "label": "Q4 target", "new_users_per_day_max": 4, "new_users_per_month_max": 120, "mode": "steady_month", "paid_override": 500 }
+    {
+      "id": "pre_ph",
+      "label": "Pre-PH",
+      "new_users_per_day_max": 0,
+      "new_users_per_month_max": 0,
+      "mode": "launch_week",
+      "paid_override": null
+    },
+    {
+      "id": "ph_low",
+      "label": "PH low",
+      "new_users_per_day_max": 67,
+      "new_users_per_month_max": 200,
+      "mode": "launch_week",
+      "paid_override": null
+    },
+    {
+      "id": "ph_medium",
+      "label": "PH medium",
+      "new_users_per_day_max": 200,
+      "new_users_per_month_max": 600,
+      "mode": "launch_week",
+      "paid_override": null
+    },
+    {
+      "id": "ph_high",
+      "label": "PH high",
+      "new_users_per_day_max": 667,
+      "new_users_per_month_max": 2000,
+      "mode": "launch_week",
+      "paid_override": null
+    },
+    {
+      "id": "q4_target",
+      "label": "Q4 target",
+      "new_users_per_day_max": 4,
+      "new_users_per_month_max": 120,
+      "mode": "steady_month",
+      "paid_override": 500
+    }
   ],
   "capacity_cliffs": [
     {
+      "id": "beehiiv_2500",
+      "provider_id": "beehiiv",
+      "trigger": "Beehiiv contacts > 2,000",
+      "action": "Prune users with 4–7 Phase 1 emails; route overflow to fallback pool or Phase 2"
+    },
+    {
+      "id": "fallback_pool_aggregate",
+      "provider_id": "fallback_pool",
+      "trigger": "Pool aggregate contacts > 2,200 (80% of 2,750)",
+      "action": "Route to fallback member with most headroom; evaluate phase migration or provider upgrade"
+    },
+    {
+      "id": "mailgun_paid_daily",
+      "provider_id": "mailgun",
+      "trigger": "Paid lifecycle daily > 80",
+      "action": "Route to fallback pool (Brevo member)"
+    },
+    {
+      "id": "emailoctopus_2500",
+      "provider_id": "emailoctopus",
+      "trigger": "EmailOctopus contacts > 2,000",
+      "action": "Fallback pool; cap at 3–4 conversion emails/user; accelerate Phase 3 transfer"
+    },
+    {
+      "id": "hubspot_send_budget",
+      "provider_id": "hubspot",
+      "trigger": "Marketing sends > 1,600/mo",
+      "action": "Prioritize paid + B2B sends"
+    },
+    {
       "id": "brevo_launch_peak",
       "provider_id": "brevo",
-      "trigger": "Launch peak > 240/day (222 audience + signups ÷ 3)",
-      "action": "Stagger NPS days 3–7; route PMF to Mailgun; reserve 50/day for CS agent"
-    },
-    {
-      "id": "brevo_contacts",
-      "provider_id": "brevo",
-      "trigger": "Contacts > 1,600 (80% of 2,000 cap)",
-      "action": "Prune 12-month inactive before PH; upgrade Brevo if > 2,000"
-    },
-    {
-      "id": "hubspot_defer_ph",
-      "provider_id": "hubspot",
-      "trigger": "PH week OR signups > 400/week",
-      "action": "Brevo primary for welcome/activation; HubSpot post-PH only when signups < 500/mo"
-    },
-    {
-      "id": "omnisend_200",
-      "provider_id": "omnisend",
-      "trigger": "paid_subscribers >= 1 (OmniSend deprecated)",
-      "action": "Skip OmniSend — use Brevo Starter ($29/mo · 20k sends/mo · 500k contacts) for paid lifecycle"
-    },
-    {
-      "id": "mailgun_pmf_primary",
-      "provider_id": "mailgun",
-      "trigger": "Signups > 80/week sustained",
-      "action": "Enforce Mailgun primary for PMF (off Brevo interim deployed template)"
-    },
-    {
-      "id": "emailoctopus_2000",
-      "provider_id": "emailoctopus",
-      "trigger": "Marketing contacts > 2,000",
-      "action": "Upgrade EmailOctopus (~$8/mo); MailerLite overflow insufficient at 500 cap"
-    },
-    {
-      "id": "mailerlite_overflow",
-      "provider_id": "mailerlite",
-      "trigger": "EmailOctopus contacts > 2,000 (overflow only)",
-      "action": "At-risk WAU only on MailerLite; not a primary nurture provider"
-    },
-    {
-      "id": "brevo_starter_monthly",
-      "provider_id": "brevo",
-      "trigger": "Brevo Starter: projected sends > 16,000/mo (80% of 20k)",
-      "action": "Keep PMF on Mailgun; nurture on EmailOctopus; upgrade Brevo Business tier or split marketing vs agent"
+      "trigger": "PH interim peak > 240/day",
+      "action": "Migrate to Beehiiv post-PH"
     },
     {
       "id": "brevo_agent",
       "provider_id": "brevo",
       "trigger": "Agent + marketing > 250/day",
-      "action": "Separate Brevo sub-account or dedicated transactional list for CS agent"
+      "action": "Separate agent sub-account"
     }
   ],
   "sequences": [
@@ -277,7 +541,10 @@
       "name": "PH teaser (waitlist)",
       "phase": "1-adam",
       "funnel": "acquisition",
-      "buckets": ["new", "waitlist"],
+      "buckets": [
+        "new",
+        "waitlist"
+      ],
       "trigger_summary": "Waitlist contact before Product Hunt launch",
       "trigger_when": "May 26, 2026 — day before PH launch",
       "trigger_implementation": "Brevo list: Oasis waitlist (Tally w8V8GA)",
@@ -288,9 +555,17 @@
       "cadence": "one-time",
       "dedup_trigger_name": "ph_teaser_waitlist",
       "free_tier_runway": "Reusable template for future launches (Windows, Linux, mobile, etc.)",
-      "dashboard_metrics": ["total_users", "activation_24h_pct"],
-      "dashboard_anchors": ["activation"],
-      "corporate_goals": ["dau", "subs"],
+      "dashboard_metrics": [
+        "total_users",
+        "activation_24h_pct"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
       "preview": {
         "source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-teaser-waitlist.html",
         "path": "/emails/ph_teaser.html",
@@ -298,14 +573,33 @@
         "preheader": "Privacy-first AI browser. Something special for genuine launch-day feedback.",
         "from_name": "Oasis by Kahana",
         "plain_text_source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-teaser-plain-text.txt"
-      }
+      },
+      "funnel_phase": "ph_interim",
+      "touches": [
+        {
+          "touch_id": "ph_teaser_d0",
+          "ordinal": 1,
+          "name": "PH teaser (waitlist)",
+          "day_offset": 0,
+          "trigger_when": "Day before PH launch",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "none"
+          },
+          "dedup_trigger_name": "ph_teaser_waitlist",
+          "counts_toward_phase_budget": false
+        }
+      ]
     },
     {
       "id": "ph_launch",
       "name": "PH launch (waitlist)",
       "phase": "1-adam",
       "funnel": "acquisition",
-      "buckets": ["new", "waitlist"],
+      "buckets": [
+        "new",
+        "waitlist"
+      ],
       "trigger_summary": "Product Hunt launch day — waitlist + new signups",
       "trigger_when": "May 27, 2026 — when PH listing is live",
       "trigger_implementation": "Manual send once PH listing live; Brevo waitlist segment",
@@ -316,9 +610,17 @@
       "cadence": "one-time",
       "dedup_trigger_name": "ph_launch_waitlist",
       "free_tier_runway": "Reusable for future product launches and platform expansions",
-      "dashboard_metrics": ["total_users", "activation_24h_pct"],
-      "dashboard_anchors": ["activation"],
-      "corporate_goals": ["dau", "subs"],
+      "dashboard_metrics": [
+        "total_users",
+        "activation_24h_pct"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
       "preview": {
         "source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-launch-waitlist.html",
         "path": "/emails/ph_launch.html",
@@ -326,27 +628,54 @@
         "preheader": "Leave genuine feedback on our launch page. Reply with a screenshot to claim 1M tokens/day.",
         "from_name": "Oasis by Kahana",
         "plain_text_source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-launch-plain-text.txt"
-      }
+      },
+      "funnel_phase": "ph_interim",
+      "touches": [
+        {
+          "touch_id": "ph_launch_d0",
+          "ordinal": 1,
+          "name": "PH launch (waitlist)",
+          "day_offset": 0,
+          "trigger_when": "PH launch day",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "none"
+          },
+          "dedup_trigger_name": "ph_launch_waitlist",
+          "counts_toward_phase_budget": false
+        }
+      ]
     },
     {
       "id": "welcome",
       "name": "Welcome",
       "phase": "1-adam",
       "funnel": "lifecycle",
-      "buckets": ["new"],
-      "trigger_summary": "Account created / new Oasis user signup",
+      "buckets": [
+        "new"
+      ],
+      "trigger_summary": "Account created — welcome + orient to onboarding (import from prior browser, first AI command)",
       "trigger_when": "Immediately on signup",
       "trigger_implementation": "Brevo automation: new Oasis user signup",
-      "provider_id": "hubspot",
-      "provider_overflow_id": "brevo",
+      "provider_id": "beehiiv",
+      "provider_overflow_id": "fallback_pool",
       "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
       "dedup_trigger_name": "welcome_email",
-      "free_tier_runway": "Strategy: HubSpot until >2k/mo; shipped on Brevo",
-      "dashboard_metrics": ["activation_24h_pct", "flow_NURR", "time_to_first_hours"],
-      "dashboard_anchors": ["activation"],
-      "corporate_goals": ["dau", "subs"],
+      "free_tier_runway": "Strategy: EmailOctopus (2,500 contacts · 10k/mo); PH interim shipped on Brevo",
+      "dashboard_metrics": [
+        "activation_24h_pct",
+        "flow_NURR",
+        "time_to_first_hours"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
       "preview": {
         "source": "brevo-oasis-emails/lifecycle/brevo-oasis-welcome.html",
         "path": "/emails/welcome.html",
@@ -354,27 +683,50 @@
         "preheader": "Docs, Slack, and support links to get started.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-welcome-plain-text.txt"
-      }
+      },
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "welcome_d0",
+          "ordinal": 1,
+          "name": "Welcome",
+          "day_offset": 0,
+          "trigger_when": "Immediately on signup — welcome + browser import onboarding steps",
+          "primary_provider_id": "beehiiv",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "welcome_email",
+          "counts_toward_phase_budget": true,
+          "interim_provider_id": "brevo"
+        }
+      ]
     },
     {
       "id": "nps_day3",
       "name": "NPS",
       "phase": "1-adam",
       "funnel": "lifecycle",
-      "buckets": ["new"],
+      "buckets": [
+        "new"
+      ],
       "trigger_summary": "NPS survey after a few days with the product",
       "trigger_when": "3 days after signup",
       "trigger_implementation": "Brevo automation: lifecycle_day == 3",
-      "provider_id": "brevo",
-      "provider_overflow_id": null,
+      "provider_id": "beehiiv",
+      "provider_overflow_id": "fallback_pool",
       "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
       "dedup_trigger_name": "nps_day3",
       "free_tier_runway": "Until daily signups > 300/day (~9k/mo send cap)",
-      "dashboard_metrics": ["feedback_submission_rate_pct"],
+      "dashboard_metrics": [
+        "feedback_submission_rate_pct"
+      ],
       "dashboard_anchors": [],
-      "corporate_goals": ["dau"],
+      "corporate_goals": [
+        "dau"
+      ],
       "preview": {
         "source": "brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3.html",
         "path": "/emails/nps_day3.html",
@@ -382,27 +734,53 @@
         "preheader": "One question. Your feedback helps us improve.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3-plain-text.txt"
-      }
+      },
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "nps_day3_d3",
+          "ordinal": 4,
+          "name": "NPS",
+          "day_offset": 3,
+          "trigger_when": "3 days after signup",
+          "primary_provider_id": "beehiiv",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "nps_day3",
+          "counts_toward_phase_budget": true,
+          "interim_provider_id": "brevo"
+        }
+      ]
     },
     {
       "id": "pmf_day10",
       "name": "PMF survey",
       "phase": "1-adam",
       "funnel": "lifecycle",
-      "buckets": ["new"],
+      "buckets": [
+        "new"
+      ],
       "trigger_summary": "Product-market fit survey",
       "trigger_when": "10 days after signup",
       "trigger_implementation": "Brevo automation: lifecycle_day == 10",
-      "provider_id": "mailgun",
-      "provider_overflow_id": "brevo",
+      "provider_id": "beehiiv",
+      "provider_overflow_id": "fallback_pool",
       "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
       "dedup_trigger_name": "pmf_day10",
       "free_tier_runway": "Strategy: Mailgun; shipped on Brevo",
-      "dashboard_metrics": ["feedback_submission_rate_pct", "latest_wau"],
-      "dashboard_anchors": ["retention"],
-      "corporate_goals": ["dau"],
+      "dashboard_metrics": [
+        "feedback_submission_rate_pct",
+        "latest_wau"
+      ],
+      "dashboard_anchors": [
+        "retention"
+      ],
+      "corporate_goals": [
+        "dau"
+      ],
       "preview": {
         "source": "brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10.html",
         "path": "/emails/pmf_day10.html",
@@ -410,27 +788,55 @@
         "preheader": "2-minute product survey. Your answers shape what we build next.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10-plain-text.txt"
-      }
+      },
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "pmf_day10_d10",
+          "ordinal": 5,
+          "name": "PMF survey",
+          "day_offset": 10,
+          "trigger_when": "10 days after signup",
+          "primary_provider_id": "beehiiv",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "pmf_day10",
+          "counts_toward_phase_budget": true,
+          "interim_provider_id": "brevo"
+        }
+      ]
     },
     {
       "id": "upgrade_thank_you",
       "name": "Paid Zen welcome",
       "phase": "1-adam",
       "funnel": "lifecycle",
-      "buckets": ["paid"],
+      "buckets": [
+        "paid"
+      ],
       "trigger_summary": "Stripe Zen plan upgrade",
       "trigger_when": "Immediately on Zen upgrade / checkout",
       "trigger_implementation": "Stripe checkout OR Brevo when plan = Zen",
-      "provider_id": "omnisend",
-      "provider_overflow_id": "brevo",
+      "provider_id": "mailgun",
+      "provider_overflow_id": "fallback_pool",
       "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
       "dedup_trigger_name": "upgrade_thank_you",
       "free_tier_runway": "Strategy: OmniSend until 250 paid; shipped on Brevo",
-      "dashboard_metrics": ["paid_subscribers", "active_paid_subscribers", "corporate_goals.subscribers.month_target"],
-      "dashboard_anchors": ["monetization"],
-      "corporate_goals": ["subs", "margin"],
+      "dashboard_metrics": [
+        "paid_subscribers",
+        "active_paid_subscribers",
+        "corporate_goals.subscribers.month_target"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs",
+        "margin"
+      ],
       "preview": {
         "source": "brevo-oasis-emails/lifecycle/brevo-oasis-paid-zen-welcome.html",
         "path": "/emails/upgrade_thank_you.html",
@@ -438,127 +844,531 @@
         "preheader": "1M tokens per day and priority support are now active.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-paid-zen-welcome-plain-text.txt"
-      }
+      },
+      "funnel_phase": "phase_2_paid",
+      "touches": [
+        {
+          "touch_id": "upgrade_thank_you_d0",
+          "ordinal": 1,
+          "name": "Paid Zen welcome",
+          "day_offset": 0,
+          "trigger_when": "Immediately on Zen upgrade",
+          "primary_provider_id": "mailgun",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "upgrade_thank_you",
+          "counts_toward_phase_budget": false
+        }
+      ]
     },
     {
       "id": "at_risk_nurture",
       "name": "At-risk nurture",
       "phase": "1-adam",
       "funnel": "lifecycle",
-      "buckets": ["at_risk_wau", "at_risk_mau"],
+      "buckets": [
+        "at_risk_wau",
+        "at_risk_mau"
+      ],
       "trigger_summary": "User enters at-risk WAU or at-risk MAU bucket",
       "trigger_when": "On bucket transition; WAU cohort prioritized over MAU",
       "trigger_implementation": "bucket in (at_risk_wau, at_risk_mau)",
       "provider_id": "emailoctopus",
-      "provider_overflow_id": "mailerlite",
+      "provider_overflow_id": "fallback_pool",
       "implementation_status": "needs_implementation",
       "cadence": "drip-2-4",
       "dedup_trigger_name": "at_risk_nurture",
       "free_tier_runway": "2,500 contacts · 10k sends/mo; overflow to MailerLite at 500 cap",
-      "dashboard_metrics": ["bucket_at_risk_wau", "bucket_at_risk_mau", "flow_iWAURR", "flow_iMAURR", "flow_MAU_Loss_Rate"],
-      "dashboard_anchors": ["dau-model"],
-      "corporate_goals": ["dau"],
-      "preview": null
+      "dashboard_metrics": [
+        "bucket_at_risk_wau",
+        "bucket_at_risk_mau",
+        "flow_iWAURR",
+        "flow_iMAURR",
+        "flow_MAU_Loss_Rate"
+      ],
+      "dashboard_anchors": [
+        "dau-model"
+      ],
+      "corporate_goals": [
+        "dau"
+      ],
+      "preview": null,
+      "funnel_phase": "phase_2_conversion",
+      "touches": [
+        {
+          "touch_id": "at_risk_nurture_d0",
+          "ordinal": 1,
+          "name": "At-risk nurture — touch 1",
+          "day_offset": 0,
+          "trigger_when": "On bucket transition to at-risk WAU/MAU",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "at_risk_nurture_d0",
+          "counts_toward_phase_budget": true
+        },
+        {
+          "touch_id": "at_risk_nurture_d7",
+          "ordinal": 2,
+          "name": "At-risk nurture — touch 2",
+          "day_offset": 7,
+          "trigger_when": "7 days after touch 1 (max one per 7 days)",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "at_risk_nurture_d7",
+          "counts_toward_phase_budget": true
+        },
+        {
+          "touch_id": "at_risk_nurture_d14",
+          "ordinal": 3,
+          "name": "At-risk nurture — touch 3",
+          "day_offset": 14,
+          "trigger_when": "14 days after touch 1",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "at_risk_nurture_d14",
+          "counts_toward_phase_budget": true
+        },
+        {
+          "touch_id": "at_risk_nurture_d21",
+          "ordinal": 4,
+          "name": "At-risk nurture — touch 4",
+          "day_offset": 21,
+          "trigger_when": "21 days after touch 1",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "at_risk_nurture_d21",
+          "counts_toward_phase_budget": true
+        }
+      ]
     },
     {
       "id": "activation_nudge",
       "name": "Activation nudge",
       "phase": "1-new",
       "funnel": "lifecycle",
-      "buckets": ["new"],
-      "trigger_summary": "No AI prompt within 24h of signup",
-      "trigger_when": "24h after signup if zero llm_usage rows",
+      "buckets": [
+        "new"
+      ],
+      "trigger_summary": "No first AI command within 24h — nudge browser import (Chrome, Safari, Brave, Edge)",
+      "trigger_when": "24h after signup if zero llm_usage rows; remind import from prior browser",
       "trigger_implementation": "activation_24h cohort: users_with_first_prompt == false at T+24h",
-      "provider_id": "hubspot",
-      "provider_overflow_id": "brevo",
+      "provider_id": "beehiiv",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
       "dedup_trigger_name": "activation_nudge_24h",
-      "free_tier_runway": "Shares HubSpot monthly cap; overflow to Brevo",
-      "dashboard_metrics": ["activation_24h_pct", "flow_NURR", "flow_1-NURR"],
-      "dashboard_anchors": ["activation"],
-      "corporate_goals": ["dau", "subs"],
-      "preview": null
+      "free_tier_runway": "EmailOctopus funnel pool; PH interim overflow to Brevo",
+      "dashboard_metrics": [
+        "activation_24h_pct",
+        "flow_NURR",
+        "flow_1-NURR"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
+      "preview": null,
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "activation_nudge_d1",
+          "ordinal": 2,
+          "name": "Activation nudge",
+          "day_offset": 1,
+          "trigger_when": "24h after signup if zero llm_usage — nudge import from Chrome, Safari, Brave, or Edge",
+          "primary_provider_id": "beehiiv",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "activation_nudge_24h",
+          "counts_toward_phase_budget": true,
+          "interim_provider_id": "brevo"
+        }
+      ]
+    },
+    {
+      "id": "activation_cs_calendar",
+      "name": "Activation CS outreach (calendar)",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": [
+        "new"
+      ],
+      "trigger_summary": "Low engagement after activation nudge — founder/CS personal outreach; mention training assistant (+1,000 tokens)",
+      "trigger_when": "48–72h post-signup if still no llm_usage, no feedback_events training, or low engagement",
+      "trigger_implementation": "activation_cs_calendar: users_with_first_prompt == false at T+48h OR opened nudge but no usage",
+      "provider_id": "beehiiv",
+      "provider_overflow_id": "fallback_pool",
+      "implementation_status": "needs_implementation",
+      "cadence": "one-time",
+      "dedup_trigger_name": "activation_cs_calendar",
+      "free_tier_runway": "Counts toward Phase 1 budget (4–7 emails); calendar link for founder/CS call",
+      "dashboard_metrics": [
+        "activation_24h_pct",
+        "flow_NURR",
+        "flow_1-NURR"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
+      "preview": null,
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "activation_cs_calendar_d3",
+          "ordinal": 3,
+          "name": "Activation CS outreach (calendar)",
+          "day_offset": 3,
+          "trigger_when": "48–72h post-signup if still no llm_usage or training (feedback_events); nudge training assistant for 1,000-token reward",
+          "primary_provider_id": "beehiiv",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "activation_cs_calendar",
+          "counts_toward_phase_budget": true
+        }
+      ]
     },
     {
       "id": "limit_hitter_upgrade",
       "name": "Limit-hitter upgrade",
       "phase": "1-new",
       "funnel": "lifecycle",
-      "buckets": ["limit_hitter"],
-      "trigger_summary": "Free user hits daily token cap",
+      "buckets": [
+        "limit_hitter"
+      ],
+      "trigger_summary": "Onboarded + activated user hits daily token cap — upgrade inflection",
       "trigger_when": "First limit hit; optional D7 reminder if still free",
       "trigger_implementation": "users_hit_limit AND user NOT IN paid_subscribers",
-      "provider_id": "brevo",
-      "provider_overflow_id": "mailgun",
+      "provider_id": "beehiiv",
+      "provider_overflow_id": "fallback_pool",
       "implementation_status": "needs_implementation",
       "cadence": "one-time-plus-d7",
       "dedup_trigger_name": "limit_hitter_upgrade",
-      "free_tier_runway": "Brevo 300/day; use dedicated list separate from NPS",
-      "dashboard_metrics": ["limit_hitter_conversion_pct", "token_limit_hit_rate_pct", "paid_subscribers"],
-      "dashboard_anchors": ["monetization"],
-      "corporate_goals": ["subs", "margin"],
-      "preview": null
+      "free_tier_runway": "Beehiiv unlimited sends within 2k contacts; strong upgrade signal before Phase 2 fork",
+      "dashboard_metrics": [
+        "limit_hitter_conversion_pct",
+        "token_limit_hit_rate_pct",
+        "paid_subscribers"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs",
+        "margin"
+      ],
+      "preview": null,
+      "touches": [
+        {
+          "touch_id": "limit_hitter_upgrade_d0",
+          "ordinal": 1,
+          "name": "Limit-hitter upgrade",
+          "day_offset": 0,
+          "trigger_when": "First daily token cap hit (onboarded + activated user)",
+          "primary_provider_id": "beehiiv",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "limit_hitter_upgrade",
+          "counts_toward_phase_budget": false
+        },
+        {
+          "touch_id": "limit_hitter_upgrade_d7",
+          "ordinal": 2,
+          "name": "Limit-hitter D7 reminder",
+          "day_offset": 7,
+          "trigger_when": "7 days after first limit hit if still free",
+          "primary_provider_id": "beehiiv",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "limit_hitter_upgrade_d7",
+          "counts_toward_phase_budget": false
+        }
+      ],
+      "funnel_phase": "phase_1_activation",
+      "inflection": {
+        "type": "upgrade_or_perpetual_free",
+        "on_send_evaluate": [
+          "phase_2_paid",
+          "phase_2_conversion",
+          "perpetual_free"
+        ]
+      }
     },
     {
       "id": "dead_resurrection",
       "name": "Dead resurrection",
       "phase": "1-new",
       "funnel": "lifecycle",
-      "buckets": ["dead"],
+      "buckets": [
+        "dead"
+      ],
       "trigger_summary": "User in dead bucket, eligible for win-back",
       "trigger_when": "Day 0 + day 14 of campaign; cap 20 new users/month when contacts tight",
       "trigger_implementation": "bucket=dead AND NOT emailed in 30d AND NOT 12mo absent",
       "provider_id": "emailoctopus",
-      "provider_overflow_id": null,
+      "provider_overflow_id": "fallback_pool",
       "implementation_status": "needs_implementation",
       "cadence": "campaign-2-touch",
       "dedup_trigger_name": "dead_resurrection",
       "free_tier_runway": "Cap 20 new users/mo when contacts tight; EmailOctopus 2,500 contact headroom",
-      "dashboard_metrics": ["bucket_dead", "flow_Resurrection_Rate", "flow_MAU_Loss_Rate"],
-      "dashboard_anchors": ["dau-model"],
-      "corporate_goals": ["dau"],
-      "preview": null
+      "dashboard_metrics": [
+        "bucket_dead",
+        "flow_Resurrection_Rate",
+        "flow_MAU_Loss_Rate"
+      ],
+      "dashboard_anchors": [
+        "dau-model"
+      ],
+      "corporate_goals": [
+        "dau"
+      ],
+      "preview": null,
+      "funnel_phase": "phase_2_conversion",
+      "touches": [
+        {
+          "touch_id": "dead_resurrection_d0",
+          "ordinal": 1,
+          "name": "Dead resurrection — touch 1",
+          "day_offset": 0,
+          "trigger_when": "Day 0 of dead bucket campaign",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "dead_resurrection_d0",
+          "counts_toward_phase_budget": true
+        },
+        {
+          "touch_id": "dead_resurrection_d14",
+          "ordinal": 2,
+          "name": "Dead resurrection — touch 2",
+          "day_offset": 14,
+          "trigger_when": "Day 14 follow-up",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "dead_resurrection_d14",
+          "counts_toward_phase_budget": true
+        }
+      ]
     },
     {
       "id": "return_reinforcement",
       "name": "Return reinforcement",
       "phase": "1-new",
       "funnel": "lifecycle",
-      "buckets": ["reactivated", "resurrected"],
+      "buckets": [
+        "reactivated",
+        "resurrected"
+      ],
       "trigger_summary": "User re-enters after absence",
       "trigger_when": "First day in reactivated or resurrected bucket",
       "trigger_implementation": "bucket transition to reactivated OR resurrected",
       "provider_id": "emailoctopus",
-      "provider_overflow_id": null,
+      "provider_overflow_id": "fallback_pool",
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
       "dedup_trigger_name": "return_reinforcement",
       "free_tier_runway": "Shares EmailOctopus contact cap with nurture/resurrection",
-      "dashboard_metrics": ["flow_RURR", "flow_SURR", "flow_1-RURR", "flow_1-SURR"],
-      "dashboard_anchors": ["dau-model"],
-      "corporate_goals": ["dau"],
-      "preview": null
+      "dashboard_metrics": [
+        "flow_RURR",
+        "flow_SURR",
+        "flow_1-RURR",
+        "flow_1-SURR"
+      ],
+      "dashboard_anchors": [
+        "dau-model"
+      ],
+      "corporate_goals": [
+        "dau"
+      ],
+      "preview": null,
+      "funnel_phase": "phase_2_conversion",
+      "touches": [
+        {
+          "touch_id": "return_reinforcement_d0",
+          "ordinal": 1,
+          "name": "Return reinforcement",
+          "day_offset": 0,
+          "trigger_when": "First day in reactivated or resurrected bucket",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "return_reinforcement",
+          "counts_toward_phase_budget": true
+        }
+      ]
     },
     {
       "id": "cancelled_winback",
       "name": "Cancelled sub win-back",
       "phase": "1-new",
       "funnel": "lifecycle",
-      "buckets": ["cancelled_paid"],
+      "buckets": [
+        "cancelled_paid"
+      ],
       "trigger_summary": "Paid subscription cancelled (not renewing)",
       "trigger_when": "On user_plans.is_active=false; D14 follow-up",
       "trigger_implementation": "cancelled_paid_subscribers increment",
-      "provider_id": "brevo",
-      "provider_overflow_id": null,
+      "provider_id": "mailgun",
+      "provider_overflow_id": "fallback_pool",
       "implementation_status": "needs_implementation",
       "cadence": "one-time-plus-d14",
       "dedup_trigger_name": "cancelled_winback",
       "free_tier_runway": "Active after OmniSend free tier full (250 paid)",
-      "dashboard_metrics": ["cancelled_paid_subscribers", "active_paid_subscribers", "paid_subscribers"],
-      "dashboard_anchors": ["monetization"],
-      "corporate_goals": ["subs"],
-      "preview": null
+      "dashboard_metrics": [
+        "cancelled_paid_subscribers",
+        "active_paid_subscribers",
+        "paid_subscribers"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs"
+      ],
+      "preview": null,
+      "funnel_phase": "phase_2_paid",
+      "touches": [
+        {
+          "touch_id": "cancelled_winback_d0",
+          "ordinal": 1,
+          "name": "Cancelled sub win-back",
+          "day_offset": 0,
+          "trigger_when": "On user_plans.is_active=false",
+          "primary_provider_id": "mailgun",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "cancelled_winback",
+          "counts_toward_phase_budget": false
+        },
+        {
+          "touch_id": "cancelled_winback_d14",
+          "ordinal": 2,
+          "name": "Cancelled sub D14 follow-up",
+          "day_offset": 14,
+          "trigger_when": "14 days after cancellation if not re-subscribed",
+          "primary_provider_id": "mailgun",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "cancelled_winback_d14",
+          "counts_toward_phase_budget": false
+        }
+      ]
+    },
+    {
+      "id": "enterprise_founder",
+      "name": "Enterprise founder outreach",
+      "phase": "1-new",
+      "funnel": "enterprise",
+      "buckets": [
+        "company_domain"
+      ],
+      "trigger_summary": "Company-email user with sustained engagement (founder track)",
+      "trigger_when": "Day 55 post-signup (lifecycle_day 55–56)",
+      "trigger_implementation": "company_domain AND session_count >= 8 (maps to day_55_founder in triggers/evaluate.py)",
+      "provider_id": "hubspot",
+      "provider_overflow_id": null,
+      "implementation_status": "needs_implementation",
+      "cadence": "one-time",
+      "dedup_trigger_name": "enterprise_founder",
+      "free_tier_runway": "HubSpot 2,000/mo scoped to company-email cohort only",
+      "dashboard_metrics": [
+        "paid_subscribers",
+        "total_users"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs"
+      ],
+      "preview": null,
+      "funnel_phase": "phase_2_paid",
+      "touches": [
+        {
+          "touch_id": "enterprise_founder_d55",
+          "ordinal": 1,
+          "name": "Enterprise founder outreach",
+          "day_offset": 55,
+          "trigger_when": "Day 55 post-signup, company domain, session_count >= 8",
+          "primary_provider_id": "hubspot",
+          "fallback": {
+            "type": "none"
+          },
+          "dedup_trigger_name": "enterprise_founder",
+          "counts_toward_phase_budget": false
+        }
+      ]
+    },
+    {
+      "id": "enterprise_expansion",
+      "name": "Enterprise expansion",
+      "phase": "1-new",
+      "funnel": "enterprise",
+      "buckets": [
+        "company_domain"
+      ],
+      "trigger_summary": "Company-email power user — B2B expansion pitch",
+      "trigger_when": "Day 85 post-signup (lifecycle_day 85–86)",
+      "trigger_implementation": "company_domain AND session_count >= 10 (maps to day_85_enterprise in triggers/evaluate.py)",
+      "provider_id": "hubspot",
+      "provider_overflow_id": null,
+      "implementation_status": "needs_implementation",
+      "cadence": "one-time",
+      "dedup_trigger_name": "enterprise_expansion",
+      "free_tier_runway": "HubSpot 2,000/mo — 2 touches max per qualified company user",
+      "dashboard_metrics": [
+        "paid_subscribers",
+        "total_users"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs"
+      ],
+      "preview": null,
+      "funnel_phase": "phase_2_paid",
+      "touches": [
+        {
+          "touch_id": "enterprise_expansion_d85",
+          "ordinal": 1,
+          "name": "Enterprise expansion",
+          "day_offset": 85,
+          "trigger_when": "Day 85 post-signup, company domain, session_count >= 10",
+          "primary_provider_id": "hubspot",
+          "fallback": {
+            "type": "none"
+          },
+          "dedup_trigger_name": "enterprise_expansion",
+          "counts_toward_phase_budget": false
+        }
+      ]
     }
   ],
   "pseudo_buckets": [
@@ -581,6 +1391,203 @@
       "key": "cancelled_paid",
       "label": "Cancelled paid",
       "definition": "user_plans.is_active=false"
+    },
+    {
+      "key": "company_domain",
+      "label": "Company email (B2B)",
+      "definition": "Email domain not in launch_config.consumer_email_domains — HubSpot sync + enterprise sequences"
+    },
+    {
+      "key": "perpetual_free",
+      "label": "Perpetual free",
+      "definition": "Phase 3 terminal — 7–11 lifecycle emails (4–7 Phase 1 + 3–4 Phase 2) with no upgrade; Google sheet + Supabase email_funnel_status; 6mo inactive → delete"
     }
-  ]
+  ],
+  "funnel_phases": [
+    {
+      "id": "phase_1_activation",
+      "label": "Phase 1 — Welcome / onboarding / activation",
+      "primary_provider_id": "beehiiv",
+      "sequences": [
+        "welcome",
+        "activation_nudge",
+        "activation_cs_calendar",
+        "nps_day3",
+        "pmf_day10",
+        "limit_hitter_upgrade"
+      ],
+      "activation_goals": [
+        "Welcome — orient new user to Oasis",
+        "Complete onboarding — import data from prior browser (Chrome, Safari, Brave, Edge, Firefox)",
+        "Run first AI command (llm_usage row)",
+        "Train AI assistant at least once (feedback_events; earns 1,000 tokens)",
+        "Continue nurture on Beehiiv while capacity allows"
+      ],
+      "phase_2_readiness_milestones": [
+        {
+          "id": "welcome_sent",
+          "type": "email",
+          "sequence_id": "welcome",
+          "dedup_trigger_name": "welcome_email",
+          "label": "Welcome email sent"
+        },
+        {
+          "id": "first_ai_prompt",
+          "type": "product",
+          "source_table": "llm_usage",
+          "label": "First AI prompt sent"
+        },
+        {
+          "id": "daily_limit_hit",
+          "type": "product",
+          "source_table": "llm_daily_usage",
+          "label": "Daily token limit hit ≥1"
+        },
+        {
+          "id": "training_done",
+          "type": "product",
+          "source_table": "feedback_events",
+          "label": "AI assistant trained ≥1 (earns 1,000 tokens)"
+        },
+        {
+          "id": "nps_sent",
+          "type": "email",
+          "sequence_id": "nps_day3",
+          "dedup_trigger_name": "nps_day3",
+          "label": "NPS email sent (D3)"
+        },
+        {
+          "id": "pmf_sent",
+          "type": "email",
+          "sequence_id": "pmf_day10",
+          "dedup_trigger_name": "pmf_day10",
+          "label": "PMF email sent (D10)"
+        }
+      ],
+      "readiness_model": "Graduated readiness — more milestones = riper for Phase 2. Training (feedback_events) signals deep unique-feature adoption beyond a first prompt. No single milestone triggers Phase 2 alone.",
+      "prune_override": "When Beehiiv nears 2,500 subs: prune users who received most Phase 1 emails and sufficient days on list, even if product milestones are incomplete, to free contacts for new signups.",
+      "exit_triggers": [
+        "User upgrades (Stripe) → Phase 2 paid immediately",
+        "Graduated readiness — most milestones met (especially limit hit, training, core emails) → Phase 2 fork evaluation",
+        "Beehiiv contacts ≥2,000 — prune users with most Phase 1 emails + sufficient days, even if milestones incomplete"
+      ],
+      "kpis": [
+        {
+          "metric": "token_limit_hit_rate_pct",
+          "label": "% new users who hit daily limit"
+        },
+        {
+          "metric": "time_to_first_hours",
+          "label": "Speed to first limit hit / first prompt"
+        },
+        {
+          "metric": "limit_hitter_conversion_pct",
+          "label": "Limit hitters who upgrade"
+        },
+        {
+          "metric": "activation_24h_pct",
+          "label": "First AI command within 24h"
+        },
+        {
+          "metric": "feedback_submission_rate_pct",
+          "label": "% users who trained AI assistant"
+        },
+        {
+          "metric": "median_hours_to_first",
+          "label": "Median hours to first training / feedback",
+          "anchor": "feedback"
+        }
+      ],
+      "nurture_model": "Stay on Beehiiv while list headroom exists; track readiness milestones — do not cap nurture artificially at 4–7 if user has not reached strong readiness.",
+      "emails_per_user_min": 4,
+      "emails_per_user_max": 7,
+      "exit": "Phase 1 ends on upgrade, graduated readiness (most milestones), or Beehiiv prune — not a fixed email count or single milestone.",
+      "notes": "Beehiiv 2,500 subs · unlimited sends. Activation = welcome + browser import + first AI + training. Training = sticky deep-feature signal; limit hit = upgrade inflection.",
+      "fallback_pool": true
+    },
+    {
+      "id": "phase_2_paid",
+      "label": "Phase 2 — Upgraded",
+      "primary_provider_ids": [
+        "mailgun",
+        "hubspot"
+      ],
+      "sequences": [
+        "upgrade_thank_you",
+        "cancelled_winback",
+        "enterprise_founder",
+        "enterprise_expansion"
+      ],
+      "trigger": "Stripe upgrade or company email on signup",
+      "notes": "Mailgun (100/day, no contact cap) + HubSpot CRM (1M contacts).",
+      "fallback_pool": true
+    },
+    {
+      "id": "phase_2_conversion",
+      "label": "Phase 2 — Not upgraded",
+      "primary_provider_id": "emailoctopus",
+      "sequences": [
+        "at_risk_nurture",
+        "dead_resurrection",
+        "return_reinforcement"
+      ],
+      "emails_per_user_min": 3,
+      "emails_per_user_max": 4,
+      "exit": "Phase 3 perpetual free after 3–4 emails (7–11 total with Phase 1)",
+      "notes": "EmailOctopus 2,500 contacts · 10k/mo. Upgrade during conversion → Phase 2 paid.",
+      "fallback_pool": true
+    },
+    {
+      "id": "phase_3_terminal",
+      "label": "Phase 3 — Terminal",
+      "paths": [
+        {
+          "id": "paid",
+          "destination": "hubspot",
+          "notes": "Paid user remains in HubSpot CRM"
+        },
+        {
+          "id": "perpetual_free",
+          "destination": "google_sheet",
+          "notes": "Supabase status update; 6mo inactive → account removed"
+        }
+      ],
+      "notes": "No further lifecycle email. Paid = HubSpot. Free = sheet + Supabase flag."
+    }
+  ],
+  "cadence_touch_counts": {
+    "one-time": 1,
+    "drip-2-4": 4,
+    "one-time-plus-d7": 2,
+    "campaign-2-touch": 2,
+    "one-time-plus-d14": 2
+  },
+  "fallback_pool": {
+    "provider_ids": [
+      "mailerlite",
+      "omnisend",
+      "brevo"
+    ],
+    "model": "redundant_parallel",
+    "notes": "Fallback pool — used only when a primary provider hits a cap or errors. Route to whichever member (MailerLite / OmniSend / Brevo) has headroom. When fallback fires: migrate users to next phase OR upgrade constrained provider tier.",
+    "member_limits": {
+      "mailerlite": {
+        "contacts": 500,
+        "emails_per_month": 12000
+      },
+      "omnisend": {
+        "contacts": 250,
+        "emails_per_month": 500
+      },
+      "brevo": {
+        "contacts": 2000,
+        "emails_per_day": 300
+      }
+    },
+    "aggregate_free_limits": {
+      "contacts": 2750,
+      "sends_per_month": 13500,
+      "sends_per_day": 300
+    }
+  }
 }

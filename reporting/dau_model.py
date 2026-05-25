@@ -119,6 +119,18 @@ def _classify_all(
     }
 
 
+def classify_users_as_of(
+    user_ids: list[str], activity_by_user: dict[str, set[date]], as_of: date
+) -> dict[str, str]:
+    """Public alias for per-user DAU bucket assignment on as_of."""
+    return _classify_all(user_ids, activity_by_user, as_of)
+
+
+def activity_by_user_from_df(activity_df: pd.DataFrame) -> dict[str, set[date]]:
+    """Build user_id → activity date set from sessions ∪ llm_usage activity frame."""
+    return _activity_by_user(activity_df)
+
+
 def _compute_flow_rates(
     user_ids: list[str],
     activity_by_user: dict[str, set[date]],
