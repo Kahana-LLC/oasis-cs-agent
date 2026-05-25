@@ -69,7 +69,7 @@ def _compute_daily_peaks(ctx: SimContext) -> dict[str, float]:
         + ctx.agent_reserve
     )
     paid_events = max(ctx.paid_subs, ctx.cancelled_paid) / 30
-    peaks["mailgun"] = max(paid_events, round(ctx.paid_subs * 0.05))
+    peaks["resend"] = max(paid_events, round(ctx.paid_subs * 0.05))
     peaks["hubspot"] = max(1, round((ctx.company_email_users + ctx.paid_subs) * 0.02))
     return peaks
 
@@ -262,7 +262,7 @@ def _provider_contacts(
         return min(ctx.total_users, base) if pid == "brevo" else base
     if pid == "hubspot":
         return ctx.company_email_users + ctx.paid_subs
-    if pid == "mailgun":
+    if pid == "resend":
         return ctx.paid_subs + ctx.cancelled_paid
     if pid == "emailoctopus":
         conv = ctx.bucket_counts.get("at_risk_wau", 0) + ctx.bucket_counts.get("at_risk_mau", 0)
@@ -398,7 +398,7 @@ def simulate_scenario(
             by_provider[spill_pid] = by_provider.get(spill_pid, 0) + sends * 0.15
 
     daily_peaks = _compute_daily_peaks(ctx)
-    if daily_peaks.get("mailgun", 0) > 80:
+    if daily_peaks.get("resend", 0) > 80:
         active_rules.append("fallback_pool")
     if company_email_users >= 1:
         active_rules.append("company_email_hubspot_sync")
@@ -507,8 +507,8 @@ def simulate_scenario(
             fire = beehiiv_contacts >= 2000
         elif cid == "emailoctopus_2500":
             fire = eo_contacts >= 2000
-        elif cid == "mailgun_paid_daily":
-            fire = daily_peaks.get("mailgun", 0) > 80
+        elif cid == "resend_paid_daily":
+            fire = daily_peaks.get("resend", 0) > 80
         elif cid == "brevo_agent":
             fire = daily_peaks.get("brevo", 0) > 250
         if fire:

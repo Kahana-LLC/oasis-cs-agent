@@ -128,6 +128,11 @@ def main() -> None:
     parser.add_argument("--dedup-key", required=True, help="outreach_log dedup key")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--allow-sandbox", action="store_true", help="SES sandbox test only")
+    parser.add_argument(
+        "--bridge-resend",
+        action="store_true",
+        help="Interim only: send via Resend when SES not ready (not for full-list legal/outage)",
+    )
     parser.add_argument("--daily-cap", type=int, default=RESEND_DAILY_CAP)
     parser.add_argument("--contacts", type=Path, default=CONTACTS_CSV)
     args = parser.parse_args()
@@ -147,27 +152,47 @@ def main() -> None:
         from_addr = "Adam from Oasis <hello@kahana.co>"
 
     print(f"Template: {args.template} · dedup: {args.dedup_key}")
-    print(f"Recipients: {len(recipients)} · provider route: resend -> ses")
+    ses_ready = ses_production_ready(manifest)
+    print(f"Recipients: {len(recipients)} · provider route: ses (primary)")
 
-    if len(recipients) > args.daily_cap and not args.dry_run:
-        days = (len(recipients) + args.daily_cap - 1) // args.daily_cap
-        print(f"Note: {len(recipients)} recipients need ~{days} days at {args.daily_cap}/day on Resend free tier")
-
-    if not ses_production_ready(manifest):
-        print("SES: sandbox — bulk failover unavailable until production_pending=false")
-
-    send_via_resend(
-        recipients,
-        html=html,
-        subject=subject,
-        plain=plain,
-        from_email=from_addr,
-        dry_run=args.dry_run,
-        daily_cap=args.daily_cap,
-    )
-
-    if args.allow_sandbox:
-        print("SES sandbox sends not implemented in stub — use Resend or complete SES integration")
+    if not ses_ready:
+        print(
+            "SES: sandbox — automated bulk blocked until production_pending=false on ses provider. "
+            "Request production access (see docs/OPERATIONAL_EMAIL_RUNBOOK.md)."
+        )
+        if args.bridge_resend:
+            print("Bridge: sending via Resend (--bridge-resend) — not for large legal/outage blasts")
+            if len(recipients) > args.daily_cap and not args.dry_run:
+                days = (len(recipients) + args.daily_cap - 1) // args.daily_cap
+                print(f"Note: {len(recipients)} recipients need ~{days} days at {args.daily_cap}/day on Resend")
+            send_via_resend(
+                recipients,
+                html=html,
+                subject=subject,
+                plain=plain,
+                from_email=from_addr,
+                dry_run=args.dry_run,
+                daily_cap=args.daily_cap,
+            )
+        elif args.dry_run:
+            print("[dry-run] Would send via SES when production access is approved")
+        else:
+            raise SystemExit(
+                "Refusing bulk send: use --dry-run, --allow-sandbox (verified emails only, not implemented), "
+                "or --bridge-resend for small interim tests only"
+            )
+    else:
+        print("SES production: implement send_via_ses() — until then use --bridge-resend for interim tests")
+        if args.bridge_resend:
+            send_via_resend(
+                recipients,
+                html=html,
+                subject=subject,
+                plain=plain,
+                from_email=from_addr,
+                dry_run=args.dry_run,
+                daily_cap=args.daily_cap,
+            )
 
 
 if __name__ == "__main__":

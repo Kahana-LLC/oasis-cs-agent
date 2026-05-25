@@ -62,8 +62,8 @@
 
     function providerDisplayName(id) {
       if (!id) return "Supabase / sheet";
-      if (id === "fallback_pool") return "Fallback pool (ML · OS · Brevo · Loops)";
-      if (id === "operational_pool") return "Operational pool (Resend → SES)";
+      if (id === "fallback_pool") return "Fallback pool (ML · OS · Brevo · Loops · Resend)";
+      if (id === "operational_pool") return "Operational pool (SES)";
       const p = providerById(id);
       return p?.name || id;
     }
@@ -85,7 +85,7 @@
       if (fb.type === "provider" && fb.provider_id) {
         return escapeHtml(providerDisplayName(fb.provider_id));
       }
-      return '<span class="routing-pill" title="When primary at cap — ops: migrate phase or upgrade tier">Fallback pool (ML · OS · Brevo · Loops)</span>';
+      return '<span class="routing-pill" title="When primary at cap — ops: migrate phase or upgrade tier">Fallback pool (ML · OS · Brevo · Loops · Resend)</span>';
     }
 
     function primaryTouchCell(touch, seq) {
@@ -809,7 +809,7 @@
           <div class="provider-grid">${fallbackMembers.map((p) => renderProviderCard(p, seqs)).join("")}</div>
         </div>
         <div class="operational-pool-card">
-          <h3>Operational pool <span class="routing-pill">Resend → SES</span></h3>
+          <h3>Operational pool <span class="routing-pill">SES primary</span></h3>
           <p class="section-cap">${escapeHtml(opPool.notes || "")}</p>
           ${opLive}
           <div class="provider-grid">${operationalMembers.map((p) => renderProviderCard(p, seqs)).join("")}</div>
@@ -887,13 +887,13 @@
       const pool = cap.pool_aggregate;
       const opPool = cap.operational_pool_aggregate;
       const poolBanner = pool?.provider_count
-        ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Number(pool.send_used).toLocaleString()} / ${Number(pool.send_cap).toLocaleString()} sends/mo · ${Number(pool.contact_used).toLocaleString()} / ${Number(pool.contact_cap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo + Loops).</p>`
+        ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Number(pool.send_used).toLocaleString()} / ${Number(pool.send_cap).toLocaleString()} sends/mo · ${Number(pool.contact_used).toLocaleString()} / ${Number(pool.contact_cap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo + Loops + Resend).</p>`
         : "";
       const sesBanner = cap.ses_sandbox
         ? `<div class="banner banner-warn"><strong>Amazon SES sandbox:</strong> Automated operational blasts blocked until production access is approved. Test sends to verified emails only. See <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/OPERATIONAL_EMAIL_RUNBOOK.md#ses-production-access">OPERATIONAL_EMAIL_RUNBOOK.md</a>.</div>`
         : "";
       const opBanner = opPool?.provider_count
-        ? `<p class="section-cap"><strong>Operational pool (Resend primary):</strong> ${Number(opPool.daily_used || 0).toLocaleString()} / ${Number(opPool.daily_cap || 100).toLocaleString()} sends/day est. · ${Number(opPool.send_cap || 3000).toLocaleString()}/mo cap — legal &amp; incident only.</p>`
+        ? `<p class="section-cap"><strong>Operational pool (SES primary):</strong> ${Number(opPool.daily_used || 0).toLocaleString()} / ${Number(opPool.daily_cap || 200).toLocaleString()} sends/day est. — legal &amp; incident only.</p>`
         : "";
       return `<section id="provider-capacity">
         <h2>Provider capacity &amp; near-limit</h2>
@@ -1040,7 +1040,7 @@
         return base;
       }
       if (pid === "hubspot") return ctx.companyEmailUsers + ctx.paidSubs;
-      if (pid === "mailgun") return ctx.paidSubs + ctx.cancelledPaid;
+      if (pid === "resend") return ctx.paidSubs + ctx.cancelledPaid;
       if (pid === "emailoctopus") {
         const conv =
           (ctx.bucketCounts.at_risk_wau || 0) +
@@ -1064,7 +1064,7 @@
         launchBrevo +
         agentReserve;
       const paidEvents = Math.max(paidSubs, cancelledPaid) / 30;
-      peaks.mailgun = Math.max(paidEvents, Math.round(paidSubs * 0.05));
+      peaks.resend = Math.max(paidEvents, Math.round(paidSubs * 0.05));
       peaks.hubspot = Math.max(1, Math.round(((ctx.companyEmailUsers || 0) + paidSubs) * 0.02));
       return peaks;
     }
@@ -1187,7 +1187,7 @@
       }
 
       const dailyPeaks = computeDailyPeaks(ctx);
-      if (dailyPeaks.mailgun > 80) activeRules.push("fallback_pool");
+      if (dailyPeaks.resend > 80) activeRules.push("fallback_pool");
       if (companyEmailUsers >= 1) activeRules.push("company_email_hubspot_sync");
       ctx.activeRules = activeRules;
 
@@ -1279,8 +1279,8 @@
           fire = (hsRow?.monthly || 0) > 1600;
         } else if (cliff.id === "beehiiv_2500") {
           fire = beehiivContacts >= 2000;
-        } else if (cliff.id === "mailgun_paid_daily") {
-          fire = dailyPeaks.mailgun > 80;
+        } else if (cliff.id === "resend_paid_daily") {
+          fire = dailyPeaks.resend > 80;
         } else if (cliff.id === "emailoctopus_2500") {
           fire = eoContacts >= 2000;
         } else if (cliff.id === "brevo_agent") {
@@ -1435,10 +1435,10 @@
                 .join(" · ") || "demand below pool caps"}${sim.poolDemand ? ` · total overflow demand ${Math.round(sim.poolDemand).toLocaleString()}` : ""}</p>`
             : "";
         const poolLine = pool.providerCount
-          ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Math.round(pool.sendUsed).toLocaleString()} / ${Math.round(pool.sendCap).toLocaleString()} sends/mo (${poolPct}%) · ${Math.round(pool.contactUsed).toLocaleString()} / ${Math.round(pool.contactCap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo + Loops) · <strong>HubSpot Phase 3:</strong> ~${(sim.companyEmailUsers + sim.autoPaid).toLocaleString()} CRM contacts</p>${poolAllocLine}`
+          ? `<p class="section-cap"><strong>Fallback pool:</strong> ${Math.round(pool.sendUsed).toLocaleString()} / ${Math.round(pool.sendCap).toLocaleString()} sends/mo (${poolPct}%) · ${Math.round(pool.contactUsed).toLocaleString()} / ${Math.round(pool.contactCap).toLocaleString()} contacts (MailerLite + OmniSend + Brevo + Loops + Resend) · <strong>HubSpot Phase 3:</strong> ~${(sim.companyEmailUsers + sim.autoPaid).toLocaleString()} CRM contacts</p>${poolAllocLine}`
           : poolAllocLine;
-        const blastDays = Math.max(1, Math.ceil(sim.totalUsers / RESEND_DAILY_CAP));
-        const opBlastLine = `<p class="section-cap"><strong>Operational blast (legal/incident):</strong> ${sim.totalUsers.toLocaleString()} users → ${blastDays} day(s) at Resend 100/day${sim.totalUsers <= RESEND_DAILY_CAP ? " (fits one day)" : ""} · SES failover when production approved.</p>`;
+        const SES_DAILY_CAP = 200;
+        const opBlastLine = `<p class="section-cap"><strong>Operational blast (legal/incident):</strong> ${sim.totalUsers.toLocaleString()} users → ${Math.max(1, Math.ceil(sim.totalUsers / SES_DAILY_CAP))} day(s) at SES ${SES_DAILY_CAP}/day (sandbox until production).</p>`;
         summaryEl.innerHTML = `${rateWarn}${stallBanner}${rules}${cliffs}${poolLine}${opBlastLine}<p class="section-cap"><strong>Brevo tier:</strong> ${sim.useBrevoStarter ? "Starter ($29/mo)" : "Free (300/day · 2k contacts)"} · ${escapeHtml(sim.goalsNote)} · Total users: ${sim.totalUsers.toLocaleString()} · Brevo peak day: ~${Math.round(sim.dailyPeaks?.brevo || 0).toLocaleString()}/${sim.useBrevoStarter ? "—" : "300"}</p>`;
       }
 
@@ -1934,7 +1934,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         ${renderProviderSetup()}
         <section id="providers">
           <h2>Email providers (free tier)</h2>
-          <p class="section-cap"><strong>Phase 1</strong> Beehiiv · <strong>Phase 2</strong> Mailgun/HubSpot (paid) or EmailOctopus (free) · <strong>Phase 3</strong> terminal · <strong>Fallback pool</strong> = MailerLite + OmniSend + Brevo + Loops · <strong>Operational pool</strong> = Resend → SES. See <a href="#provider-setup">account setup</a> for live credentials and blockers.</p>
+          <p class="section-cap"><strong>Phase 1</strong> Beehiiv · <strong>Phase 2 paid</strong> Resend (interim, replaces Mailgun) + HubSpot · <strong>Phase 2 conversion</strong> EmailOctopus · <strong>Phase 3</strong> terminal · <strong>Fallback pool</strong> = MailerLite + OmniSend + Brevo + Loops + Resend · <strong>Operational</strong> = SES. See <a href="#provider-setup">account setup</a>.</p>
           ${renderProvidersGrouped()}
           ${renderProviderCandidates()}
         </section>

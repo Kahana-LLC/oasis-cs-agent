@@ -25,8 +25,8 @@ DEFAULT_NEAR_LIMIT = {
     "runway_months_min": 2,
 }
 
-FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo", "loops"})
-OPERATIONAL_PROVIDER_IDS = frozenset({"resend", "ses"})
+FALLBACK_PROVIDER_IDS = frozenset({"mailerlite", "omnisend", "brevo", "loops", "resend"})
+OPERATIONAL_PROVIDER_IDS = frozenset({"ses"})
 
 
 def _load_manifest(path: Path | None = None) -> dict[str, Any]:
@@ -170,7 +170,7 @@ def _operational_pool_aggregate(
     sequences: list[dict[str, Any]] | None = None,
     total_users: int = 0,
 ) -> dict[str, Any]:
-    """Resend + SES (+ Brevo emergency) — legal/incident lane."""
+    """SES primary (+ Brevo emergency) — legal/incident lane."""
     pool = manifest.get("operational_pool") or {}
     pool_ids = pool.get("provider_ids") or list(OPERATIONAL_PROVIDER_IDS)
     sequences = sequences or manifest.get("sequences") or []
@@ -199,7 +199,7 @@ def _operational_pool_aggregate(
         "daily_used": round(daily_used, 1),
         "daily_cap": round(daily_cap, 1),
         "provider_count": len(pool_ids),
-        "primary_provider_id": pool.get("primary_provider_id", "resend"),
+        "primary_provider_id": pool.get("primary_provider_id", "ses"),
     }
 
 
@@ -225,7 +225,7 @@ def _contact_usage(
         return ar + dead + ret
     if provider_id == "mailerlite":
         return min(500, max(0, total_users - 2000)) if total_users > 2000 else 0
-    if provider_id == "mailgun":
+    if provider_id in ("mailgun", "resend"):
         return int(monetization.get("paid_subscribers") or 0) + int(
             monetization.get("cancelled_paid_subscribers") or 0
         )
@@ -444,6 +444,6 @@ def compute_email_provider_capacity(
         "estimation_note": (
             "v1 estimates: Beehiiv Phase 1 contacts; EmailOctopus Phase 2 conversion; "
             "fallback pool = MailerLite + OmniSend + Brevo + Loops; "
-            "operational pool = Resend + SES (legal/incident); HubSpot = paid + company email."
+            "operational pool = SES (legal/incident); Resend = Phase 2 paid interim + fallback; HubSpot = paid + company email."
         ),
     }

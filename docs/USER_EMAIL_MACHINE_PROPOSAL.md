@@ -12,7 +12,7 @@
 
 Oasis can run a **multi-provider, free-tier email stack** that maps each lifecycle stage to the cheapest provider with capacity left — stretching runway while we pursue **500 paid subscribers by Dec 31, 2026**, **4.5× DAU vs Product Hunt launch week**, and **80% gross margin**.
 
-Adam’s initial five-sequence split is the right foundation, now mapped to a **three-phase Beehiiv funnel** with a **redundant fallback pool** (MailerLite + OmniSend + Brevo — interchangeable, not sequential). **Phase 1** activation on Beehiiv (welcome, browser import, first AI command, AI assistant training — graduated readiness milestones before Phase 2 fork); **Phase 2** forks to Mailgun + HubSpot (paid) or EmailOctopus (3–4 emails, non-upgraders); **Phase 3** terminal — paid in HubSpot or perpetual free (Google sheet + Supabase, 6mo inactive → delete). This proposal **preserves Adam’s five sequences** and adds dashboard-driven gaps:
+Adam’s initial five-sequence split is the right foundation, now mapped to a **three-phase Beehiiv funnel** with a **redundant fallback pool** (MailerLite + OmniSend + Brevo — interchangeable, not sequential). **Phase 1** activation on Beehiiv (welcome, browser import, first AI command, AI assistant training — graduated readiness milestones before Phase 2 fork); **Phase 2** forks to Resend + HubSpot (paid interim; replaces blocked Mailgun) or EmailOctopus (3–4 emails, non-upgraders); **Phase 3** terminal — paid in HubSpot or perpetual free (Google sheet + Supabase, 6mo inactive → delete). This proposal **preserves Adam’s five sequences** and adds dashboard-driven gaps:
 
 - **Activation nudges** (32% 24h activation today — room to improve NURR before PH)
 - **Limit-hitter upgrade** (direct path to paid subs; currently 0% limit-hitter conversion)
@@ -153,7 +153,7 @@ This is **not** the same as sequence `implementation_status` (automation shipped
 | **Beehiiv** | Ready | Yes | Phase 1 primary |
 | **Brevo** | Ready | Yes (+ MCP token) | 300 emails/day; PH interim + CS agent |
 | **EmailOctopus** | Ready | Yes | 2,500 subs · 10k/mo |
-| **Resend** | Ready | Yes | Operational primary |
+| **Resend** | Ready | Yes | Phase 2 paid interim (replaces Mailgun) + fallback pool |
 | **HubSpot** | Ready | — | Phase 3 terminal CRM (portal) |
 | **Loops** | Ready | Yes | Lifecycle fallback (not operational) |
 | **Amazon SES** | Sandbox | Yes (AWS) | 200/day until production access approved |
@@ -174,17 +174,17 @@ Separate from lifecycle nurture and from the marketing fallback pool.
 
 | Provider | Free limit | Role |
 |----------|------------|------|
-| **Resend** | 3,000/mo · **100/day** | **Primary** operational — policy updates, incidents |
-| **Amazon SES** | 200/day (sandbox until production) | Failover when Resend cap hit or at scale |
-| **Brevo** | 300/day (emergency) | Last resort; separate operational list |
+| **Amazon SES** | 200/day (sandbox until production) | **Primary** operational — policy updates, incidents |
+| **Brevo** | 300/day (emergency) | Last resort in operational pool |
+| **Resend** | 3,000/mo · **100/day** | Phase 2 paid interim + lifecycle fallback — **not** legal/outage |
 
 **Sequences:** `legal_notice`, `incident_notice` in `email_sequences.json` (`funnel_phase: operational`). Do not count toward Phase 1’s 4–7 email budget.
 
 **Audience:** All `users` with `status = active` → list `oasis-operational-all`, synced nightly (see [`docs/OPERATIONAL_EMAIL_RUNBOOK.md`](OPERATIONAL_EMAIL_RUNBOOK.md)).
 
-**Capacity (illustrative):** At 122 users, one Resend blast fits in a day. At 2,000 users, plan ~20 days at 100/day or SES after production approval.
+**Capacity (illustrative):** At 122 users, one SES blast fits in sandbox (200/day). At 2,000 users, plan multi-day sends until production access removes sandbox limits.
 
-**Anti-patterns:** No Beehiiv/Loops for outages; no Supabase query at send time during incidents; Loops is fallback for marketing only.
+**Anti-patterns:** No Beehiiv/Loops/Resend for outages; no Supabase query at send time during incidents; Resend is paid lifecycle + fallback only.
 
 ### Phase 1 — Welcome / onboarding / activation (Beehiiv)
 
@@ -218,11 +218,11 @@ The **4–7 email range** is a **lifecycle budget** toward perpetual free (Phase
 
 ### Phase 2 — Fork after Phase 1
 
-#### Path A — Upgraded → Mailgun + HubSpot
+#### Path A — Upgraded → Resend + HubSpot (interim)
 
 | Provider | Free limit | Role |
 |----------|------------|------|
-| **Mailgun** | 100 emails/day · **no contact cap** | Upgrade thank-you, downgrade win-back |
+| **Resend** | 100 emails/day · **3,000/mo** | Upgrade thank-you, cancelled win-back (replaces Mailgun) |
 | **HubSpot** | **1,000,000 contacts** · 2,000/mo | CRM sync for all paid users + company email |
 
 #### Path B — Not upgraded → EmailOctopus

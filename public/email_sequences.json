@@ -3,7 +3,7 @@
   "doc_ref": "docs/USER_EMAIL_MACHINE_PROPOSAL.md",
   "provider_setup_meta": {
     "as_of": "2026-05-25",
-    "summary": "10 lifecycle/ops providers tracked; 8 ready or sandbox-limited; 2 blocked/recovery",
+    "summary": "Mailgun blocked — Resend interim Phase 2 paid + fallback pool; SES operational primary (sandbox until production)",
     "api_keys_ready": [
       "beehiiv",
       "brevo",
@@ -140,6 +140,7 @@
       "id": "mailgun",
       "name": "Mailgun",
       "funnel_role": "phase_2_paid",
+      "status": "deprecated",
       "pricing_url": "https://www.mailgun.com/pricing/",
       "free_limits": {
         "emails_per_day": 100
@@ -151,16 +152,16 @@
         "runway_months_min": 2
       },
       "constraints": [
-        "Transactional-oriented"
+        "Deprecated — account access blocked"
       ],
-      "upgrade_trigger": "Paid lifecycle daily > 80 — spill to Brevo",
-      "notes": "Phase 2 (upgraded) — transactional paid lifecycle. No contact cap.",
+      "upgrade_trigger": "N/A — use Resend interim",
+      "notes": "Replaced by Resend for Phase 2 paid until Mailgun access is restored.",
       "account_setup": {
         "status": "access_blocked",
         "api_key_configured": false,
         "domain_verified": false,
-        "notes": "Cannot access Mailgun account yet.",
-        "next_action": "Resolve Mailgun account/access, or defer Phase 2 paid sends to HubSpot-only interim until Mailgun is available."
+        "notes": "Cannot access Mailgun account.",
+        "next_action": "Use Resend for paid lifecycle; revisit Mailgun when access is restored."
       }
     },
     {
@@ -249,7 +250,11 @@
     {
       "id": "resend",
       "name": "Resend",
-      "funnel_role": "operational",
+      "funnel_role": "phase_2_paid",
+      "funnel_tags": [
+        "lifecycle_fallback",
+        "paid_transactional"
+      ],
       "pricing_url": "https://resend.com/pricing",
       "free_limits": {
         "emails_per_month": 3000,
@@ -262,17 +267,17 @@
         "runway_months_min": 2
       },
       "constraints": [
-        "Operational broadcasts only — legal, privacy, outage",
-        "Ticket support on free tier",
-        "100 emails/day · 3,000/month"
+        "Interim replacement for Mailgun (100/day · 3,000/mo)",
+        "Also fallback pool member — not for legal/outage (use SES)",
+        "Ticket support on free tier"
       ],
-      "upgrade_trigger": "Operational blasts exceed 3,000/mo — failover to SES",
-      "notes": "Primary operational lane. Sync oasis-operational-all audience from Supabase nightly.",
+      "upgrade_trigger": "Paid + fallback daily > 80 — spill to Brevo or Loops",
+      "notes": "Phase 2 paid primary (interim) + fallback pool. Paid Zen welcome, cancelled win-back. API sends via RESEND_API_KEY.",
       "account_setup": {
         "status": "ready",
         "api_key_configured": true,
         "domain_verified": true,
-        "notes": "API key created — operational pool primary (legal, privacy, outage)."
+        "notes": "API key created — Phase 2 paid interim (replaces Mailgun) and lifecycle fallback overflow."
       }
     },
     {
@@ -327,8 +332,8 @@
         "Sandbox: 200 emails/24h until production access approved",
         "Automated bulk blocked until production_pending=false"
       ],
-      "upgrade_trigger": "Resend daily/monthly cap — route operational failover here",
-      "notes": "Scale operational sends post-production. See docs/OPERATIONAL_EMAIL_RUNBOOK.md § SES production.",
+      "upgrade_trigger": "N/A — operational primary",
+      "notes": "Primary operational lane (legal, privacy, outage). See docs/OPERATIONAL_EMAIL_RUNBOOK.md § SES production.",
       "account_setup": {
         "status": "sandbox",
         "api_key_configured": true,
@@ -628,15 +633,15 @@
       "notes": "Exclude legal_notice and incident_notice. Powered by Loops footer on free tier."
     },
     {
-      "id": "operational_resend_failover",
-      "label": "Operational Resend cap — SES failover",
-      "trigger": "Operational send exceeds Resend 100/day or 3,000/mo",
+      "id": "operational_ses_primary",
+      "label": "Operational — SES primary",
+      "trigger": "legal_notice or incident_notice broadcast",
       "sequences": [
         "legal_notice",
         "incident_notice"
       ],
       "provider_id": "ses",
-      "notes": "Blocked in sandbox until production_pending=false on ses provider."
+      "notes": "Use SES for full-list blasts. Sandbox until production_pending=false; Brevo operational pool last resort only."
     }
   ],
   "scenario_presets": [
@@ -695,18 +700,6 @@
       "action": "Route to fallback member with most headroom (prefer Loops for marketing sequences); evaluate phase migration or provider upgrade"
     },
     {
-      "id": "operational_resend_daily",
-      "provider_id": "resend",
-      "trigger": "Operational blast would exceed 100 emails/day on Resend",
-      "action": "Failover to SES if production; otherwise queue next day"
-    },
-    {
-      "id": "operational_resend_monthly",
-      "provider_id": "resend",
-      "trigger": "Operational sends > 3,000 in rolling 30 days",
-      "action": "Route remaining operational volume to SES"
-    },
-    {
       "id": "ses_sandbox",
       "provider_id": "ses",
       "trigger": "ses.production_pending=true",
@@ -719,10 +712,10 @@
       "action": "Use MailerLite or Brevo for marketing fallback overflow"
     },
     {
-      "id": "mailgun_paid_daily",
-      "provider_id": "mailgun",
-      "trigger": "Paid lifecycle daily > 80",
-      "action": "Route to fallback pool (Brevo member)"
+      "id": "resend_paid_daily",
+      "provider_id": "resend",
+      "trigger": "Paid lifecycle daily > 80 on Resend (interim Mailgun replacement)",
+      "action": "Route to fallback pool (Brevo or Loops member)"
     },
     {
       "id": "emailoctopus_2500",
@@ -1032,13 +1025,13 @@
       "trigger_summary": "Stripe Zen plan upgrade",
       "trigger_when": "Immediately on Zen upgrade / checkout",
       "trigger_implementation": "Stripe checkout OR Brevo when plan = Zen",
-      "provider_id": "mailgun",
+      "provider_id": "resend",
       "provider_overflow_id": "fallback_pool",
       "deployed_via": "brevo",
       "implementation_status": "needs_implementation",
       "cadence": "one-time",
       "dedup_trigger_name": "upgrade_thank_you",
-      "free_tier_runway": "Strategy: OmniSend until 250 paid; shipped on Brevo",
+      "free_tier_runway": "Strategy: Resend (100/day); shipped on Brevo interim",
       "dashboard_metrics": [
         "paid_subscribers",
         "active_paid_subscribers",
@@ -1067,7 +1060,7 @@
           "name": "Paid Zen welcome",
           "day_offset": 0,
           "trigger_when": "Immediately on Zen upgrade",
-          "primary_provider_id": "mailgun",
+          "primary_provider_id": "resend",
           "fallback": {
             "type": "fallback_pool"
           },
@@ -1593,12 +1586,12 @@
       "trigger_summary": "Paid subscription cancelled (not renewing)",
       "trigger_when": "On user_plans.is_active=false; D14 follow-up",
       "trigger_implementation": "cancelled_paid_subscribers increment",
-      "provider_id": "mailgun",
+      "provider_id": "resend",
       "provider_overflow_id": "fallback_pool",
       "implementation_status": "needs_implementation",
       "cadence": "one-time-plus-d14",
       "dedup_trigger_name": "cancelled_winback",
-      "free_tier_runway": "Active after OmniSend free tier full (250 paid)",
+      "free_tier_runway": "Resend 100/day interim (replaces Mailgun)",
       "dashboard_metrics": [
         "cancelled_paid_subscribers",
         "active_paid_subscribers",
@@ -1617,7 +1610,7 @@
         "preheader": "You can keep using Oasis free or reactivate Zen anytime.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0-plain-text.txt",
-        "deploy_provider": "mailgun"
+        "deploy_provider": "resend"
       },
       "funnel_phase": "phase_2_paid",
       "touches": [
@@ -1627,7 +1620,7 @@
           "name": "Cancelled sub win-back",
           "day_offset": 0,
           "trigger_when": "On user_plans.is_active=false",
-          "primary_provider_id": "mailgun",
+          "primary_provider_id": "resend",
           "fallback": {
             "type": "fallback_pool"
           },
@@ -1640,7 +1633,7 @@
             "preheader": "You can keep using Oasis free or reactivate Zen anytime.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0-plain-text.txt",
-            "deploy_provider": "mailgun"
+            "deploy_provider": "resend"
           }
         },
         {
@@ -1649,7 +1642,7 @@
           "name": "Cancelled sub D14 follow-up",
           "day_offset": 14,
           "trigger_when": "14 days after cancellation if not re-subscribed",
-          "primary_provider_id": "mailgun",
+          "primary_provider_id": "resend",
           "fallback": {
             "type": "fallback_pool"
           },
@@ -1662,7 +1655,7 @@
             "preheader": "1M tokens per day — reply if price or features was the blocker.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d14-plain-text.txt",
-            "deploy_provider": "mailgun"
+            "deploy_provider": "resend"
           }
         }
       ]
@@ -1802,12 +1795,12 @@
       "trigger_summary": "Manual broadcast when terms, privacy, or legal policy changes",
       "trigger_when": "One-off per policy revision (engineer-initiated)",
       "trigger_implementation": "scripts/send_operational.py --template legal --dedup-key legal_{slug}_{date}",
-      "provider_id": "resend",
+      "provider_id": "ses",
       "provider_overflow_id": "operational_pool",
       "implementation_status": "needs_implementation",
       "cadence": "one-time-broadcast",
       "dedup_trigger_name": "legal_notice",
-      "free_tier_runway": "Resend 3k/mo · 100/day; failover to SES when production",
+      "free_tier_runway": "SES primary; sandbox 200/day until production access",
       "dashboard_metrics": [
         "total_users"
       ],
@@ -1820,7 +1813,7 @@
         "preheader": "Please review the changes effective on the date below.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/operational/brevo-oasis-legal-notice-plain-text.txt",
-        "deploy_provider": "resend"
+        "deploy_provider": "ses"
       },
       "funnel_phase": "operational",
       "counts_toward_phase_budget": false,
@@ -1831,7 +1824,7 @@
           "name": "Legal / policy notice",
           "day_offset": 0,
           "trigger_when": "Manual — per policy revision",
-          "primary_provider_id": "resend",
+          "primary_provider_id": "ses",
           "fallback": {
             "type": "operational_pool"
           },
@@ -1844,7 +1837,7 @@
             "preheader": "Please review the changes effective on the date below.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/operational/brevo-oasis-legal-notice-plain-text.txt",
-            "deploy_provider": "resend"
+            "deploy_provider": "ses"
           }
         }
       ]
@@ -1860,7 +1853,7 @@
       "trigger_summary": "Manual broadcast on P0–P2 service incident or outage",
       "trigger_when": "Engineer-initiated when status page updated",
       "trigger_implementation": "scripts/send_operational.py --template incident --dedup-key incident_{id}",
-      "provider_id": "resend",
+      "provider_id": "ses",
       "provider_overflow_id": "operational_pool",
       "implementation_status": "needs_implementation",
       "cadence": "one-time-broadcast",
@@ -1878,7 +1871,7 @@
         "preheader": "We're aware of an issue affecting Oasis — here's what we know.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/operational/brevo-oasis-incident-notice-plain-text.txt",
-        "deploy_provider": "resend"
+        "deploy_provider": "ses"
       },
       "funnel_phase": "operational",
       "counts_toward_phase_budget": false,
@@ -1889,7 +1882,7 @@
           "name": "Incident / outage notice",
           "day_offset": 0,
           "trigger_when": "Manual on P0–P2 incident",
-          "primary_provider_id": "resend",
+          "primary_provider_id": "ses",
           "fallback": {
             "type": "operational_pool"
           },
@@ -1902,7 +1895,7 @@
             "preheader": "We're aware of an issue affecting Oasis — here's what we know.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/operational/brevo-oasis-incident-notice-plain-text.txt",
-            "deploy_provider": "resend"
+            "deploy_provider": "ses"
           }
         }
       ]
@@ -1912,7 +1905,7 @@
     {
       "key": "operational_all",
       "label": "All active users (operational)",
-      "definition": "users.status = active with valid email — synced to Resend/SES operational list (not nurture)"
+      "definition": "users.status = active with valid email — synced for SES operational blasts (not nurture)"
     },
     {
       "key": "waitlist",
@@ -2051,7 +2044,7 @@
       "id": "phase_2_paid",
       "label": "Phase 2 — Upgraded",
       "primary_provider_ids": [
-        "mailgun",
+        "resend",
         "hubspot"
       ],
       "sequences": [
@@ -2061,7 +2054,7 @@
         "enterprise_expansion"
       ],
       "trigger": "Stripe upgrade or company email on signup",
-      "notes": "Mailgun (100/day, no contact cap) + HubSpot CRM (1M contacts).",
+      "notes": "Resend interim (100/day · 3k/mo, replaces Mailgun) + HubSpot CRM (1M contacts).",
       "fallback_pool": true
     },
     {
@@ -2082,13 +2075,13 @@
     {
       "id": "operational",
       "label": "Operational — legal & incident",
-      "primary_provider_id": "resend",
+      "primary_provider_id": "ses",
       "sequences": [
         "legal_notice",
         "incident_notice"
       ],
       "trigger": "Manual engineer broadcast — not lifecycle automation",
-      "notes": "All active users via oasis-operational-all sync. Does not count toward Phase 1 4–7 budget. Loops is not used here.",
+      "notes": "All active users via operational sync. SES primary (sandbox until production). Brevo last resort in operational_pool. Not nurture.",
       "operational_pool": true
     },
     {
@@ -2122,10 +2115,11 @@
       "mailerlite",
       "omnisend",
       "brevo",
-      "loops"
+      "loops",
+      "resend"
     ],
     "model": "redundant_parallel",
-    "notes": "Fallback pool — lifecycle nurture overflow only. Route to whichever member has headroom. Loops for marketing/product-help; never legal or incident. When fallback fires: migrate users to next phase OR upgrade constrained provider tier.",
+    "notes": "Fallback pool — lifecycle nurture overflow only. Route to whichever member has headroom (Brevo, Loops, Resend 100/day). Never legal or incident (SES). When fallback fires: migrate users to next phase OR upgrade constrained provider tier.",
     "member_limits": {
       "mailerlite": {
         "contacts": 500,
@@ -2142,28 +2136,27 @@
       "loops": {
         "contacts": 1000,
         "emails_per_month": 4000
+      },
+      "resend": {
+        "emails_per_month": 3000,
+        "emails_per_day": 100
       }
     },
     "aggregate_free_limits": {
       "contacts": 3750,
-      "sends_per_month": 17500,
+      "sends_per_month": 20500,
       "sends_per_day": 300
     }
   },
   "operational_pool": {
     "provider_ids": [
-      "resend",
       "ses",
       "brevo"
     ],
     "model": "priority_failover",
-    "primary_provider_id": "resend",
-    "notes": "Legal, privacy, outage only. Synced list independent of nurture. Brevo last resort — separate operational list; do not steal CS agent daily budget without review.",
+    "primary_provider_id": "ses",
+    "notes": "Legal, privacy, outage only. SES primary; sandbox 200/day until production. Brevo emergency last resort — separate list; do not steal CS agent daily budget without review.",
     "member_limits": {
-      "resend": {
-        "emails_per_month": 3000,
-        "emails_per_day": 100
-      },
       "ses": {
         "emails_per_day": 200,
         "sandbox": true,
@@ -2175,8 +2168,8 @@
       }
     },
     "aggregate_free_limits": {
-      "sends_per_month": 3000,
-      "sends_per_day": 100
+      "sends_per_day": 200,
+      "sandbox": true
     }
   },
   "scenario_presets_operational": [

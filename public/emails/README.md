@@ -58,6 +58,6 @@
 | `legal_notice.html` | legal notice | `operational/brevo-oasis-legal-notice.html` |
 | `incident_notice.html` | incident notice | `operational/brevo-oasis-incident-notice.html` |
 
-Operational HTML is deployed via **Resend/SES** (`scripts/send_operational.py`), not lifecycle ESP automations.
+Operational HTML is deployed via **SES** (`scripts/send_operational.py`); Resend is lifecycle/paid interim, not legal/outage.
 
 Sequences without `preview.source` show a placeholder on `/email-machine` until a Brevo template exists. Use the **Missing template** inventory filter to QA gaps.
