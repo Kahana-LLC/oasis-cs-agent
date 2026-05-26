@@ -614,7 +614,8 @@
       ],
       "runbook": "docs/BREVO_PHASE1_TEST_SETUP.md",
       "enroll_script": "scripts/enroll_brevo_phase1.py",
-      "brevo_status": "automation_pending",
+      "brevo_status": "superseded",
+      "brevo_status_note": "Primary path is Supabase Edge + Brevo transactional templates. Oasis Phase 1 Brevo automation was never enabled.",
       "oasis_signup_integration": {
         "status": "not_wired",
         "contract": "After users row is created: resolve user_id + email; call integrations.brevo_phase1.enroll_user_for_phase1 (adds contact to Oasis Lifecycle list, triggers Oasis Phase 1)."
@@ -623,9 +624,12 @@
       "superseded_by": "launch_config.supabase_lifecycle_email",
       "role_after_edge_deploy": "dev_fallback_enroll_and_contact_sync"
     },
+    "lifecycle_reporting": {
+      "new_user_window_days": 30
+    },
     "supabase_lifecycle_email": {
-      "status": "in_progress",
-      "current_email": "welcome",
+      "status": "shipped",
+      "current_email": "complete",
       "welcome_runbook": "docs/LIFECYCLE_WELCOME.md",
       "priority": "recommended",
       "headline": "Supabase Edge Functions + daily cron (Phase 1)",
@@ -690,7 +694,7 @@
           "sequence_id": "welcome",
           "brevo_template": "Oasis Welcome",
           "env_template_id": "BREVO_TEMPLATE_ID_WELCOME",
-          "implementation_status": "ready_local_and_edge",
+          "implementation_status": "shipped",
           "channel": "event",
           "when": "users INSERT (signup)",
           "condition": "active user with email",
@@ -701,33 +705,49 @@
           "dedup_trigger_name": "activation_nudge_24h",
           "sequence_id": "activation_nudge",
           "brevo_template": "Oasis Activation Nudge",
+          "env_template_id": "BREVO_TEMPLATE_ID_ACTIVATION_NUDGE",
+          "implementation_status": "shipped",
           "channel": "cron",
           "when": "≥24h after created_at",
-          "condition": "no llm_usage row"
+          "condition": "no llm_usage row",
+          "local_script": "scripts/send_lifecycle_email.py --trigger activation_nudge_24h",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
         },
         {
           "dedup_trigger_name": "activation_cs_calendar",
           "sequence_id": "activation_cs_calendar",
           "brevo_template": "Oasis Activation CS Calendar",
+          "env_template_id": "BREVO_TEMPLATE_ID_ACTIVATION_CS_CALENDAR",
+          "implementation_status": "shipped",
           "channel": "cron",
-          "when": "day 3 after signup",
-          "condition": "no llm_usage and no feedback_events"
+          "when": "day 3–5 after signup",
+          "condition": "no llm_usage and no feedback_events",
+          "local_script": "scripts/send_lifecycle_email.py --trigger activation_cs_calendar",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
         },
         {
           "dedup_trigger_name": "nps_day3",
           "sequence_id": "nps_day3",
           "brevo_template": "Oasis NPS",
+          "env_template_id": "BREVO_TEMPLATE_ID_NPS_DAY3",
+          "implementation_status": "shipped",
           "channel": "cron",
-          "when": "day 3 after signup",
-          "condition": "not unsubscribed; dedup"
+          "when": "day 3–5 after signup",
+          "condition": "active user; dedup; Brevo handles unsubscribe",
+          "local_script": "scripts/send_lifecycle_email.py --trigger nps_day3",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
         },
         {
           "dedup_trigger_name": "pmf_day10",
           "sequence_id": "pmf_day10",
           "brevo_template": "Oasis PMF",
+          "env_template_id": "BREVO_TEMPLATE_ID_PMF_DAY10",
+          "implementation_status": "shipped",
           "channel": "cron",
-          "when": "day 10 after signup",
-          "condition": "not unsubscribed; dedup"
+          "when": "day 10–12 after signup",
+          "condition": "active user; dedup; Brevo handles unsubscribe",
+          "local_script": "scripts/send_lifecycle_email.py --trigger pmf_day10",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
         }
       ],
       "implementation_checklist": [
@@ -768,15 +788,23 @@
           "notes": "adamthewrite@gmail.com sent 2026-05-25; dedup logged in cs_outreach_log"
         },
         {
+          "id": "template_ids_activation_nudge",
+          "label": "Set BREVO_TEMPLATE_ID_ACTIVATION_NUDGE + paste template in Brevo",
+          "status": "shipped",
+          "owner": "You",
+          "artifact": "docs/LIFECYCLE_ACTIVATION_NUDGE.md"
+        },
+        {
           "id": "daily_cron",
-          "label": "Schedule lifecycle-daily-cron with cohort SQL",
-          "status": "pending",
-          "owner": "Oasis Supabase"
+          "label": "Schedule lifecycle-daily-cron (activation nudge cohort deployed)",
+          "status": "shipped",
+          "owner": "Oasis Supabase",
+          "notes": "pg_cron job lifecycle-daily-cron active at 14:00 UTC"
         },
         {
           "id": "signup_app",
           "label": "Ensure Oasis signup creates users row (webhook fires)",
-          "status": "pending",
+          "status": "shipped",
           "owner": "Oasis app"
         },
         {
@@ -788,7 +816,8 @@
         {
           "id": "deprecate_brevo_automation",
           "label": "Optional: deactivate Oasis Phase 1 Brevo automation",
-          "status": "optional",
+          "status": "skipped",
+          "notes": "Brevo automation was never created or enabled",
           "owner": "Brevo UI"
         }
       ],
@@ -1167,11 +1196,11 @@
       ],
       "trigger_summary": "Account created — welcome + orient to onboarding (import from prior browser, first AI command)",
       "trigger_when": "Immediately on signup",
-      "trigger_implementation": "Brevo automation: new Oasis user signup",
+      "trigger_implementation": "Supabase Edge: lifecycle-on-signup → welcome_email (see docs/LIFECYCLE_WELCOME.md)",
       "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
-      "deployed_via": "brevo",
-      "implementation_status": "needs_implementation",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "welcome_email",
       "free_tier_runway": "Brevo primary · 300/day · 2k automation entrants; fallback pool on cap",
@@ -1223,11 +1252,11 @@
       ],
       "trigger_summary": "NPS survey after a few days with the product",
       "trigger_when": "3 days after signup",
-      "trigger_implementation": "Brevo automation: lifecycle_day == 3",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → nps_day3 (see docs/LIFECYCLE_NPS_DAY3.md)",
       "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
-      "deployed_via": "brevo",
-      "implementation_status": "needs_implementation",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "nps_day3",
       "free_tier_runway": "Until daily signups > 300/day (~9k/mo send cap)",
@@ -1242,7 +1271,7 @@
         "source": "brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3.html",
         "path": "/emails/nps_day3.html",
         "subject": "Quick question: how likely are you to recommend Oasis?",
-        "preheader": "One question. Your feedback helps us improve.",
+        "preheader": "Tap Yes, No, or Maybe — then rate 0–10 on the next page.",
         "from_name": "Adam from Oasis",
         "brevo_template_name": "Oasis NPS",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3-plain-text.txt"
@@ -1274,11 +1303,11 @@
       ],
       "trigger_summary": "Product-market fit survey",
       "trigger_when": "10 days after signup",
-      "trigger_implementation": "Brevo automation: lifecycle_day == 10",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → pmf_day10 (see docs/LIFECYCLE_PMF_DAY10.md)",
       "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
-      "deployed_via": "brevo",
-      "implementation_status": "needs_implementation",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "pmf_day10",
       "free_tier_runway": "Strategy: Mailgun; shipped on Brevo",
@@ -1295,8 +1324,8 @@
       "preview": {
         "source": "brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10.html",
         "path": "/emails/pmf_day10.html",
-        "subject": "Help us understand how Oasis fits your workflow",
-        "preheader": "2-minute product survey. Your answers shape what we build next.",
+        "subject": "Quick favor — help us improve Oasis?",
+        "preheader": "Your ideas and honest feedback help us make Oasis better for you.",
         "from_name": "Adam from Oasis",
         "brevo_template_name": "Oasis PMF",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10-plain-text.txt"
@@ -1513,13 +1542,13 @@
       "buckets": [
         "new"
       ],
-      "trigger_summary": "No first AI command within 24h — nudge browser import (Chrome, Safari, Brave, Edge)",
-      "trigger_when": "24h after signup if zero llm_usage rows; remind import from prior browser",
-      "trigger_implementation": "activation_24h cohort: users_with_first_prompt == false at T+24h",
+      "trigger_summary": "Day 1 encouragement — import from prior browser + try the assistant (no llm_usage yet)",
+      "trigger_when": "24h after signup if zero llm_usage rows; casual tips to get more from Oasis",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → activation_nudge_24h (see docs/LIFECYCLE_ACTIVATION_NUDGE.md)",
       "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
-      "deployed_via": "brevo",
-      "implementation_status": "needs_implementation",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "activation_nudge_24h",
       "free_tier_runway": "EmailOctopus funnel pool; PH interim overflow to Brevo",
@@ -1538,8 +1567,8 @@
       "preview": {
         "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge.html",
         "path": "/emails/activation_nudge_d1.html",
-        "subject": "Try your first AI command in Oasis",
-        "preheader": "Import from Chrome, Safari, Brave, or Edge — then ask the assistant anything.",
+        "subject": "A few ways to get more from Oasis",
+        "preheader": "Import, ask the assistant, train it — 1,000 tokens per training.",
         "from_name": "Adam from Oasis",
         "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
         "deploy_provider": "brevo"
@@ -1561,8 +1590,8 @@
           "preview": {
             "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge.html",
             "path": "/emails/activation_nudge_d1.html",
-            "subject": "Try your first AI command in Oasis",
-            "preheader": "Import from Chrome, Safari, Brave, or Edge — then ask the assistant anything.",
+            "subject": "A few ways to get more from Oasis",
+            "preheader": "Import, ask the assistant, train it — 1,000 tokens per training.",
             "from_name": "Adam from Oasis",
             "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
             "deploy_provider": "brevo"
@@ -1580,10 +1609,11 @@
       ],
       "trigger_summary": "Low engagement after activation nudge — founder/CS personal outreach; mention training assistant (+1,000 tokens)",
       "trigger_when": "48–72h post-signup if still no llm_usage, no feedback_events training, or low engagement",
-      "trigger_implementation": "activation_cs_calendar: users_with_first_prompt == false at T+48h OR opened nudge but no usage",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → activation_cs_calendar (see docs/LIFECYCLE_ACTIVATION_CS_CALENDAR.md)",
       "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
-      "implementation_status": "needs_implementation",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
       "cadence": "one-time",
       "dedup_trigger_name": "activation_cs_calendar",
       "free_tier_runway": "Counts toward Phase 1 budget (4–7 emails); calendar link for founder/CS call",
@@ -2268,6 +2298,20 @@
           "sequence_id": "welcome",
           "dedup_trigger_name": "welcome_email",
           "label": "Welcome email sent"
+        },
+        {
+          "id": "activation_nudge_sent",
+          "type": "email",
+          "sequence_id": "activation_nudge",
+          "dedup_trigger_name": "activation_nudge_24h",
+          "label": "Activation nudge sent"
+        },
+        {
+          "id": "activation_cs_sent",
+          "type": "email",
+          "sequence_id": "activation_cs_calendar",
+          "dedup_trigger_name": "activation_cs_calendar",
+          "label": "CS calendar email sent"
         },
         {
           "id": "first_ai_prompt",

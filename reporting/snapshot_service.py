@@ -15,6 +15,7 @@ def build_snapshot(today: date | None = None) -> BaselineSnapshot:
     """Pull all baseline inputs from Supabase and return the snapshot."""
     from db.fetch import (
         fetch_all_users,
+        fetch_cs_outreach_log,
         fetch_daily_usage,
         fetch_feedback,
         fetch_payments,
@@ -39,14 +40,23 @@ def build_snapshot(today: date | None = None) -> BaselineSnapshot:
     payments = fetch_payments()
     user_plans = fetch_user_plans()
 
+    outreach_log: list[dict] = []
+    outreach_log_available = False
+    try:
+        outreach_log = fetch_cs_outreach_log()
+        outreach_log_available = True
+    except Exception as exc:
+        log.warning("cs_outreach_log fetch skipped: %s", exc)
+
     log.info(
-        "counts: users=%d sessions=%d usage=%d daily=%d feedback=%d payments=%d",
+        "counts: users=%d sessions=%d usage=%d daily=%d feedback=%d payments=%d outreach=%d",
         len(users),
         len(sessions),
         len(usage),
         len(daily),
         len(feedback),
         len(payments),
+        len(outreach_log),
     )
 
     return compute_baseline_snapshot(
@@ -59,6 +69,8 @@ def build_snapshot(today: date | None = None) -> BaselineSnapshot:
         overrides=overrides,
         payments=payments,
         user_plans=user_plans,
+        outreach_log=outreach_log,
+        outreach_log_available=outreach_log_available,
         today=today,
     )
 

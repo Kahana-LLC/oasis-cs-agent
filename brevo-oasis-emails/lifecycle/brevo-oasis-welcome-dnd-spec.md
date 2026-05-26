@@ -4,6 +4,17 @@
 **Full HTML:** [`brevo-oasis-welcome.html`](brevo-oasis-welcome.html)  
 **Plain text:** [`brevo-oasis-welcome-plain-text.txt`](brevo-oasis-welcome-plain-text.txt)
 
+## Greeting (transactional API)
+
+The opener is **`{{ params.GREETING }}`** (not `contact.FIRSTNAME`). Edge / `send_lifecycle_email.py` set it per send:
+
+| `users.name` | `GREETING` |
+|--------------|------------|
+| set (e.g. email signup) | `Hey {first},` |
+| empty (typical OAuth) | `Hello there!` |
+
+Re-paste HTML + plain text into Brevo template **Oasis Welcome** (id 54) after changing repo files.
+
 ## Campaign setup
 
 | Field | Value |

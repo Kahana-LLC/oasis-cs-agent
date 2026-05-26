@@ -136,11 +136,12 @@ def compute_lifecycle_readiness_by_bucket(
     overrides: list[PlanOverride],
     today: date | None = None,
     outreach_log: list[dict[str, Any]] | None = None,
+    outreach_log_available: bool = False,
 ) -> dict[str, Any]:
     """Cross-tab Phase 1 readiness milestones × DAU bucket."""
     today = today or date.today()
     outreach_log = outreach_log or []
-    outreach_available = len(outreach_log) > 0
+    outreach_available = outreach_log_available
 
     raw_milestones = load_readiness_milestones()
     milestone_meta: list[dict[str, Any]] = []

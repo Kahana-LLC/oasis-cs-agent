@@ -222,6 +222,8 @@ The **4–7 email range** is a **lifecycle budget** toward perpetual free (Phase
 
 **Deploy:** Welcome + activation templates in `brevo-oasis-emails/`; build Brevo automations (D0 / D3 / D10 / conditional nudges). Reserve ~50 sends/day for CS agent on the same Brevo account.
 
+**Phase 1 setup:** Use list `Oasis Lifecycle`, automation `Oasis Phase 1`, templates `Oasis Welcome` / `Oasis Activation Nudge` / etc. (see [`docs/BREVO_NAMING.md`](BREVO_NAMING.md)). Enroll via `scripts/enroll_brevo_phase1.py` after test signups until Oasis is wired — full procedure in [`docs/BREVO_PHASE1_TEST_SETUP.md`](BREVO_PHASE1_TEST_SETUP.md).
+
 ### Phase 2 — Fork after Phase 1
 
 #### Path A — Upgraded → Resend + HubSpot (interim)

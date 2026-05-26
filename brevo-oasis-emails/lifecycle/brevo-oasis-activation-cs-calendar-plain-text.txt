@@ -1,15 +1,15 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
-I would love to help you get started with Oasis.
-Train the assistant to earn 1,000 bonus tokens.
-Book time: https://kahana.co/adam-kershner
+If Oasis still feels new, I would love to help — import from your old browser, try the assistant, or train it (1,000 tokens every time you train).
+
+A quick call is often the fastest way forward. Grab a slot and we can walk through it live.
 
 Book a call: https://kahana.co/adam-kershner
 
-I'm here if you have questions, feedback, or just want to talk. Reply to this email anytime — my DMs are open on the links below. I'm here to help :)
+Questions? Reply anytime — happy to help.
 
 - Adam
 

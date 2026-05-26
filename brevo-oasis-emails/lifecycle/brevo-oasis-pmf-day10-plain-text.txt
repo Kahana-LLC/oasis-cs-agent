@@ -1,13 +1,17 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
-You have been using Oasis for about a week. I am trying to understand who Oasis helps most, what is working, and what we should build next.
+I'm trying to make Oasis better for the people actually using it, and hearing from you directly is one of the best ways to do that.
 
-Would you take two minutes to share your experience? Your answers go directly to me and the product team.
+If you have a few minutes, I'd love your thoughts: what's working, what could be smoother, and any suggestions or issues you've run into — even small ones. It all helps us improve Oasis for you.
 
-Take the survey: https://kahana.co/oasis-pmf?email={{ contact.EMAIL }}
+There's a quick survey below if that's easiest. Either way, it comes straight to me.
+
+Share your thoughts: https://kahana.co/oasis-pmf?email={{ params.EMAIL }}
+
+Tally form: https://tally.so/r/EkNbXX?email={{ params.EMAIL }}
 
 Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
 
@@ -23,10 +27,9 @@ Instagram: https://www.instagram.com/adam_kershner/
 TikTok: https://www.tiktok.com/@adam_kershner
 YouTube: https://www.youtube.com/@adam_kershner
 
-Browse docs: https://kahana.co/docs
-Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
-Contact us: https://kahana.co/contact
-
+You're receiving this because you signed up for Oasis.
+Docs: https://kahana.co/docs
+Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact: https://kahana.co/contact
 View in browser: {{ mirror }}
 Unsubscribe: {{ unsubscribe }}
-Privacy: https://kahana.co/privacy-policy

@@ -16,8 +16,8 @@ TOUCH_PREVIEWS: dict[str, tuple[str, str, str, str]] = {
     "activation_nudge_d1": (
         "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge.html",
         "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
-        "Try your first AI command in Oasis",
-        "Import from Chrome, Safari, Brave, or Edge — then ask the assistant anything.",
+        "A few ways to get more from Oasis",
+        "Import, ask the assistant, train it — 1,000 tokens per training.",
     ),
     "activation_cs_calendar_d3": (
         "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar.html",

@@ -1,26 +1,17 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 You have had a few days with Oasis. I would love your honest feedback.
 
-How likely are you to recommend Oasis to a friend or colleague? Tap your score below. It takes about one minute, and your answer goes straight to me.
+Would you recommend Oasis to a friend or colleague? Tap an answer — we will open a quick page where you can pick your 0-10 score.
 
-Tap a score (opens pre-filled Tally form):
-0: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=0&email={{ contact.EMAIL }}
-1: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=1&email={{ contact.EMAIL }}
-2: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=2&email={{ contact.EMAIL }}
-3: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=3&email={{ contact.EMAIL }}
-4: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=4&email={{ contact.EMAIL }}
-5: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=5&email={{ contact.EMAIL }}
-6: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=6&email={{ contact.EMAIL }}
-7: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=7&email={{ contact.EMAIL }}
-8: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=8&email={{ contact.EMAIL }}
-9: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=9&email={{ contact.EMAIL }}
-10: https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=10&email={{ contact.EMAIL }}
+Yes: https://kahana.co/oasis-nps?email={{ params.EMAIL }}&recommend=yes
+No: https://kahana.co/oasis-nps?email={{ params.EMAIL }}&recommend=no
+Maybe: https://kahana.co/oasis-nps?email={{ params.EMAIL }}&recommend=maybe
 
-Full survey: https://kahana.co/oasis-nps?email={{ contact.EMAIL }}
+Tally survey (0-10): https://tally.so/r/ODoBz7?email={{ params.EMAIL }}
 
 Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
 
@@ -36,10 +27,9 @@ Instagram: https://www.instagram.com/adam_kershner/
 TikTok: https://www.tiktok.com/@adam_kershner
 YouTube: https://www.youtube.com/@adam_kershner
 
-Browse docs: https://kahana.co/docs
-Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
-Contact us: https://kahana.co/contact
-
+You're receiving this because you signed up for Oasis.
+Docs: https://kahana.co/docs
+Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact: https://kahana.co/contact
 View in browser: {{ mirror }}
 Unsubscribe: {{ unsubscribe }}
-Privacy: https://kahana.co/privacy-policy

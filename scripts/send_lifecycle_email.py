@@ -24,7 +24,9 @@ def _load_env() -> None:
 
 def main() -> int:
     _load_env()
-    parser = argparse.ArgumentParser(description="Send lifecycle email (welcome implemented).")
+    parser = argparse.ArgumentParser(
+        description="Send lifecycle email (welcome, nudge, CS calendar, nps_day3, pmf_day10).",
+    )
     parser.add_argument(
         "--trigger",
         default="welcome_email",

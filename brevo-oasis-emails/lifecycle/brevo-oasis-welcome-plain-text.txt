@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hey {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 I wanted to welcome you personally. Oasis is a privacy-first AI browser you can train, and I am glad you are here.
 

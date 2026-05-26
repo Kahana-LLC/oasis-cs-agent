@@ -153,6 +153,13 @@ def first_name_from_user(name: str | None, email: str) -> str:
     return local.replace(".", " ").replace("_", " ").split()[0].title() or "there"
 
 
+def welcome_greeting_line(name: str | None) -> str:
+    """Personalize only when users.name is set; OAuth signups often have no name."""
+    if name and name.strip():
+        return f"Hey {name.strip().split()[0]},"
+    return "Hello there!"
+
+
 def lookup_user(
     *,
     email: str | None = None,

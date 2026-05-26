@@ -147,11 +147,11 @@ Keep [`scripts/enroll_brevo_phase1.py`](../scripts/enroll_brevo_phase1.py) as **
 
 | Step | Email | Runbook | Status |
 |------|--------|---------|--------|
-| **1** | Welcome | [`LIFECYCLE_WELCOME.md`](LIFECYCLE_WELCOME.md) | Code shipped — apply migration + template id + test |
-| 2 | Activation nudge | *(pending)* | Not started |
-| 3 | Activation CS | *(pending)* | Not started |
-| 4 | NPS day 3 | *(pending)* | Not started |
-| 5 | PMF day 10 | *(pending)* | Not started |
+| **1** | Welcome | [`LIFECYCLE_WELCOME.md`](LIFECYCLE_WELCOME.md) | Shipped — webhook + live signup verified |
+| **2** | Activation nudge | [`LIFECYCLE_ACTIVATION_NUDGE.md`](LIFECYCLE_ACTIVATION_NUDGE.md) | Shipped — tested |
+| **3** | Activation CS calendar | [`LIFECYCLE_ACTIVATION_CS_CALENDAR.md`](LIFECYCLE_ACTIVATION_CS_CALENDAR.md) | Shipped |
+| **4** | NPS day 3 | [`LIFECYCLE_NPS_DAY3.md`](LIFECYCLE_NPS_DAY3.md) | Shipped |
+| **5** | PMF day 10 | [`LIFECYCLE_PMF_DAY10.md`](LIFECYCLE_PMF_DAY10.md) | Shipped |
 
 ---
 

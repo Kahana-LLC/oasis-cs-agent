@@ -1,4 +1,9 @@
-import { sendTransactionalTemplate, firstNameFromUser, type Sender } from "./brevo.ts";
+import {
+  sendTransactionalTemplate,
+  firstNameFromUser,
+  welcomeGreetingLine,
+  type Sender,
+} from "./brevo.ts";
 import { wasTriggered, logOutreach } from "./outreach_log.ts";
 
 export const WELCOME_TRIGGER = "welcome_email";
@@ -37,6 +42,7 @@ export async function sendWelcomeEmail(opts: {
     };
   }
 
+  const greeting = welcomeGreetingLine(user.name ?? null);
   const first = firstNameFromUser(user.name ?? null, user.email);
   if (opts.dryRun) {
     return {
@@ -46,6 +52,7 @@ export async function sendWelcomeEmail(opts: {
       email: user.email,
       template_id: opts.templateId,
       first_name: first,
+      greeting,
     };
   }
 
@@ -53,8 +60,8 @@ export async function sendWelcomeEmail(opts: {
     apiKey: opts.brevoApiKey,
     templateId: opts.templateId,
     toEmail: user.email,
-    toName: first,
-    params: { FIRSTNAME: first, first_name: first },
+    toName: user.name?.trim() ? first : "there",
+    params: { GREETING: greeting, FIRSTNAME: first, first_name: first },
     sender: opts.sender,
     tags: [WELCOME_TRIGGER, "welcome"],
   });

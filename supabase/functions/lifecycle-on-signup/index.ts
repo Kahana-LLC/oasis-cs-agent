@@ -4,6 +4,7 @@
  * Configure in Supabase: Database → Webhooks → users INSERT → this function URL
  * Header: Authorization: Bearer <service role> (or use webhook secret + verify)
  */
+import { authorizeServiceRole, bearerToken } from "../_shared/auth.ts";
 import { sendWelcomeEmail, envSender, envTemplateIdWelcome } from "../_shared/welcome.ts";
 
 const cors = {
@@ -28,13 +29,21 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: cors });
   }
 
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const brevoKey = Deno.env.get("BREVO_API_KEY") ?? "";
-  if (!serviceKey || !supabaseUrl || !brevoKey) {
+  if (!supabaseUrl || !brevoKey) {
     return new Response(JSON.stringify({ error: "Missing env secrets" }), { status: 500, headers: cors });
   }
 
+  if (!(await authorizeServiceRole(req, supabaseUrl))) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...cors, "content-type": "application/json" },
+    });
+  }
+
+  const serviceKey =
+    (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "").trim() || bearerToken(req);
   let payload: WebhookPayload;
   try {
     payload = await req.json();

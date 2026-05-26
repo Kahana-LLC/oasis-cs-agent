@@ -9,6 +9,7 @@ HTML templates for signup, feedback, and paid-plan automations. All four emails 
 | Email | Brevo template name | Trigger | HTML | Plain text | D&D spec |
 |-------|---------------------|---------|------|------------|----------|
 | Welcome | Oasis Welcome | On signup | [`brevo-oasis-welcome.html`](brevo-oasis-welcome.html) | [`brevo-oasis-welcome-plain-text.txt`](brevo-oasis-welcome-plain-text.txt) | [`brevo-oasis-welcome-dnd-spec.md`](brevo-oasis-welcome-dnd-spec.md) |
+| Activation nudge (24h) | Oasis Activation Nudge | 24h after signup, no first prompt | [`brevo-oasis-activation-nudge.html`](brevo-oasis-activation-nudge.html) | [`brevo-oasis-activation-nudge-plain-text.txt`](brevo-oasis-activation-nudge-plain-text.txt) | [`brevo-oasis-activation-nudge-dnd-spec.md`](brevo-oasis-activation-nudge-dnd-spec.md) |
 | NPS (day 3) | Oasis NPS | 3 days after signup | [`brevo-oasis-nps-day3.html`](brevo-oasis-nps-day3.html) | [`brevo-oasis-nps-day3-plain-text.txt`](brevo-oasis-nps-day3-plain-text.txt) | [`brevo-oasis-nps-day3-dnd-spec.md`](brevo-oasis-nps-day3-dnd-spec.md) |
 | PMF (day 10) | Oasis PMF | 10 days after signup | [`brevo-oasis-pmf-day10.html`](brevo-oasis-pmf-day10.html) | [`brevo-oasis-pmf-day10-plain-text.txt`](brevo-oasis-pmf-day10-plain-text.txt) | [`brevo-oasis-pmf-day10-dnd-spec.md`](brevo-oasis-pmf-day10-dnd-spec.md) |
 | Paid Zen welcome | Oasis Paid Zen Welcome | Zen plan upgrade | [`brevo-oasis-paid-zen-welcome.html`](brevo-oasis-paid-zen-welcome.html) | [`brevo-oasis-paid-zen-welcome-plain-text.txt`](brevo-oasis-paid-zen-welcome-plain-text.txt) | [`brevo-oasis-paid-zen-welcome-dnd-spec.md`](brevo-oasis-paid-zen-welcome-dnd-spec.md) |
@@ -21,6 +22,8 @@ HTML templates for signup, feedback, and paid-plan automations. All four emails 
 | [`brevo-oasis-founder-signoff-package-snippet.html`](../shared/brevo-oasis-founder-signoff-package-snippet.html) | Help line + `- Adam` + mantra + socials |
 | [`brevo-oasis-slack-button-snippet.html`](../shared/brevo-oasis-slack-button-snippet.html) | Purple Join Slack button with icon |
 | [`brevo-oasis-support-links-snippet.html`](../shared/brevo-oasis-support-links-snippet.html) | Docs · Slack (icon) · Contact footer row |
+| [`brevo-oasis-activation-three-steps-snippet.html`](../shared/brevo-oasis-activation-three-steps-snippet.html) | Activation nudge 3-step checklist |
+| [`brevo-oasis-need-help-snippet.html`](../shared/brevo-oasis-need-help-snippet.html) | Compact Help center / Contact / Slack card |
 | [`brevo-oasis-email-links.js`](../brevo-oasis-email-links.js) | Canonical URLs (site reference) |
 
 ---
@@ -51,8 +54,8 @@ HTML templates for signup, feedback, and paid-plan automations. All four emails 
 
 | Field | Value |
 |-------|--------|
-| Subject | `Help us understand how Oasis fits your workflow` |
-| Preheader | `2-minute product survey. Your answers shape what we build next.` |
+| Subject | `Quick favor — help us improve Oasis?` |
+| Preheader | `Your ideas and honest feedback help us make Oasis better for you.` |
 | From name | `Adam from Oasis` |
 | Trigger | Brevo automation: 10 days after signup |
 | Primary CTA | https://kahana.co/oasis-pmf?email={{ contact.EMAIL }} |

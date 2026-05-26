@@ -71,9 +71,9 @@ class LifecycleReadinessTests(unittest.TestCase):
         )
 
         self.assertEqual(result["product_milestone_count"], 3)
-        self.assertEqual(len(result["milestones"]), 6)
+        self.assertEqual(len(result["milestones"]), 8)
         pending = [m for m in result["milestones"] if m["status"] == "pending"]
-        self.assertEqual(len(pending), 3)
+        self.assertEqual(len(pending), 5)
 
         by_bucket = result["by_bucket"]
         bucket_sum = (
@@ -106,10 +106,11 @@ class LifecycleReadinessTests(unittest.TestCase):
             overrides=[],
             today=today,
             outreach_log=[{"user_id": "u1", "trigger_name": "welcome_email"}],
+            outreach_log_available=True,
         )
 
         live = [m for m in result["milestones"] if m["status"] == "live"]
-        self.assertEqual(len(live), 6)
+        self.assertEqual(len(live), 8)
         welcome = result["by_bucket"]["new"]["milestones"].get("welcome_sent")
         self.assertIsNotNone(welcome)
         assert welcome is not None

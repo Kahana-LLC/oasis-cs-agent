@@ -519,7 +519,7 @@
       const pending = milestones.filter((m) => m.status === "pending");
       const live = milestones.filter((m) => m.status === "live");
       const pendingBanner = pending.length
-        ? `<div class="banner banner-info">Email send columns (${pending.map((m) => escapeHtml(m.label || m.id)).join(", ")}) pending <span class="code">cs_outreach_log</span>. Product milestones below are live.</div>`
+        ? `<div class="banner banner-info">Email send columns could not load from <span class="code">cs_outreach_log</span> (${pending.length} pending). Product milestones below are live.</div>`
         : "";
       const summaryMetrics = live
         .map((m) => {
@@ -533,15 +533,60 @@
       const maxScore = totals.max_score ?? live.length;
       return `<section id="lifecycle-readiness">
         <h2>Lifecycle readiness by bucket</h2>
-        <p class="section-cap">As of ${escapeHtml(lr.as_of || "—")} · Phase 1 milestones from <a href="/email-machine#funnel">email machine</a> · graduated readiness (more milestones = riper for Phase 2)</p>
+        <p class="section-cap">As of ${escapeHtml(lr.as_of || "—")} · Product + email milestones from <a href="/email-machine#supabase-lifecycle">email machine</a> · graduated readiness (more milestones = riper for Phase 2)</p>
         ${pendingBanner}
         <div class="metrics">${summaryMetrics}
           ${metric("Avg product milestones / user", avgScore != null ? `${avgScore} / ${maxScore}` : "—")}
           ${metric("Users with ≥1 product milestone", pct(totals.pct_with_any_product_milestone))}
         </div>
         ${readinessMatrixRows(byBucket, milestones)}
-        <p class="section-cap">* Email columns populate when outreach log is deployed. Cells show % and (met/total in bucket).</p>
+        <p class="section-cap">Cells show % and (met/total in bucket). Email columns use <span class="code">cs_outreach_log</span>.</p>
         <div class="chart-box"><h3>Avg product milestones met (by bucket)</h3><canvas id="readiness-score-chart"></canvas></div>
+      </section>`;
+    }
+
+    function renderLifecycleEmailSends(sends) {
+      if (!sends || !sends.cohort) {
+        return `<section id="lifecycle-email-sends">
+          <h2>Phase 1 lifecycle sends</h2>
+          <p class="section-cap">Run <span class="code">main.py --baseline</span> with live Supabase to load <span class="code">cs_outreach_log</span>.</p>
+        </section>`;
+      }
+      const cohort = sends.cohort || {};
+      const triggers = cohort.triggers || [];
+      const windowDays = sends.new_user_window_days ?? 30;
+      const unavailable = sends.outreach_log_available === false;
+      const banner = unavailable
+        ? `<div class="banner banner-warn">Could not load <span class="code">cs_outreach_log</span> — send counts unavailable.</div>`
+        : "";
+      const triggerMetrics = triggers
+        .map((t) => {
+          const label = t.label || t.dedup_trigger_name || "—";
+          const count = t.sent_count ?? 0;
+          const p = t.pct_of_cohort;
+          return metric(label, `${count} (${p != null ? p + "%" : "—"})`, {
+            tooltip: t.when ? `When: ${t.when}` : "",
+          });
+        })
+        .join("");
+      const recent = (sends.recent_sends_7d || [])
+        .map((r) => `<li><span class="code">${escapeHtml(r.trigger_name)}</span>: ${r.count}</li>`)
+        .join("");
+      const recentBlock = recent
+        ? `<p class="section-cap"><strong>Sends last 7 days:</strong></p><ul class="section-cap" style="margin-top:0">${recent}</ul>`
+        : "";
+      return `<section id="lifecycle-email-sends">
+        <h2>Phase 1 lifecycle sends (new signups)</h2>
+        <p class="section-cap">As of ${escapeHtml(sends.as_of || "—")} · ${escapeHtml(cohort.label || "")} · source: <span class="code">cs_outreach_log</span> (${sends.outreach_log_row_count ?? 0} rows) · <a href="/email-machine#supabase-lifecycle">Edge triggers →</a></p>
+        ${banner}
+        <div class="metrics">
+          ${metric("Cohort size", cohort.users ?? "—")}
+          ${metric("Received any lifecycle email", cohort.users_with_any_lifecycle_email ?? "—", { tooltip: `${pct(cohort.pct_with_any_lifecycle_email) || "—"} of cohort` })}
+          ${metric("Received all 5 emails", cohort.users_with_all_five ?? "—", { tooltip: `${pct(cohort.pct_with_all_five) || "—"} of cohort` })}
+        </div>
+        <div class="metrics">${triggerMetrics}</div>
+        <div class="chart-box"><h3>% of new signups (last ${windowDays}d) who received each email</h3><canvas id="lifecycle-sends-chart"></canvas></div>
+        ${recentBlock}
       </section>`;
     }
 
@@ -590,6 +635,27 @@
     function destroyCharts() {
       charts.forEach((c) => c.destroy());
       charts.length = 0;
+    }
+
+    function horizontalBarChart(canvasId, labels, values, label, colors) {
+      const el = document.getElementById(canvasId);
+      if (!el) return;
+      const bg = colors || labels.map(() => "rgba(74, 98, 0, 0.75)");
+      charts.push(new Chart(el, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{ label, data: values, backgroundColor: bg }],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + "%" } },
+          },
+        },
+      }));
     }
 
     function barChart(canvasId, labels, values, label, colors) {
@@ -829,6 +895,7 @@
         </section>
 
         ${renderLifecycleReadiness(lr)}
+        ${renderLifecycleEmailSends(data.lifecycle_email_sends || {})}
 
         <section id="activation">
           <h2>Activation</h2>
@@ -924,6 +991,13 @@
         const rValues = DAU_BUCKET_ORDER.map(([key]) => (lrBuckets[key]?.readiness?.avg_score ?? 0));
         const rColors = DAU_BUCKET_ORDER.map(([key]) => DAU_BUCKET_COLORS[key]);
         barChart("readiness-score-chart", rLabels, rValues, "Avg milestones", rColors);
+      }
+      const emailSends = data.lifecycle_email_sends || {};
+      const sendTriggers = emailSends.cohort?.triggers || [];
+      if (sendTriggers.length) {
+        const sLabels = sendTriggers.map((t) => t.label || t.dedup_trigger_name);
+        const sValues = sendTriggers.map((t) => t.pct_of_cohort ?? 0);
+        horizontalBarChart("lifecycle-sends-chart", sLabels, sValues, "% of cohort");
       }
       if (Object.keys(rates).length) {
         barChart(nextId(), Object.keys(rates), Object.values(rates), "Activation %");

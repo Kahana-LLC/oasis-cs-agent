@@ -314,12 +314,18 @@
     function implementationStatusBadge(seq) {
       const status = inferImplementationStatus(seq);
       const cls =
-        status === "shipped"
+        status === "shipped" ||
+        status === "ready_local_and_edge" ||
+        seq.deployed_via === "supabase_edge"
           ? "status-shipped"
           : status === "needs_implementation"
             ? "status-needs-implementation"
             : "status-planned";
-      return `<span class="status-pill ${cls}">${escapeHtml(status.replace(/_/g, " "))}</span>`;
+      const label =
+        status === "ready_local_and_edge" || seq.deployed_via === "supabase_edge"
+          ? "shipped"
+          : status.replace(/_/g, " ");
+      return `<span class="status-pill ${cls}">${escapeHtml(label)}</span>`;
     }
 
     const CADENCE_LABELS = {
@@ -528,7 +534,7 @@
       const cls =
         s === "shipped" || s === "ready_local_and_edge"
           ? "status-shipped"
-          : s === "optional"
+          : s === "optional" || s === "skipped"
             ? "status-planned"
             : "status-needs-implementation";
       return `<span class="status-pill ${cls}">${escapeHtml(s.replace(/_/g, " "))}</span>`;
@@ -542,9 +548,28 @@
       const welcomeDoc = plan.welcome_runbook
         ? `https://github.com/AdamKershner/oasis-analytics/blob/main/${plan.welcome_runbook}`
         : "";
-      const currentEmail = plan.current_email
-        ? `<p class="section-cap"><strong>Now building:</strong> <span class="code">${escapeHtml(plan.current_email)}</span>${welcomeDoc ? ` · <a href="${welcomeDoc}">Welcome runbook</a>` : ""}</p>`
+      const isShipped = plan.status === "shipped";
+      const shippedBanner = isShipped
+        ? `<div class="banner banner-live"><strong>Phase 1 shipped.</strong> Five lifecycle emails on Supabase Edge + Brevo templates (welcome webhook + daily cron). Brevo <span class="code">Oasis Phase 1</span> automation was never enabled.</div>`
         : "";
+      const currentEmail =
+        plan.current_email && plan.current_email !== "complete"
+          ? `<p class="section-cap"><strong>Now building:</strong> <span class="code">${escapeHtml(plan.current_email)}</span>${welcomeDoc ? ` · <a href="${welcomeDoc}">Welcome runbook</a>` : ""}</p>`
+          : "";
+      const sends = snapshotData?.lifecycle_email_sends;
+      const cohort = sends?.cohort;
+      let sendsSummary = "";
+      if (cohort?.triggers?.length) {
+        const rows = cohort.triggers
+          .map(
+            (t) =>
+              `<tr><td>${escapeHtml(t.label || t.dedup_trigger_name)}</td><td>${t.sent_count ?? 0}</td><td>${t.pct_of_cohort != null ? t.pct_of_cohort + "%" : "—"}</td></tr>`
+          )
+          .join("");
+        sendsSummary = `<h3>Live send coverage (dashboard)</h3>
+          <p class="section-cap">Active signups last ${sends.new_user_window_days ?? 30} days · <a href="/#lifecycle-email-sends">Open on dashboard →</a></p>
+          <table class="lifecycle-trigger-table"><thead><tr><th>Email</th><th>Sent</th><th>% of cohort (${cohort.users ?? 0})</th></tr></thead><tbody>${rows}</tbody></table>`;
+      }
       const triggerRows = (plan.triggers || [])
         .map(
           (t) =>
@@ -589,10 +614,12 @@
       const testing = plan.testing || {};
       const brevoPhase1 = emailData?.launch_config?.brevo_phase1;
       return `<section id="supabase-lifecycle" class="lifecycle-plan-card">
-        <h2>${escapeHtml(plan.headline || "Supabase lifecycle email")} <span class="routing-pill">${escapeHtml(plan.priority || plan.status || "planned")}</span></h2>
+        <h2>${escapeHtml(plan.headline || "Supabase lifecycle email")} <span class="routing-pill">${escapeHtml(isShipped ? "shipped" : plan.priority || plan.status || "planned")}</span></h2>
         <p class="section-cap">${escapeHtml(plan.summary || "")}</p>
+        ${shippedBanner}
         ${currentEmail}
         <div class="banner banner-info"><strong>Deploy target:</strong> ${escapeHtml(plan.deploy_project || "Oasis Supabase")} · <strong>ESP:</strong> ${escapeHtml(plan.esp_id || "brevo")} templates · <strong>Dedup:</strong> <span class="code">${escapeHtml(plan.dedup_table || "cs_outreach_log")}</span> · Full spec: <a href="${docUrl}" target="_blank" rel="noopener noreferrer">SUPABASE_LIFECYCLE_EMAIL_PLAN.md</a>${welcomeDoc ? ` · <a href="${welcomeDoc}">Welcome (step 1)</a>` : ""}</div>
+        ${sendsSummary}
         <pre class="funnel-flow-ascii">${escapeHtml(plan.architecture_ascii || "")}</pre>
         <h3>Edge Functions</h3>
         <div class="lifecycle-fn-grid">${fnCards}</div>
@@ -619,7 +646,7 @@
         <ul class="launch-plan-why">${refs}</ul>
         ${
           brevoPhase1
-            ? `<p class="section-cap"><strong>Brevo automation fallback:</strong> <span class="code">${escapeHtml(brevoPhase1.automation_name || "Oasis Phase 1")}</span> list enroll via <span class="code">${escapeHtml(brevoPhase1.enroll_script || "scripts/enroll_brevo_phase1.py")}</span> — superseded by this plan when Edge Functions ship. <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/BREVO_PHASE1_TEST_SETUP.md">Legacy Brevo automation setup</a></p>`
+            ? `<p class="section-cap"><strong>Brevo:</strong> transactional templates + API only. <span class="code">${escapeHtml(brevoPhase1.automation_name || "Oasis Phase 1")}</span> list automation is <strong>superseded</strong>${brevoPhase1.brevo_status === "superseded" ? " (never enabled)" : ""} — dev enroll via <span class="code">${escapeHtml(brevoPhase1.enroll_script || "scripts/enroll_brevo_phase1.py")}</span> optional. <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/BREVO_PHASE1_TEST_SETUP.md">Legacy Brevo automation doc</a></p>`
             : ""
         }
       </section>`;
@@ -1847,7 +1874,7 @@ provider = max(headroom, key=headroom.get)`;
       return `<section id="implementation">
         <h2>Implementation guide</h2>
         <p class="section-cap">Wiring spec for CS agent + Supabase. <strong>${stats.pending} of ${stats.total} sequences</strong> need implementation (${stats.shipped} shipped).</p>
-        <div class="banner banner-info"><strong>Phase 1 primary:</strong> <strong>Brevo Starter ($29/mo)</strong> for templates + sends. <strong>Recommended triggers:</strong> <a href="#supabase-lifecycle">Supabase Edge Functions + cron</a> (see <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/SUPABASE_LIFECYCLE_EMAIL_PLAN.md">plan</a>). <strong>Operational:</strong> <strong>Resend Pro ($20/mo)</strong> for legal/outage until SES production. Lifecycle overflow → <span class="code">fallback_pool</span> (${escapeHtml(fallbackPoolMemberLabel())}).${emailData?.launch_config?.brevo_phase1 ? ` <strong>Brevo automation fallback:</strong> <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/BREVO_PHASE1_TEST_SETUP.md">legacy setup</a> · <span class="code">scripts/enroll_brevo_phase1.py</span>` : ""}</div>
+        <div class="banner banner-info"><strong>Phase 1 primary:</strong> <strong>Brevo Starter ($29/mo)</strong> for templates + transactional API. <strong>Triggers (shipped):</strong> <a href="#supabase-lifecycle">Supabase Edge Functions + cron</a> — not Brevo automation. <strong>Operational:</strong> <strong>Resend Pro ($20/mo)</strong> for legal/outage until SES production. Lifecycle overflow → <span class="code">fallback_pool</span> (${escapeHtml(fallbackPoolMemberLabel())}).</div>
         <h3>User lifecycle states</h3>
         <table class="impl-state-table">
           <thead><tr><th>State</th><th>Entry</th><th>Exit condition</th><th>Next</th></tr></thead>
@@ -2065,6 +2092,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         <section id="sequences">
           <h2>Email inventory</h2>
           <p class="section-cap">One row per email touch — primary provider and fallback routing when primary hits cap. Filter by funnel phase, provider, or routing. <strong>${implStats.shipped} of ${implStats.total} sequences shipped</strong> · ${implStats.pending} need implementation.</p>
+          ${emailData?.launch_config?.supabase_lifecycle_email?.status === "shipped" ? `<div class="banner banner-live"><strong>Phase 1 (Supabase Edge):</strong> 5 lifecycle emails live — welcome, activation nudge, CS calendar, NPS, PMF. <a href="#supabase-lifecycle">Plan &amp; send stats →</a> · <a href="/#lifecycle-email-sends">Dashboard send coverage →</a></div>` : ""}
           ${renderFilters()}
           ${renderEmailInventory()}
         </section>

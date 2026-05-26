@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MERGE_TAG_SAMPLES = {
     r"\{\{\s*contact\.FIRSTNAME\s*\}\}": "Alex",
     r"\{\{\s*contact\.EMAIL\s*\}\}": "alex@example.com",
+    r"\{\{\s*params\.GREETING\s*\}\}": "Hi Alex,",
+    r"\{\{\s*params\.EMAIL\s*\}\}": "alex@example.com",
     r"\{\{\s*mirror\s*\}\}": "",
     r"\{\{\s*unsubscribe\s*\}\}": "#unsubscribe-preview",
 }

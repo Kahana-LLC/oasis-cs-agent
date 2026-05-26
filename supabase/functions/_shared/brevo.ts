@@ -43,3 +43,12 @@ export function firstNameFromUser(name: string | null, email: string): string {
     "there"
   );
 }
+
+/** Welcome opener: personalize only when users.name is set (OAuth often has no name). */
+export function welcomeGreetingLine(name: string | null): string {
+  if (name?.trim()) {
+    const first = name.trim().split(/\s+/)[0]!;
+    return `Hey ${first},`;
+  }
+  return "Hello there!";
+}

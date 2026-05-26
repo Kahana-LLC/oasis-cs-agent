@@ -1,15 +1,20 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
-You signed up but have not sent your first AI command yet.
-Import from Chrome, Safari, Brave, or Edge, then try the assistant.
-Open Oasis: https://kahana.co/installations
+Three quick wins — three steps that help you get the most from Oasis:
 
-Open Oasis: https://kahana.co/installations
+1. Import from Chrome, Safari, Brave, or Edge (under a minute; private on your device — we never see it, unlike Chrome)
+2. Ask the assistant anything — one prompt: research, summarize, or ask what you are curious about
+3. Train it so it gets smarter — earn 1,000 tokens every time you train
 
-I'm here if you have questions, feedback, or just want to talk. Reply to this email anytime — my DMs are open on the links below. I'm here to help :)
+Need help?
+Help center: https://kahana.co/docs
+Contact us: https://kahana.co/contact
+Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+
+Questions? Reply anytime — happy to help.
 
 - Adam
 

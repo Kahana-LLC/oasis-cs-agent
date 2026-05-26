@@ -13,10 +13,21 @@ from integrations.brevo_phase1 import (
     first_name_from_user,
     load_manifest,
     lookup_user,
+    welcome_greeting_line,
 )
 
 WELCOME_TRIGGER = "welcome_email"
-IMPLEMENTED_TRIGGERS = frozenset({WELCOME_TRIGGER})
+ACTIVATION_NUDGE_TRIGGER = "activation_nudge_24h"
+ACTIVATION_CS_CALENDAR_TRIGGER = "activation_cs_calendar"
+NPS_DAY3_TRIGGER = "nps_day3"
+PMF_DAY10_TRIGGER = "pmf_day10"
+IMPLEMENTED_TRIGGERS = frozenset({
+    WELCOME_TRIGGER,
+    ACTIVATION_NUDGE_TRIGGER,
+    ACTIVATION_CS_CALENDAR_TRIGGER,
+    NPS_DAY3_TRIGGER,
+    PMF_DAY10_TRIGGER,
+})
 
 
 def _lifecycle_config() -> dict[str, Any]:
@@ -74,7 +85,7 @@ def send_lifecycle_email(
     """
     Send one lifecycle email if not already logged in cs_outreach_log.
 
-    Currently implemented: welcome_email only.
+    Implemented: welcome_email, activation_nudge_24h, activation_cs_calendar, nps_day3, pmf_day10.
     """
     if trigger_name not in IMPLEMENTED_TRIGGERS:
         raise ValueError(
@@ -87,6 +98,7 @@ def send_lifecycle_email(
     user = lookup_user(email=email, user_id=user_id)
     spec = trigger_spec(trigger_name)
     template_id = template_id_for_trigger(trigger_name)
+    greeting = welcome_greeting_line(user.name)
     first = first_name_from_user(user.name, user.email)
     sender = sender_for_lifecycle()
 
@@ -106,16 +118,60 @@ def send_lifecycle_email(
         "template_id": template_id,
         "to": user.email,
         "first_name": first,
+        "greeting": greeting,
         "sender": sender,
     }
     if dry_run:
         return {"dry_run": True, **payload}
 
+    if trigger_name in (ACTIVATION_NUDGE_TRIGGER, ACTIVATION_CS_CALENDAR_TRIGGER):
+        from db.client import _api_key, _base_url, get_http_client
+
+        headers = {"apikey": _api_key(), "Authorization": f"Bearer {_api_key()}"}
+        usage_resp = get_http_client().get(
+            f"{_base_url()}/llm_usage",
+            headers=headers,
+            params={"select": "usage_id", "user_id": f"eq.{user.user_id}", "limit": "1"},
+        )
+        usage_resp.raise_for_status()
+        usage = usage_resp.json()
+        if isinstance(usage, list) and usage:
+            return {
+                "skipped": True,
+                "reason": "has_first_prompt",
+                "user_id": str(user.user_id),
+                "trigger_name": trigger_name,
+            }
+
+    if trigger_name == ACTIVATION_CS_CALENDAR_TRIGGER:
+        from db.client import _api_key, _base_url, get_http_client
+
+        fb_resp = get_http_client().get(
+            f"{_base_url()}/feedback_events",
+            headers={"apikey": _api_key(), "Authorization": f"Bearer {_api_key()}"},
+            params={"select": "feedback_id", "user_id": f"eq.{user.user_id}", "limit": "1"},
+        )
+        fb_resp.raise_for_status()
+        fb = fb_resp.json()
+        if isinstance(fb, list) and fb:
+            return {
+                "skipped": True,
+                "reason": "has_training",
+                "user_id": str(user.user_id),
+                "trigger_name": trigger_name,
+            }
+
     client = _brevo_client()
+    to_name = first if (user.name and user.name.strip()) else "there"
     result = client.transactional_emails.send_transac_email(
         template_id=template_id,
-        to=[{"email": user.email, "name": first}],
-        params={"FIRSTNAME": first, "first_name": first},
+        to=[{"email": user.email, "name": to_name}],
+        params={
+            "GREETING": greeting,
+            "FIRSTNAME": first,
+            "first_name": first,
+            "EMAIL": user.email,
+        },
         sender=sender,
         tags=[trigger_name, spec.get("sequence_id") or "lifecycle"],
     )

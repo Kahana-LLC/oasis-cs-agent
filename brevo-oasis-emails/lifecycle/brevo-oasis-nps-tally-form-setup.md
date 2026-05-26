@@ -1,45 +1,55 @@
-# Tally NPS form setup for email embed (ODoBz7)
+# NPS survey links (email + web)
 
-Email clients **cannot** run a live Tally iframe inside the message. The NPS email uses [Tally's recommended pattern](https://tally.so/help/how-to-embed-a-form-in-an-email): **tappable 0-10 score buttons** that open a **pre-filled Tally form** in the browser.
-
-Snippet to paste in Brevo: [`brevo-oasis-nps-tally-form-snippet.html`](brevo-oasis-nps-tally-form-snippet.html)
+Email clients cannot embed a live 0–10 grid reliably. The NPS email uses **Yes / No / Maybe** buttons that open the full survey in the browser.
 
 ---
 
-## Form field
+## Email flow
 
-The NPS question uses Tally linear scale field:
+| Tap | Opens |
+|-----|--------|
+| **Yes** | `https://kahana.co/oasis-nps?email=…&recommend=yes` |
+| **No** | `https://kahana.co/oasis-nps?email=…&recommend=no` |
+| **Maybe** | `https://kahana.co/oasis-nps?email=…&recommend=maybe` |
 
-`linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf`
+Snippet: [`brevo-oasis-nps-tally-form-snippet.html`](brevo-oasis-nps-tally-form-snippet.html)  
+Full template: [`brevo-oasis-nps-day3.html`](brevo-oasis-nps-day3.html)
 
-Example pre-filled URL (score 8):
+`recommend` is optional tracking on the survey page; all three land on the same 0–10 experience.
+
+---
+
+## Tally (direct 0–10)
+
+Form: https://tally.so/r/ODoBz7
+
+Email fallback link (no pre-selected score):
+
+```
+https://tally.so/r/ODoBz7?email=test@example.com
+```
+
+Pre-filled score (if needed elsewhere):
 
 ```
 https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=8&email=test@example.com
 ```
 
----
-
-## Optional: hidden email field
-
-To identify respondents in Tally responses, add a hidden field in the Tally editor:
-
-| Hidden field name | URL parameter | Purpose |
-|-------------------|---------------|---------|
-| `email` | `email` | Pre-fill or track Brevo contact email |
-
-The email snippet already passes `email={{ contact.EMAIL }}` on every score link.
+Field id: `linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf`
 
 ---
 
-## Test before send
+## Brevo params
 
-1. Open in browser: `https://tally.so/r/ODoBz7?linear_scale_37aadfce-8894-4772-9712-709dbb4cfdaf=9&email=test@example.com`
-2. Confirm score **9** is pre-selected.
-3. Send a Brevo test email; tap scores 0, 5, and 10 and confirm pre-fill works.
+| Param | Use |
+|-------|-----|
+| `{{ params.GREETING }}` | Opener line |
+| `{{ params.EMAIL }}` | Survey + Tally query string |
 
 ---
 
-## Brevo D&D
+## QA
 
-Replace the single "Share your score" button with [`brevo-oasis-nps-tally-form-snippet.html`](brevo-oasis-nps-tally-form-snippet.html) in a **Text block** (source mode).
+1. Send test email; tap **Yes**, **No**, **Maybe** — each opens `kahana.co/oasis-nps` with email in URL.
+2. Confirm 0–10 picker works on that page (or use Tally fallback link).
+3. `{{ params.GREETING }}` renders (not `Hi ,`).

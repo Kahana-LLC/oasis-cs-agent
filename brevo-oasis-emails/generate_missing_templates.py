@@ -111,20 +111,10 @@ def plain(
     return "\n".join(lines) + "\n"
 
 
+# Oasis Welcome + Activation Nudge: edit lifecycle/brevo-oasis-welcome.html and
+# brevo-oasis-activation-nudge.html directly (full layout + {{ params.GREETING }}).
+
 TEMPLATES: list[tuple[str, str, str, str, str, str, str, list[str], str, str | None]] = [
-    (
-        "lifecycle/brevo-oasis-activation-nudge.html",
-        "lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
-        "Try your first AI command in Oasis — import from your old browser",
-        "Try your first AI command",
-        """<p style="margin: 0 0 16px; font-size: 16px; color: #4A5745;">You signed up for Oasis but have not sent your first AI command yet. The fastest win: import bookmarks and history from Chrome, Safari, Brave, or Edge, then ask the assistant anything.</p>
-            <p style="margin: 0 0 16px; font-size: 16px; color: #4A5745;">Oasis is a privacy-first browser you can train. Your data stays on your device until you choose to share.</p>""",
-        "Open Oasis",
-        INSTALL,
-        ["You signed up but have not sent your first AI command yet.", "Import from Chrome, Safari, Brave, or Edge, then try the assistant.", f"Open Oasis: {INSTALL}"],
-        "You're receiving this because you signed up for Oasis.",
-        None,
-    ),
     (
         "lifecycle/brevo-oasis-activation-cs-calendar.html",
         "lifecycle/brevo-oasis-activation-cs-calendar-plain-text.txt",

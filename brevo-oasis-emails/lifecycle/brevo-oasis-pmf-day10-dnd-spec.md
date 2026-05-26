@@ -11,8 +11,8 @@
 | Field | Value |
 |-------|--------|
 | Brevo template name | `Oasis PMF` |
-| Subject | `Help us understand how Oasis fits your workflow` |
-| Preheader | `2-minute product survey. Your answers shape what we build next.` |
+| Subject | `Quick favor — help us improve Oasis?` |
+| Preheader | `Your ideas and honest feedback help us make Oasis better for you.` |
 | From name | `Adam from Oasis` |
 
 ## Snippets to paste
@@ -29,8 +29,8 @@
 | Block | Action |
 |-------|--------|
 | Title | `We'd love your input` |
-| Body | Adam headshot + first-person PMF framing |
-| Button 1 | Take the survey → `https://kahana.co/oasis-pmf?email={{ contact.EMAIL }}` |
+| Body | Adam headshot + casual ask for suggestions, issues, what’s working |
+| Button 1 | Share your thoughts → `https://kahana.co/oasis-pmf?email={{ params.EMAIL }}` |
 | Button 2 | Join Slack (purple `#4A154B`) |
 | Signoff | `- Adam` + mantra + **All my socials** row → `https://kahana.co/adam-kershner` + X/IG/TikTok/YouTube icons |
 | Footer | Support links snippet |

@@ -16,7 +16,7 @@ Run in Oasis Supabase SQL Editor (or `supabase db push` from a clone of this mig
 
 ## 2. Brevo: template id + sender
 
-1. **Campaigns → Templates → Transactional** (or SMTP templates) — confirm **Oasis Welcome** exists and uses `{{ params.FIRSTNAME }}` or `{{ contact.FIRSTNAME }}` as in your pasted HTML.
+1. **Campaigns → Templates → Transactional** — **Oasis Welcome** must use **`{{ params.GREETING }}`** for the opener (see [`brevo-oasis-welcome.html`](../brevo-oasis-emails/lifecycle/brevo-oasis-welcome.html)). Re-paste from repo after copy changes. OAuth signups with no `users.name` get `Hello there!`; named users get `Hey {first},`.
 2. List ids:
 
    ```bash
@@ -56,9 +56,24 @@ Run in Oasis Supabase SQL Editor (or `supabase db push` from a clone of this mig
 
 ## 4. Deploy Edge Functions (Oasis Supabase project)
 
-Copy [`supabase/functions/`](../supabase/functions/) into the Oasis app repo (or deploy from a monorepo path).
+**CLI walkthrough:** [`supabase/README.md`](../supabase/README.md#deploy-edge-functions-cli)
 
-**Secrets** (Supabase → Edge Functions → Secrets):
+From this repo (after `supabase link --project-ref …`):
+
+```bash
+# Copy from .env — all four must match what works locally
+supabase secrets set \
+  BREVO_API_KEY="xkeysib-..." \
+  BREVO_TEMPLATE_ID_WELCOME="54" \
+  LIFECYCLE_SENDER_EMAIL="adam@kahana.co" \
+  'LIFECYCLE_SENDER_NAME="Adam from Oasis"'
+supabase functions deploy lifecycle-send --no-verify-jwt
+supabase functions deploy lifecycle-on-signup --no-verify-jwt
+```
+
+**Brevo Security:** Under **Authorized IPs**, keep **API keys → Deactivated** (Edge Functions use the REST API). SMTP-key IP lock does not apply to template sends via API; it only affects SMTP protocol.
+
+Or set **Secrets** in Dashboard → Edge Functions → Secrets:
 
 | Secret | Value |
 |--------|--------|
@@ -115,4 +130,4 @@ New signups send welcome once; dedup prevents duplicates.
 
 ## Next email
 
-**Activation nudge** (`activation_nudge_24h`) — daily cron + no `llm_usage` cohort (not started yet).
+**Activation nudge** — [`LIFECYCLE_ACTIVATION_NUDGE.md`](LIFECYCLE_ACTIVATION_NUDGE.md)

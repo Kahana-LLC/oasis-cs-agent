@@ -55,6 +55,7 @@ class BaselineSnapshot:
     corporate_goals: dict[str, Any] = field(default_factory=dict)
     email_provider_capacity: dict[str, Any] = field(default_factory=dict)
     lifecycle_readiness: dict[str, Any] = field(default_factory=dict)
+    lifecycle_email_sends: dict[str, Any] = field(default_factory=dict)
     validation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -698,6 +699,8 @@ def compute_baseline_snapshot(
     overrides: list[PlanOverride],
     payments: list[Payment],
     user_plans: list[UserPlan],
+    outreach_log: list[dict[str, Any]] | None = None,
+    outreach_log_available: bool = False,
     today: date | None = None,
 ) -> BaselineSnapshot:
     today = today or date.today()
@@ -719,6 +722,9 @@ def compute_baseline_snapshot(
     feedback_metrics = _compute_feedback(users_df, feedback)
     dau_model = compute_dau_model(users_df, activity, today)
     from reporting.lifecycle_readiness import compute_lifecycle_readiness_by_bucket
+    from reporting.lifecycle_email_sends import compute_lifecycle_email_sends
+
+    outreach_log = outreach_log or []
 
     lifecycle_readiness = compute_lifecycle_readiness_by_bucket(
         users_df=users_df,
@@ -728,6 +734,15 @@ def compute_baseline_snapshot(
         feedback=feedback,
         plans=plans,
         overrides=overrides,
+        today=today,
+        outreach_log=outreach_log,
+        outreach_log_available=outreach_log_available,
+    )
+    lifecycle_email_sends = compute_lifecycle_email_sends(
+        users_df=users_df,
+        activity_df=activity,
+        outreach_log=outreach_log,
+        outreach_log_available=outreach_log_available,
         today=today,
     )
     launch_kpis = compute_launch_kpis(
@@ -776,5 +791,6 @@ def compute_baseline_snapshot(
         dau_model=dau_model,
         launch_kpis=launch_kpis,
         lifecycle_readiness=lifecycle_readiness,
+        lifecycle_email_sends=lifecycle_email_sends,
         validation=validation,
     )

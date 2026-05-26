@@ -1,15 +1,36 @@
 /**
- * POST { "trigger_name": "welcome_email", "user_id": "<uuid>", "dry_run"?: bool, "force"?: bool }
- * Or { "trigger_name": "welcome_email", "email": "...", ... }
+ * POST { "trigger_name": welcome_email | activation_nudge_24h | activation_cs_calendar | nps_day3 | pmf_day10, ... }
  *
- * Auth: Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>
+ * Auth: Authorization: Bearer <service_role key>
  */
+import { authorizeServiceRole, bearerToken } from "../_shared/auth.ts";
+import {
+  sendActivationCsCalendarEmail,
+  ACTIVATION_CS_CALENDAR_TRIGGER,
+  envTemplateIdActivationCsCalendar,
+} from "../_shared/activation_cs_calendar.ts";
+import {
+  sendActivationNudgeEmail,
+  ACTIVATION_NUDGE_TRIGGER,
+  envTemplateIdActivationNudge,
+} from "../_shared/activation_nudge.ts";
+import { sendNpsDay3Email, NPS_DAY3_TRIGGER, envTemplateIdNpsDay3 } from "../_shared/nps_day3.ts";
+import { sendPmfDay10Email, PMF_DAY10_TRIGGER, envTemplateIdPmfDay10 } from "../_shared/pmf_day10.ts";
 import { sendWelcomeEmail, WELCOME_TRIGGER, envSender, envTemplateIdWelcome } from "../_shared/welcome.ts";
+import { loadUser } from "../_shared/users.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type",
 };
+
+const IMPLEMENTED = [
+  WELCOME_TRIGGER,
+  ACTIVATION_NUDGE_TRIGGER,
+  ACTIVATION_CS_CALENDAR_TRIGGER,
+  NPS_DAY3_TRIGGER,
+  PMF_DAY10_TRIGGER,
+] as const;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -19,16 +40,21 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "POST only" }), { status: 405, headers: cors });
   }
 
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  const auth = req.headers.get("Authorization") ?? "";
-  if (!serviceKey || auth !== `Bearer ${serviceKey}`) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: cors });
-  }
-
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  if (!supabaseUrl || !(await authorizeServiceRole(req, supabaseUrl))) {
+    return new Response(
+      JSON.stringify({
+        error: "Unauthorized",
+        hint: "Use Authorization: Bearer <service_role_key> from Dashboard → API.",
+      }),
+      { status: 401, headers: { ...cors, "content-type": "application/json" } },
+    );
+  }
+  const serviceKey =
+    (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "").trim() || bearerToken(req);
   const brevoKey = Deno.env.get("BREVO_API_KEY") ?? "";
-  if (!supabaseUrl || !brevoKey) {
-    return new Response(JSON.stringify({ error: "Missing SUPABASE_URL or BREVO_API_KEY" }), {
+  if (!brevoKey) {
+    return new Response(JSON.stringify({ error: "Missing BREVO_API_KEY" }), {
       status: 500,
       headers: cors,
     });
@@ -42,12 +68,12 @@ Deno.serve(async (req) => {
   }
 
   const triggerName = String(body.trigger_name ?? "");
-  if (triggerName !== WELCOME_TRIGGER) {
+  if (!IMPLEMENTED.includes(triggerName as (typeof IMPLEMENTED)[number])) {
     return new Response(
       JSON.stringify({
         error: "not_implemented",
-        message: "Only welcome_email is implemented. Next: activation_nudge_24h.",
-        implemented: [WELCOME_TRIGGER],
+        message: `Unknown trigger_name. Implemented: ${IMPLEMENTED.join(", ")}`,
+        implemented: [...IMPLEMENTED],
       }),
       { status: 501, headers: { ...cors, "content-type": "application/json" } },
     );
@@ -57,62 +83,83 @@ Deno.serve(async (req) => {
   const force = Boolean(body.force);
   const userId = body.user_id ? String(body.user_id) : "";
   const email = body.email ? String(body.email) : "";
-
-  let user: { user_id: string; email: string; name?: string | null; status?: string | null };
-  if (userId) {
-    const res = await fetch(
-      `${supabaseUrl}/rest/v1/users?user_id=eq.${userId}&select=user_id,email,name,status&limit=1`,
-      {
-        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-      },
-    );
-    if (!res.ok) {
-      return new Response(await res.text(), { status: res.status, headers: cors });
-    }
-    const rows = await res.json();
-    if (!Array.isArray(rows) || !rows.length) {
-      return new Response(JSON.stringify({ error: "user_not_found", user_id: userId }), {
-        status: 404,
-        headers: { ...cors, "content-type": "application/json" },
-      });
-    }
-    user = rows[0];
-  } else if (email) {
-    const res = await fetch(
-      `${supabaseUrl}/rest/v1/users?email=eq.${encodeURIComponent(email)}&select=user_id,email,name,status&limit=1`,
-      {
-        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-      },
-    );
-    if (!res.ok) {
-      return new Response(await res.text(), { status: res.status, headers: cors });
-    }
-    const rows = await res.json();
-    if (!Array.isArray(rows) || !rows.length) {
-      return new Response(JSON.stringify({ error: "user_not_found", email }), {
-        status: 404,
-        headers: { ...cors, "content-type": "application/json" },
-      });
-    }
-    user = rows[0];
-  } else {
+  if (!userId && !email) {
     return new Response(JSON.stringify({ error: "Provide user_id or email" }), {
       status: 400,
       headers: { ...cors, "content-type": "application/json" },
     });
   }
 
-  try {
-    const result = await sendWelcomeEmail({
-      user,
-      supabaseUrl,
-      serviceKey,
-      brevoApiKey: brevoKey,
-      templateId: envTemplateIdWelcome(),
-      sender: envSender(),
-      dryRun,
-      force,
+  const user = await loadUser(supabaseUrl, serviceKey, {
+    user_id: userId || undefined,
+    email: email || undefined,
+  });
+  if (!user) {
+    return new Response(JSON.stringify({ error: "user_not_found", user_id: userId, email }), {
+      status: 404,
+      headers: { ...cors, "content-type": "application/json" },
     });
+  }
+
+  const sender = envSender();
+  try {
+    let result: Record<string, unknown>;
+    if (triggerName === WELCOME_TRIGGER) {
+      result = await sendWelcomeEmail({
+        user,
+        supabaseUrl,
+        serviceKey,
+        brevoApiKey: brevoKey,
+        templateId: envTemplateIdWelcome(),
+        sender,
+        dryRun,
+        force,
+      });
+    } else if (triggerName === ACTIVATION_NUDGE_TRIGGER) {
+      result = await sendActivationNudgeEmail({
+        user,
+        supabaseUrl,
+        serviceKey,
+        brevoApiKey: brevoKey,
+        templateId: envTemplateIdActivationNudge(),
+        sender,
+        dryRun,
+        force,
+      });
+    } else if (triggerName === ACTIVATION_CS_CALENDAR_TRIGGER) {
+      result = await sendActivationCsCalendarEmail({
+        user,
+        supabaseUrl,
+        serviceKey,
+        brevoApiKey: brevoKey,
+        templateId: envTemplateIdActivationCsCalendar(),
+        sender,
+        dryRun,
+        force,
+      });
+    } else if (triggerName === NPS_DAY3_TRIGGER) {
+      result = await sendNpsDay3Email({
+        user,
+        supabaseUrl,
+        serviceKey,
+        brevoApiKey: brevoKey,
+        templateId: envTemplateIdNpsDay3(),
+        sender,
+        dryRun,
+        force,
+      });
+    } else {
+      result = await sendPmfDay10Email({
+        user,
+        supabaseUrl,
+        serviceKey,
+        brevoApiKey: brevoKey,
+        templateId: envTemplateIdPmfDay10(),
+        sender,
+        dryRun,
+        force,
+      });
+    }
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...cors, "content-type": "application/json" },

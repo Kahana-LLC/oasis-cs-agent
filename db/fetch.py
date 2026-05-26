@@ -61,3 +61,8 @@ def fetch_payments() -> list[Payment]:
 def fetch_user_plans() -> list[UserPlan]:
     rows = [r for r in _paginate("user_plans") if r.get("user_id") is not None]
     return [UserPlan(**row) for row in rows]
+
+
+def fetch_cs_outreach_log() -> list[dict]:
+    """All lifecycle / CS agent send dedup rows."""
+    return _paginate("cs_outreach_log")

@@ -221,13 +221,34 @@ def _lifecycle_readiness_insights(snapshot: dict[str, Any]) -> list[dict[str, An
             severity="info",
             title="Email send milestones not tracked yet",
             detail=(
-                f"{len(pending)} readiness milestones (welcome, NPS, PMF) pending cs_outreach_log. "
+                f"{len(pending)} readiness email columns pending — cs_outreach_log could not be loaded. "
                 "Product milestones (prompt, limit, training) are live in the matrix below."
             ),
-            lever="Deploy cs_outreach_log and wire CS agent dedup before launch email scale.",
+            lever="Verify Supabase service role can read cs_outreach_log.",
             metrics=[],
             anchor="lifecycle-readiness",
         )
+
+    sends = snapshot.get("lifecycle_email_sends") or {}
+    cohort = sends.get("cohort") or {}
+    if sends.get("outreach_log_available") and cohort.get("users", 0) >= 5:
+        by_trigger = {t["dedup_trigger_name"]: t for t in cohort.get("triggers") or []}
+        welcome = by_trigger.get("welcome_email") or {}
+        welcome_pct = welcome.get("pct_of_cohort")
+        if welcome_pct is not None and welcome_pct < 80:
+            _add_item(
+                items,
+                severity="medium",
+                title="Low welcome email coverage for recent signups",
+                detail=(
+                    f"Only {welcome_pct}% of users who signed up in the last "
+                    f"{sends.get('new_user_window_days', 30)} days received welcome_email "
+                    f"({welcome.get('sent_count', 0)}/{cohort.get('users', 0)})."
+                ),
+                lever="Check lifecycle-on-signup webhook on users INSERT and Brevo template delivery.",
+                metrics=[],
+                anchor="lifecycle-email-sends",
+            )
 
     return items
 

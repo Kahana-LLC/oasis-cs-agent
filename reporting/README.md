@@ -45,6 +45,7 @@ Writes `baseline_snapshot.json` and updates the optional Cursor canvas. Then rer
 | `dau_model.py` | DAU bucket sizes + flow rates (User Email Machine model) |
 | `launch_kpis.py` | Product Hunt launch KPI scorecard + usage cost forecast |
 | `lifecycle_readiness.py` | Phase 1 milestone coverage by DAU bucket |
+| `lifecycle_email_sends.py` | Phase 1 send counts per trigger (`cs_outreach_log`) for recent signups |
 | `build_snapshot.py` | Rebuild from `sql_export.json` (no `.env`) |
 
 ## DAU model section
@@ -53,7 +54,7 @@ The Vercel dashboard and snapshot JSON include **`dau_model`**: seven user bucke
 
 ## Lifecycle readiness by bucket
 
-Snapshot key **`lifecycle_readiness`** (`lifecycle_readiness.py`): cross-tab of Phase 1 milestones from `email_sequences.json` × each DAU bucket. Product milestones (first AI prompt, daily limit hit, AI training) are live from Supabase; email send columns (welcome, NPS, PMF) show as pending until `cs_outreach_log` exists. Rendered on the main dashboard at `#lifecycle-readiness`.
+Snapshot keys **`lifecycle_readiness`** and **`lifecycle_email_sends`** (`lifecycle_readiness.py`, `lifecycle_email_sends.py`): cross-tab of Phase 1 milestones × DAU bucket, plus per-trigger send coverage for active signups in the last N days (default 30) from **`cs_outreach_log`**. Fetched on each `/api/snapshot` call via `db/fetch.fetch_cs_outreach_log()`. Rendered on the main dashboard at `#lifecycle-readiness` and `#lifecycle-email-sends`.
 
 ## Launch KPIs section
 
