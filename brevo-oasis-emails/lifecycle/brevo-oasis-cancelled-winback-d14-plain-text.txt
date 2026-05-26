@@ -3,12 +3,18 @@ Founder, Oasis
 
 {{ params.GREETING }}
 
-Follow-up after cancellation.
+It has been about two weeks since you cancelled Oasis Zen. Thank you again for trusting us in the first place.
+
+If you've had time to think about it:
+
+What could we change or add for you to consider resubscribing?
+
+Price, features, support, or something else — we sincerely value your input. A quick reply helps us build a better Oasis.
+
+Reply to this email with whatever comes to mind. I read every message personally.
+
+If daily limits on the free plan are getting in your way again, Zen is still $20/month (1M tokens per day + priority support).
 Reactivate: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
-
-Reactivate Zen: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
-
-I'm here if you have questions, feedback, or just want to talk. Reply to this email anytime — my DMs are open on the links below. I'm here to help :)
 
 - Adam
 

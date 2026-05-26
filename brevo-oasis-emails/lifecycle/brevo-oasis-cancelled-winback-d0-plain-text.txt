@@ -3,13 +3,18 @@ Founder, Oasis
 
 {{ params.GREETING }}
 
-Your Zen subscription ended.
-You can reactivate anytime.
-Billing portal: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
+Thank you for trusting Oasis Zen in the first place — that means a lot to us.
 
-Reactivate Oasis Zen: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
+Your Zen subscription has ended. We're not writing to pressure you back. We'd rather learn from you:
 
-I'm here if you have questions, feedback, or just want to talk. Reply to this email anytime — my DMs are open on the links below. I'm here to help :)
+What could we change or add for you to consider resubscribing?
+
+Even a short reply helps. We sincerely value your input.
+
+You can keep using Oasis on the free plan anytime. If you ever want Zen again:
+https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
+
+Reply to this email with your thoughts — I read every message personally.
 
 - Adam
 

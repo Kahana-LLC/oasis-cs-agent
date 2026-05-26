@@ -15,24 +15,26 @@ Backend segmentation still uses `company_domain`; that is not surfaced in the em
 
 ## Campaign copy
 
-### D55 — Founder
+### D55 — Founder (Brevo #71)
 
 | Field | Value |
 |-------|--------|
-| Header title | Quick question about your Oasis workflow |
-| Subject | How is Oasis working for you? |
-| Preheader | I'd love your honest feedback on your workflow and the product. |
-| CTA button | **Book time** → https://go.oncehub.com/AdamKershner |
+| Header title | Your honest take matters |
+| Subject | What would make Oasis indispensable to you? |
+| Preheader | We are problem solvers — your input drives what we build and fix next. |
+| Primary CTA | **Reply to this email** (feedback callout in body) |
+| Secondary | **Book time** → https://go.oncehub.com/AdamKershner (text link) |
 | Footer | You're receiving this because you use Oasis. |
 
-### D85 — Expansion
+### D85 — Expansion (Brevo #72)
 
 | Field | Value |
 |-------|--------|
-| Header title | Checking in on your Oasis experience |
-| Subject | Quick check-in: your Oasis experience |
-| Preheader | Share feedback or book a few minutes on my calendar. |
-| CTA button | **Book time** → https://go.oncehub.com/AdamKershner |
+| Header title | Help us see around corners |
+| Subject | What should Oasis become next? |
+| Preheader | Even a short reply helps us ship features and fixes faster. |
+| Primary CTA | **Reply to this email** (feedback callout in body) |
+| Secondary | **Book time** → https://go.oncehub.com/AdamKershner (text link) |
 | Footer | You're receiving this because you use Oasis. |
 
 ## Regenerate

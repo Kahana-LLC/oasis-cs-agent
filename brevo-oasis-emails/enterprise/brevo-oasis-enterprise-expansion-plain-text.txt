@@ -3,11 +3,18 @@ Founder, Oasis
 
 {{ params.GREETING }}
 
-It has been a while since you started using Oasis regularly. How is it going?
-I am eager to learn more about your use case and anything we could improve. Reply with feedback anytime, or book a few minutes on my calendar if that is easier.
-Book time: https://go.oncehub.com/AdamKershner
+We wanted to follow up on something we care about: making Oasis genuinely useful for how you work — and for the people you work with.
 
-I'm here if you have questions, feedback, or just want to talk. Reply to this email anytime — my DMs are open on the links below. I'm here to help :)
+What could we change or improve? Do you have suggestions? What would you ideally want in Oasis to make your work easier?
+
+We are problem solvers, and we genuinely want your feedback and input so Oasis can reach its potential. We are committed to rigorously and quickly implementing features, enhancements, and fixes based on what you say.
+
+WE WANT YOUR INPUT: Reply to this email with ideas, bugs, or friction — even one sentence helps. I read every note.
+Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
+Contact: https://kahana.co/contact
+
+Prefer a quick conversation? Book time: https://go.oncehub.com/AdamKershner
+Open Oasis: https://kahana.co/installations
 
 - Adam
 
@@ -21,7 +28,5 @@ YouTube: https://www.youtube.com/@adam_kershner
 
 You're receiving this because you use Oasis.
 Docs: https://kahana.co/docs
-Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
-Contact: https://kahana.co/contact
 View in browser: {{ mirror }}
 Unsubscribe: {{ unsubscribe }}

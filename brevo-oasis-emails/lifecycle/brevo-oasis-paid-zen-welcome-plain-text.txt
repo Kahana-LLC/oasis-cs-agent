@@ -3,18 +3,22 @@ Founder, Oasis
 
 {{ params.GREETING }}
 
-Thank you for upgrading to Oasis Zen. I am glad you are here, and your plan is active.
+Thank you for upgrading to Oasis Zen. Seriously — we're thrilled you're here. This is a milestone for us, and we want you to feel it.
 
-What you get with Zen:
-- 1,000,000 tokens per day
-- Everything in Free
-- Priority support from me and the team
+WHAT YOU UNLOCKED
+1,000,000 tokens per day
 
+That is a lot of room to think, build, and ship — plus everything in Free.
+
+Elite support: message me directly (reply to this email) and we'll make it happen for you. Zen members get our best response and our best care.
+
+As a Zen member, you have real influence over our product roadmap. Tell us what to build, what to fix, and what would make Oasis indispensable — we listen, and we ship fast.
+
+Book time with me: https://go.oncehub.com/AdamKershner
 Manage billing: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU
-
 Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
 
-I'm here if you have questions, feedback, or just want to talk. Reply to this email anytime — my DMs are open on the links below. I'm here to help :)
+Reply to this email anytime — you have a direct line to me. Let's build something great together.
 
 - Adam
 
@@ -27,9 +31,7 @@ TikTok: https://www.tiktok.com/@adam_kershner
 YouTube: https://www.youtube.com/@adam_kershner
 
 Browse docs: https://kahana.co/docs
-Join Slack: https://kahanaworkspace.slack.com/archives/C0B3QDPLH4P
 Contact us: https://kahana.co/contact
-
 View in browser: {{ mirror }}
 Unsubscribe: {{ unsubscribe }}
 Privacy: https://kahana.co/privacy-policy

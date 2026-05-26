@@ -554,7 +554,7 @@
         : "https://github.com/AdamKershner/oasis-analytics/blob/main/docs/LIFECYCLE_QA_PRE_LAUNCH.md";
       const triggerCount = (plan.triggers || []).length;
       const shippedBanner = isShipped
-        ? `<div class="banner banner-live"><strong>Phase 1 + Phase 2 shipped.</strong> ${triggerCount || 17} lifecycle emails on Supabase Edge + Brevo templates (signup + plan webhooks + daily cron @ 14:00 UTC). Legal/incident = ad hoc scripts only. <a href="${qaHandbook}">Pre-PH QA handbook →</a></div>`
+        ? `<div class="banner banner-live"><strong>Phase 1 + Phase 2 shipped.</strong> ${triggerCount || 19} lifecycle emails on Supabase Edge + Brevo templates (signup + plan webhooks + daily cron @ 14:00 UTC). Legal/incident = ad hoc scripts only. <a href="${qaHandbook}">Pre-PH QA handbook →</a></div>`
         : "";
       const currentEmail =
         plan.current_email && plan.current_email !== "complete"
