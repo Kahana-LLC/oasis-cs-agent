@@ -19,7 +19,11 @@ from reporting.lifecycle_email_sends import (
     load_supabase_lifecycle_triggers,
 )
 
-MANIFEST_PATH = Path(__file__).resolve().parents[1] / "public" / "email_sequences.json"
+_ROOT = Path(__file__).resolve().parents[1]
+MANIFEST_PATHS = (
+    _ROOT / "reporting" / "email_sequences.json",
+    _ROOT / "public" / "email_sequences.json",
+)
 RPC_LIMIT = 500
 
 TRIGGER_RPC: dict[str, str] = {
@@ -43,10 +47,11 @@ TRIGGER_RPC: dict[str, str] = {
 
 
 def load_lifecycle_reporting_config() -> dict[str, Any]:
-    if not MANIFEST_PATH.exists():
-        return {}
-    data = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    return (data.get("launch_config") or {}).get("lifecycle_reporting") or {}
+    for path in MANIFEST_PATHS:
+        if path.exists():
+            data = json.loads(path.read_text(encoding="utf-8"))
+            return (data.get("launch_config") or {}).get("lifecycle_reporting") or {}
+    return {}
 
 
 def _active_with_email_mask(users_df: pd.DataFrame) -> pd.Series:

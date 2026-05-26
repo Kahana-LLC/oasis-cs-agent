@@ -14,6 +14,8 @@ from reporting.sync_email_previews import sync_copy_manifest, sync_previews
 
 SRC = ROOT / "reporting" / "baseline_snapshot.json"
 DST = ROOT / "public" / "baseline_snapshot.json"
+MANIFEST_PUBLIC = ROOT / "public" / "email_sequences.json"
+MANIFEST_REPORTING = ROOT / "reporting" / "email_sequences.json"
 EMAIL_MACHINE_SRC = ROOT / "public" / "email-machine.html"
 EMAIL_MACHINE_INDEX = ROOT / "public" / "email-machine" / "index.html"
 
@@ -39,6 +41,10 @@ def build() -> int:
     DST.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(SRC, DST)
     print(f"Copied snapshot -> {DST}")
+
+    if MANIFEST_PUBLIC.exists():
+        shutil.copy2(MANIFEST_PUBLIC, MANIFEST_REPORTING)
+        print(f"Copied manifest for API -> {MANIFEST_REPORTING}")
 
     try:
         n = sync_previews()

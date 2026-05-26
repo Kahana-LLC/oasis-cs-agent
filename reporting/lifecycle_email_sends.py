@@ -12,15 +12,20 @@ import pandas as pd
 
 from reporting.dau_model import activity_by_user_from_df, classify_users_as_of
 
-MANIFEST_PATH = Path(__file__).resolve().parents[1] / "public" / "email_sequences.json"
+_ROOT = Path(__file__).resolve().parents[1]
+MANIFEST_PATHS = (
+    _ROOT / "reporting" / "email_sequences.json",
+    _ROOT / "public" / "email_sequences.json",
+)
 DEFAULT_NEW_USER_WINDOW_DAYS = 30
 RECENT_SENDS_DAYS = 7
 
 
 def _load_manifest() -> dict[str, Any]:
-    if not MANIFEST_PATH.exists():
-        return {}
-    return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    for path in MANIFEST_PATHS:
+        if path.exists():
+            return json.loads(path.read_text(encoding="utf-8"))
+    return {}
 
 
 def load_supabase_lifecycle_triggers() -> list[dict[str, Any]]:

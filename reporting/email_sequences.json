@@ -1,0 +1,2731 @@
+{
+  "version": 6,
+  "doc_ref": "docs/USER_EMAIL_MACHINE_PROPOSAL.md",
+  "provider_setup_meta": {
+    "as_of": "2026-05-25",
+    "summary": "Phase 1 = Brevo Starter for launch. Operational = SES primary; Resend Pro ($20/mo) backup until SES production. Resend also Phase 2 paid + lifecycle overflow.",
+    "api_keys_ready": [
+      "beehiiv",
+      "brevo",
+      "emailoctopus",
+      "resend",
+      "loops"
+    ],
+    "mcp_ready": [
+      "beehiiv",
+      "brevo"
+    ]
+  },
+  "providers": [
+    {
+      "id": "hubspot",
+      "name": "HubSpot",
+      "funnel_role": "phase_3_terminal",
+      "pricing_url": "https://www.hubspot.com/pricing/suite?tier=starter",
+      "free_limits": {
+        "marketing_emails_per_month": 2000,
+        "contacts": 1000000
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "1M contact limit (verified)",
+        "2,000 marketing emails/mo",
+        "All paid users + company email on signup"
+      ],
+      "upgrade_trigger": "Marketing sends > 1,600/mo sustained",
+      "notes": "Phase 3 terminal — paid CRM + company email. 1M contacts.",
+      "account_setup": {
+        "status": "ready",
+        "api_key_configured": false,
+        "domain_verified": true,
+        "notes": "HubSpot account configured for Phase 3 terminal CRM."
+      }
+    },
+    {
+      "id": "beehiiv",
+      "name": "Beehiiv",
+      "funnel_role": "archived",
+      "status": "deprecated",
+      "pricing_url": "https://www.beehiiv.com/pricing",
+      "free_limits": {
+        "contacts": 2500
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "Archived — Launch lacks multi-step Email Automations (Scale $49+ required)",
+        "Unlimited sends on Launch do not replace automation builder",
+        "MCP v1 read-only — does not send lifecycle mail"
+      ],
+      "upgrade_trigger": "N/A — use Brevo for Phase 1",
+      "notes": "Deprecated for lifecycle. Account/API/MCP may remain for optional newsletter; Phase 1 moved to Brevo on free tier.",
+      "account_setup": {
+        "status": "ready",
+        "api_key_configured": true,
+        "domain_verified": true,
+        "notes": "API key created — Phase 1 newsletter and list management."
+      },
+      "mcp": {
+        "announcement_url": "https://product.beehiiv.com/p/beehiiv-mcp",
+        "connector_url": "https://mcp.beehiiv.com/mcp",
+        "access": "paid_plan_early_access",
+        "capabilities": "read_only_v1",
+        "cursor_steps": "Settings → MCP → Add server → paste connector URL → OAuth in browser"
+      }
+    },
+    {
+      "id": "brevo",
+      "name": "Brevo",
+      "funnel_role": "phase_1_primary",
+      "funnel_tags": [
+        "phase_1_primary",
+        "transactional",
+        "cs_agent"
+      ],
+      "pricing_url": "https://www.brevo.com/pricing/",
+      "free_limits": {
+        "emails_per_day": 300,
+        "contacts": 2000
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "300 emails/day (reserve ~50/day for CS agent)",
+        "2,000 unique contacts in active automations (free)",
+        "Reserve ~50 sends/day for CS agent (separate from operational Resend/SES lane)"
+      ],
+      "upgrade_trigger": "Launch: upgrade to Starter before PH. Steady state: monthly sends > 16k or downgrade if signups taper.",
+      "notes": "Phase 1 primary — welcome, NPS, PMF, activation. Recommend Brevo Starter ($29/mo) for launch week spike; overflow to Loops/Resend if above 20k/mo.",
+      "paid_tier": {
+        "name": "Starter",
+        "pricing_url": "https://www.brevo.com/pricing/",
+        "price_usd_monthly": 29,
+        "price_usd_annual_monthly": 26.08,
+        "limits": {
+          "emails_per_month": 20000,
+          "contacts": 500000
+        },
+        "replaces_providers": [
+          "omnisend"
+        ],
+        "notes": "Recommended for Product Hunt launch — removes 300/day and 2k automation cliffs. Can downgrade later if volume tapers; high volume = more users to convert."
+      },
+      "account_setup": {
+        "status": "ready",
+        "api_key_configured": true,
+        "mcp_token_configured": true,
+        "domain_verified": true,
+        "notes": "Upgrade to Starter ($29/mo · 20k/mo · 500k contacts) before PH — free tier risks 300/day cap on welcome + nudge + NPS same week.",
+        "launch_action": "Subscribe to Brevo Starter before Product Hunt; build Phase 1 automations on paid tier."
+      },
+      "mcp": {
+        "announcement_url": "https://developers.brevo.com/docs/mcp-protocol",
+        "connector_url": "https://mcp.brevo.com/v1/brevo/mcp",
+        "auth": "bearer_mcp_token",
+        "env_var": "BREVO_MCP_TOKEN",
+        "capabilities": "contacts_campaigns_crm_v1",
+        "cursor_steps": "Settings → MCP → url https://mcp.brevo.com/v1/brevo/mcp · Authorization: Bearer ${BREVO_MCP_TOKEN} (MCP token from Brevo → SMTP & API → API Keys)"
+      }
+    },
+    {
+      "id": "mailgun",
+      "name": "Mailgun",
+      "funnel_role": "phase_2_paid",
+      "status": "deprecated",
+      "pricing_url": "https://www.mailgun.com/pricing/",
+      "free_limits": {
+        "emails_per_day": 100
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "Deprecated — account access blocked"
+      ],
+      "upgrade_trigger": "N/A — use Resend interim",
+      "notes": "Replaced by Resend for Phase 2 paid until Mailgun access is restored.",
+      "account_setup": {
+        "status": "access_blocked",
+        "api_key_configured": false,
+        "domain_verified": false,
+        "notes": "Cannot access Mailgun account.",
+        "next_action": "Use Resend for paid lifecycle; revisit Mailgun when access is restored."
+      }
+    },
+    {
+      "id": "omnisend",
+      "name": "OmniSend",
+      "funnel_role": "fallback",
+      "pricing_url": "https://www.omnisend.com/pricing/",
+      "free_limits": {
+        "emails_per_month": 500,
+        "contacts": 250
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "250 contact cap below 500 subs year-end goal"
+      ],
+      "upgrade_trigger": "Pool aggregate > 80% — any member may absorb overflow from any phase",
+      "notes": "Fallback pool member — interchangeable with other pool providers. Used when primary provider hits cap or errors.",
+      "account_setup": {
+        "status": "pending_verification",
+        "api_key_configured": false,
+        "domain_verified": false,
+        "notes": "OmniSend account created; domain verification in progress — 500 free emails/mo.",
+        "next_action": "Complete domain DNS verification in OmniSend."
+      }
+    },
+    {
+      "id": "mailerlite",
+      "name": "MailerLite",
+      "funnel_role": "fallback",
+      "pricing_url": "https://www.mailerlite.com/pricing",
+      "free_limits": {
+        "emails_per_month": 12000,
+        "contacts": 500
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "Contact cap binds before send cap"
+      ],
+      "upgrade_trigger": "Pool aggregate > 80% — any member may absorb overflow from any phase",
+      "notes": "Fallback pool member — interchangeable with other pool providers. Used when primary provider hits cap or errors.",
+      "account_setup": {
+        "status": "account_recovery",
+        "api_key_configured": false,
+        "domain_verified": null,
+        "notes": "MailerLite account exists but login needs recovery.",
+        "next_action": "Recover MailerLite account login before using fallback pool capacity."
+      }
+    },
+    {
+      "id": "emailoctopus",
+      "name": "EmailOctopus",
+      "funnel_role": "phase_2_conversion",
+      "pricing_url": "https://emailoctopus.com/pricing",
+      "free_limits": {
+        "contacts": 2500,
+        "emails_per_month": 10000
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "Free tier: 2,500 subscribers · 10,000 emails/mo"
+      ],
+      "upgrade_trigger": "Contacts > 2,000 — fallback pool (MailerLite, OmniSend, or Brevo) or Phase 3 transfer",
+      "notes": "Phase 2 (no upgrade) — 3–4 conversion emails; then Phase 3 perpetual free.",
+      "account_setup": {
+        "status": "ready",
+        "api_key_configured": true,
+        "domain_verified": true,
+        "notes": "API key created — 2,500 subscribers · 10,000 emails/mo (Phase 2 conversion)."
+      }
+    },
+    {
+      "id": "resend",
+      "name": "Resend",
+      "funnel_role": "phase_2_paid",
+      "funnel_tags": [
+        "lifecycle_fallback",
+        "phase_1_overflow",
+        "paid_transactional",
+        "operational_failover"
+      ],
+      "pricing_url": "https://resend.com/pricing",
+      "free_limits": {
+        "emails_per_month": 3000,
+        "emails_per_day": 100
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "Lifecycle free: 100/day · 3,000/mo (Phase 2 paid + fallback pool)",
+        "Operational backup (when SES sandbox): Resend Pro ~$20/mo · 50,000/mo · no daily cap",
+        "Operational + lifecycle share the same Resend account quota"
+      ],
+      "upgrade_trigger": "Lifecycle: daily > 80 or monthly > 80% on free. Operational: subscribe Resend Pro if SES not production-ready.",
+      "notes": "Phase 2 paid + Phase 1 overflow on free tier. Full-list legal/incident via Resend Pro when SES unavailable.",
+      "operational_tier": {
+        "name": "Pro",
+        "pricing_url": "https://resend.com/pricing",
+        "price_usd_monthly": 20,
+        "limits": {
+          "emails_per_month": 50000
+        },
+        "notes": "Recommended operational backup until AWS SES production access. Enough for full userbase blast until ~50k active users."
+      },
+      "account_setup": {
+        "status": "ready",
+        "api_key_configured": true,
+        "domain_verified": true,
+        "notes": "Upgrade to Resend Pro ($20/mo) for operational backup while SES is in sandbox; same API key.",
+        "launch_action": "Resend Pro if sending legal/outage before SES production approval."
+      }
+    },
+    {
+      "id": "loops",
+      "name": "Loops",
+      "funnel_role": "fallback",
+      "funnel_tags": [
+        "marketing_fallback",
+        "product_help"
+      ],
+      "pricing_url": "https://loops.so/pricing",
+      "free_limits": {
+        "contacts": 1000,
+        "emails_per_month": 4000
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "Early Stage free — Powered by Loops footer",
+        "Marketing / product-help fallback only — not legal or outage"
+      ],
+      "upgrade_trigger": "Pool aggregate > 80% or contacts > 800",
+      "notes": "Lifecycle fallback pool — nurture overflow when Brevo or EmailOctopus at cap.",
+      "account_setup": {
+        "status": "ready",
+        "api_key_configured": true,
+        "domain_verified": true,
+        "notes": "API key created — lifecycle marketing/product-help fallback (not legal or outage)."
+      }
+    },
+    {
+      "id": "ses",
+      "name": "Amazon SES",
+      "funnel_role": "operational",
+      "pricing_url": "https://aws.amazon.com/ses/pricing/",
+      "implementation_status": "blocked_sandbox",
+      "production_pending": true,
+      "free_limits": {
+        "emails_per_day": 200
+      },
+      "near_limit": {
+        "contacts_pct": 0.8,
+        "sends_monthly_pct": 0.8,
+        "sends_daily_pct": 0.8,
+        "runway_months_min": 2
+      },
+      "constraints": [
+        "Sandbox: 200 emails/24h until production access approved",
+        "Automated bulk blocked until production_pending=false"
+      ],
+      "upgrade_trigger": "N/A — operational primary",
+      "notes": "Primary operational lane (legal, privacy, outage). See docs/OPERATIONAL_EMAIL_RUNBOOK.md § SES production.",
+      "account_setup": {
+        "status": "sandbox",
+        "api_key_configured": true,
+        "domain_verified": true,
+        "notes": "Amazon SES configured — 200 emails/day in sandbox until production access.",
+        "next_action": "Request AWS SES production access (see docs/OPERATIONAL_EMAIL_RUNBOOK.md § SES production)."
+      }
+    }
+  ],
+  "provider_candidates": [
+    {
+      "id": "moosend",
+      "name": "Moosend",
+      "pricing_url": "https://moosend.com/pricing/",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "activecampaign",
+      "name": "ActiveCampaign",
+      "pricing_url": "https://www.activecampaign.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "aweber",
+      "name": "AWeber",
+      "pricing_url": "https://www.aweber.com/pricing.htm",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "campaign_monitor",
+      "name": "Campaign Monitor",
+      "pricing_url": "https://www.campaignmonitor.com/pricing/",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "constant_contact",
+      "name": "Constant Contact",
+      "pricing_url": "https://www.constantcontact.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "getresponse",
+      "name": "GetResponse",
+      "pricing_url": "https://www.getresponse.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "kit",
+      "name": "Kit (ConvertKit)",
+      "pricing_url": "https://kit.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "mad_mimi",
+      "name": "Mad Mimi",
+      "pricing_url": "https://madmimi.com/pricing",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel"
+    },
+    {
+      "id": "sendy",
+      "name": "Sendy",
+      "pricing_url": "https://sendy.co/",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel",
+      "notes": "Self-hosted — not SaaS free tier; evaluate separately"
+    },
+    {
+      "id": "tinyletter",
+      "name": "TinyLetter",
+      "pricing_url": "https://tinyletter.com/",
+      "status": "pending_limits",
+      "funnel_role": "top_of_funnel",
+      "notes": "Deprecated service — likely skip"
+    }
+  ],
+  "buckets": [
+    {
+      "key": "new",
+      "label": "New users",
+      "definition": "First day of engagement ever in the app",
+      "dashboard_field": "dau_model.bucket_counts.new",
+      "flow_rates": [
+        "NURR",
+        "1-NURR"
+      ],
+      "rollup": "DAU"
+    },
+    {
+      "key": "current",
+      "label": "Current users",
+      "definition": "Active today and at least one other day in the prior 6 days",
+      "dashboard_field": "dau_model.bucket_counts.current",
+      "flow_rates": [
+        "CURR",
+        "1-CURR"
+      ],
+      "rollup": "DAU"
+    },
+    {
+      "key": "reactivated",
+      "label": "Reactivated users",
+      "definition": "First day back after 7–29 days away",
+      "dashboard_field": "dau_model.bucket_counts.reactivated",
+      "flow_rates": [
+        "RURR",
+        "1-RURR"
+      ],
+      "rollup": "DAU"
+    },
+    {
+      "key": "resurrected",
+      "label": "Resurrected users",
+      "definition": "First day back after 30+ days away",
+      "dashboard_field": "dau_model.bucket_counts.resurrected",
+      "flow_rates": [
+        "SURR",
+        "1-SURR"
+      ],
+      "rollup": "DAU"
+    },
+    {
+      "key": "at_risk_wau",
+      "label": "At-risk WAU",
+      "definition": "Inactive today, active on at least one of the prior 6 days",
+      "dashboard_field": "dau_model.bucket_counts.at_risk_wau",
+      "flow_rates": [
+        "iWAURR",
+        "WAU_Loss_Rate"
+      ],
+      "rollup": "At-risk WAU + DAU = WAU"
+    },
+    {
+      "key": "at_risk_mau",
+      "label": "At-risk MAU",
+      "definition": "Inactive today and prior 6 days; active 7–29 days ago",
+      "dashboard_field": "dau_model.bucket_counts.at_risk_mau",
+      "flow_rates": [
+        "iMAURR",
+        "MAU_Loss_Rate"
+      ],
+      "rollup": "At-risk MAU + WAU = MAU"
+    },
+    {
+      "key": "dead",
+      "label": "Dead users",
+      "definition": "No activity in the last 30 days",
+      "dashboard_field": "dau_model.bucket_counts.dead",
+      "flow_rates": [
+        "Resurrection_Rate",
+        "MAU_Loss_Rate"
+      ],
+      "rollup": "Dead + MAU = total user base"
+    }
+  ],
+  "launch_config": {
+    "waitlist": 175,
+    "internal_team": 47,
+    "launch_brevo_audience": 222,
+    "launch_window_days": 3,
+    "activation_24h_pct": 0.32,
+    "pmf_wau_eligible_pct": 0.4,
+    "paid_conversion_pct": 0.015,
+    "agent_brevo_daily_reserve": 50,
+    "default_new_users_per_day_max": 7,
+    "default_new_users_per_month_max": 200,
+    "slider_day_max": 1000,
+    "slider_month_max": 3000,
+    "brevo_starter_default": true,
+    "brevo_launch_plan": {
+      "recommended_tier": "starter",
+      "price_usd_monthly": 29,
+      "limits_summary": "20,000 emails/mo · 500,000 contacts",
+      "headline": "Brevo Starter before Product Hunt launch",
+      "why": [
+        "Launch can spike far above free tier’s 300 emails/day (welcome + activation nudge + NPS stack the same week).",
+        "500k contacts removes the 2,000 automation-entrant prune while new signups are pouring in.",
+        "One ESP for Phase 1 + CS agent — simpler than routing overflow APIs during launch week."
+      ],
+      "after_launch": "If signups taper after PH, revisit downgrade to free. If volume stays high, keeping Starter supports conversion at scale — more users is the problem you want.",
+      "overflow_note": "Keep Loops + Resend in the fallback pool for extreme spikes above ~20k Brevo sends/mo."
+    },
+    "brevo_phase1": {
+      "status": "setup_required",
+      "list_name": "Oasis Lifecycle",
+      "list_id": null,
+      "automation_name": "Oasis Phase 1",
+      "naming_doc": "docs/BREVO_NAMING.md",
+      "template_names": {
+        "welcome": "Oasis Welcome",
+        "activation_nudge": "Oasis Activation Nudge",
+        "activation_cs_calendar": "Oasis Activation CS Calendar",
+        "nps_day3": "Oasis NPS",
+        "pmf_day10": "Oasis PMF",
+        "ph_teaser": "Oasis PH Teaser",
+        "ph_launch": "Oasis PH Launch"
+      },
+      "enroll_on": "script_after_signup",
+      "test_strategy": "production_timing_and_conditions",
+      "test_note": "No compressed 1-minute workflow. Validate with manual template sends, real day waits, HAS_FIRST_PROMPT/HAS_TRAINING attributes, and two cohorts (stuck vs activated). See docs/BREVO_PHASE1_TEST_SETUP.md.",
+      "contact_attributes": {
+        "HAS_FIRST_PROMPT": {
+          "type": "boolean",
+          "source": "supabase.llm_usage",
+          "description": "True when user has at least one llm_usage row"
+        },
+        "HAS_TRAINING": {
+          "type": "boolean",
+          "source": "supabase.feedback_events",
+          "description": "True when user has at least one feedback_events row"
+        }
+      },
+      "automation_steps": [
+        {
+          "template": "Oasis Welcome",
+          "sequence_id": "welcome",
+          "wait_after": "immediate"
+        },
+        {
+          "template": "Oasis Activation Nudge",
+          "sequence_id": "activation_nudge",
+          "wait_after": "1 day from list entry",
+          "condition": "HAS_FIRST_PROMPT is false"
+        },
+        {
+          "template": "Oasis Activation CS Calendar",
+          "sequence_id": "activation_cs_calendar",
+          "wait_after": "day 3 from list entry",
+          "condition": "HAS_FIRST_PROMPT is false AND HAS_TRAINING is false"
+        },
+        {
+          "template": "Oasis NPS",
+          "sequence_id": "nps_day3",
+          "wait_after": "day 3 from list entry",
+          "condition": "not unsubscribed"
+        },
+        {
+          "template": "Oasis PMF",
+          "sequence_id": "pmf_day10",
+          "wait_after": "day 10 from list entry",
+          "condition": "not unsubscribed"
+        }
+      ],
+      "sync_attributes_script": "scripts/sync_brevo_contact_attributes.py",
+      "test_emails": [
+        "adamkershnerdev1@gmail.com",
+        "adamthewrite@gmail.com"
+      ],
+      "sequence_ids": [
+        "welcome",
+        "activation_nudge",
+        "activation_cs_calendar",
+        "nps_day3",
+        "pmf_day10"
+      ],
+      "runbook": "docs/BREVO_PHASE1_TEST_SETUP.md",
+      "enroll_script": "scripts/enroll_brevo_phase1.py",
+      "brevo_status": "superseded",
+      "brevo_status_note": "Primary path is Supabase Edge + Brevo transactional templates. Oasis Phase 1 Brevo automation was never enabled.",
+      "oasis_signup_integration": {
+        "status": "not_wired",
+        "contract": "After users row is created: resolve user_id + email; call integrations.brevo_phase1.enroll_user_for_phase1 (adds contact to Oasis Lifecycle list, triggers Oasis Phase 1)."
+      },
+      "deprecated_manifest_key": "brevo_phase1_test renamed to brevo_phase1; use BREVO_LIFECYCLE_LIST_ID instead of BREVO_PHASE1_QA_LIST_ID",
+      "superseded_by": "launch_config.supabase_lifecycle_email",
+      "role_after_edge_deploy": "dev_fallback_enroll_and_contact_sync"
+    },
+    "lifecycle_reporting": {
+      "new_user_window_days": 30,
+      "welcome_miss_hours": 2,
+      "delivery_insight_thresholds": {
+        "welcome_min_pct": 95,
+        "cron_stale_hours": 26
+      }
+    },
+    "supabase_lifecycle_email": {
+      "status": "shipped",
+      "current_email": "complete",
+      "welcome_runbook": "docs/LIFECYCLE_WELCOME.md",
+      "priority": "recommended",
+      "headline": "Supabase Edge — Phase 1 + Phase 2 lifecycle (shipped)",
+      "summary": "17 automated lifecycle emails on Supabase Edge + Brevo transactional templates (signup + plan webhooks, daily cron @ 14:00 UTC). Legal/incident notices remain ad hoc scripts.",
+      "qa_handbook": "docs/LIFECYCLE_QA_PRE_LAUNCH.md",
+      "repo_doc": "docs/SUPABASE_LIFECYCLE_EMAIL_PLAN.md",
+      "ui_anchor": "supabase-lifecycle",
+      "deploy_project": "Oasis app Supabase (Edge Functions + cron; not Vercel)",
+      "esp_id": "brevo",
+      "dedup_table": "cs_outreach_log",
+      "dedup_doc": "PLAN.md",
+      "reference_code": [
+        "integrations/lifecycle_email.py",
+        "db/outreach_log.py",
+        "scripts/send_lifecycle_email.py",
+        "scripts/list_brevo_smtp_templates.py",
+        "supabase/functions/lifecycle-send",
+        "supabase/functions/lifecycle-on-signup",
+        "integrations/brevo_phase1.py",
+        "scripts/enroll_brevo_phase1.py"
+      ],
+      "edge_functions": [
+        {
+          "id": "lifecycle-send",
+          "name": "lifecycle-send",
+          "role": "Shared send: dedup → Brevo template API → log cs_outreach_log",
+          "deploy": "supabase/functions/lifecycle-send"
+        },
+        {
+          "id": "lifecycle-on-signup",
+          "name": "lifecycle-on-signup",
+          "role": "Database webhook on users INSERT → welcome_email",
+          "deploy": "supabase/functions/lifecycle-on-signup"
+        },
+        {
+          "id": "lifecycle-daily-cron",
+          "name": "lifecycle-daily-cron",
+          "role": "Daily cohort SQL → Phase 1 + Phase 2 triggers",
+          "deploy": "supabase/functions/lifecycle-daily-cron",
+          "schedule_utc": "0 14 * * *"
+        },
+        {
+          "id": "lifecycle-on-user-plan",
+          "name": "lifecycle-on-user-plan",
+          "role": "user_plans INSERT/UPDATE → upgrade_thank_you, cancelled_winback",
+          "deploy": "supabase/functions/lifecycle-on-user-plan"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "BREVO_API_KEY",
+          "where": "Supabase Edge secrets",
+          "notes": "v3 xkeysib- key; whitelist Supabase egress or disable IP lock"
+        },
+        {
+          "name": "BREVO_TEMPLATE_IDS",
+          "where": "Supabase Edge secrets or config table",
+          "notes": "JSON map trigger_name → Brevo template id"
+        },
+        {
+          "name": "SUPABASE_SERVICE_ROLE_KEY",
+          "where": "Supabase Edge (built-in)",
+          "notes": "Query users, llm_usage, feedback_events, outreach_log"
+        }
+      ],
+      "triggers": [
+        {
+          "dedup_trigger_name": "welcome_email",
+          "sequence_id": "welcome",
+          "brevo_template": "Oasis Welcome",
+          "env_template_id": "BREVO_TEMPLATE_ID_WELCOME",
+          "implementation_status": "shipped",
+          "channel": "event",
+          "when": "users INSERT (signup)",
+          "condition": "active user with email",
+          "local_script": "scripts/send_lifecycle_email.py --trigger welcome_email",
+          "qa_test_command": "lifecycle-send dry_run trigger welcome_email",
+          "edge_functions": ["lifecycle-on-signup", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "activation_nudge_24h",
+          "sequence_id": "activation_nudge",
+          "brevo_template": "Oasis Activation Nudge",
+          "env_template_id": "BREVO_TEMPLATE_ID_ACTIVATION_NUDGE",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "≥24h after created_at",
+          "condition": "no llm_usage row",
+          "local_script": "scripts/send_lifecycle_email.py --trigger activation_nudge_24h",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers activation_nudge_24h",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "activation_cs_calendar",
+          "sequence_id": "activation_cs_calendar",
+          "brevo_template": "Oasis Activation CS Calendar",
+          "env_template_id": "BREVO_TEMPLATE_ID_ACTIVATION_CS_CALENDAR",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "day 3–5 after signup",
+          "condition": "no llm_usage and no feedback_events",
+          "local_script": "scripts/send_lifecycle_email.py --trigger activation_cs_calendar",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "nps_day3",
+          "sequence_id": "nps_day3",
+          "brevo_template": "Oasis NPS",
+          "env_template_id": "BREVO_TEMPLATE_ID_NPS_DAY3",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "day 3–5 after signup",
+          "condition": "active user; dedup; Brevo handles unsubscribe",
+          "local_script": "scripts/send_lifecycle_email.py --trigger nps_day3",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "pmf_day10",
+          "sequence_id": "pmf_day10",
+          "brevo_template": "Oasis PMF",
+          "env_template_id": "BREVO_TEMPLATE_ID_PMF_DAY10",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "day 10–12 after signup",
+          "condition": "active user; dedup; Brevo handles unsubscribe",
+          "local_script": "scripts/send_lifecycle_email.py --trigger pmf_day10",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "upgrade_thank_you",
+          "sequence_id": "upgrade_thank_you",
+          "brevo_template": "Oasis Paid Zen Welcome",
+          "env_template_id": "BREVO_TEMPLATE_ID_UPGRADE_THANK_YOU",
+          "implementation_status": "shipped",
+          "channel": "event",
+          "when": "user_plans INSERT/UPDATE → active paid plan",
+          "condition": "dedup in cs_outreach_log",
+          "qa_test_command": "lifecycle-send dry_run trigger upgrade_thank_you",
+          "edge_functions": ["lifecycle-on-user-plan", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "cancelled_winback",
+          "sequence_id": "cancelled_winback",
+          "brevo_template": "Oasis Cancelled Win-back D0",
+          "env_template_id": "BREVO_TEMPLATE_ID_CANCELLED_WINBACK_D0",
+          "implementation_status": "shipped",
+          "channel": "event",
+          "when": "user_plans → cancelled",
+          "condition": "dedup",
+          "qa_test_command": "lifecycle-send dry_run trigger cancelled_winback",
+          "edge_functions": ["lifecycle-on-user-plan", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "limit_hitter_upgrade",
+          "sequence_id": "limit_hitter_upgrade",
+          "brevo_template": "Oasis Limit Hitter D0",
+          "env_template_id": "BREVO_TEMPLATE_ID_LIMIT_HITTER_D0",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "daily cron",
+          "condition": "hit daily token cap, free tier",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers limit_hitter_upgrade",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "limit_hitter_upgrade_d7",
+          "sequence_id": "limit_hitter_upgrade",
+          "brevo_template": "Oasis Limit Hitter D7",
+          "env_template_id": "BREVO_TEMPLATE_ID_LIMIT_HITTER_D7",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "7d after limit_hitter_upgrade",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers limit_hitter_upgrade_d7",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "at_risk_nurture_d0",
+          "sequence_id": "at_risk_nurture",
+          "brevo_template": "Oasis At-risk D0",
+          "env_template_id": "BREVO_TEMPLATE_ID_AT_RISK_D0",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "at-risk bucket day 0",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers at_risk_nurture_d0",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "at_risk_nurture_d7",
+          "sequence_id": "at_risk_nurture",
+          "brevo_template": "Oasis At-risk D7",
+          "env_template_id": "BREVO_TEMPLATE_ID_AT_RISK_D7",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "at-risk day 7",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers at_risk_nurture_d7",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "at_risk_nurture_d14",
+          "sequence_id": "at_risk_nurture",
+          "brevo_template": "Oasis At-risk D14",
+          "env_template_id": "BREVO_TEMPLATE_ID_AT_RISK_D14",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "at-risk day 14",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers at_risk_nurture_d14",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "at_risk_nurture_d21",
+          "sequence_id": "at_risk_nurture",
+          "brevo_template": "Oasis At-risk D21",
+          "env_template_id": "BREVO_TEMPLATE_ID_AT_RISK_D21",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "at-risk day 21",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers at_risk_nurture_d21",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "dead_resurrection_d0",
+          "sequence_id": "dead_resurrection",
+          "brevo_template": "Oasis Dead Resurrection D0",
+          "env_template_id": "BREVO_TEMPLATE_ID_DEAD_D0",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "dead bucket",
+          "condition": "max 20 new/month",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers dead_resurrection_d0",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "dead_resurrection_d14",
+          "sequence_id": "dead_resurrection",
+          "brevo_template": "Oasis Dead Resurrection D14",
+          "env_template_id": "BREVO_TEMPLATE_ID_DEAD_D14",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "14d after dead_resurrection_d0",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers dead_resurrection_d14",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "return_reinforcement",
+          "sequence_id": "return_reinforcement",
+          "brevo_template": "Oasis Return Reinforcement",
+          "env_template_id": "BREVO_TEMPLATE_ID_RETURN_REINFORCEMENT",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "bucket → reactivated/resurrected",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers return_reinforcement",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "enterprise_founder",
+          "sequence_id": "enterprise_founder",
+          "brevo_template": "Oasis Enterprise Founder",
+          "env_template_id": "BREVO_TEMPLATE_ID_ENTERPRISE_FOUNDER",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "lifecycle day 55–56, company email, ≥8 sessions",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers enterprise_founder",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "enterprise_expansion",
+          "sequence_id": "enterprise_expansion",
+          "brevo_template": "Oasis Enterprise Expansion",
+          "env_template_id": "BREVO_TEMPLATE_ID_ENTERPRISE_EXPANSION",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "lifecycle day 85–86, company email, ≥10 sessions",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers enterprise_expansion",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        },
+        {
+          "dedup_trigger_name": "cancelled_winback_d14",
+          "sequence_id": "cancelled_winback",
+          "brevo_template": "Oasis Cancelled Win-back D14",
+          "env_template_id": "BREVO_TEMPLATE_ID_CANCELLED_WINBACK_D14",
+          "implementation_status": "shipped",
+          "channel": "cron",
+          "when": "14d after cancelled_winback",
+          "qa_test_command": "lifecycle-daily-cron dry_run triggers cancelled_winback_d14",
+          "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
+        }
+      ],
+      "phase2_runbook": "docs/LIFECYCLE_PHASE2.md",
+      "implementation_checklist": [
+        {
+          "id": "outreach_log",
+          "label": "Apply cs_outreach_log migration in Supabase",
+          "status": "shipped",
+          "owner": "Oasis Supabase",
+          "artifact": "supabase/migrations/20260525140000_cs_outreach_log.sql"
+        },
+        {
+          "id": "template_ids_welcome",
+          "label": "Set BREVO_TEMPLATE_ID_WELCOME + verified sender in .env / Edge secrets",
+          "status": "shipped",
+          "owner": "You",
+          "notes": "BREVO_TEMPLATE_ID_WELCOME=54 (Oasis Welcome) verified local send"
+        },
+        {
+          "id": "lifecycle_send",
+          "label": "Deploy lifecycle-send (welcome_email only)",
+          "status": "shipped",
+          "owner": "Oasis repo",
+          "artifact": "supabase/functions/lifecycle-send"
+        },
+        {
+          "id": "on_signup",
+          "label": "Wire users INSERT webhook → lifecycle-on-signup",
+          "status": "shipped",
+          "owner": "Oasis Supabase",
+          "artifact": "supabase/functions/lifecycle-on-signup"
+        },
+        {
+          "id": "welcome_local_test",
+          "label": "Local send: scripts/send_lifecycle_email.py --email …",
+          "status": "shipped",
+          "owner": "You",
+          "artifact": "docs/LIFECYCLE_WELCOME.md",
+          "notes": "adamthewrite@gmail.com sent 2026-05-25; dedup logged in cs_outreach_log"
+        },
+        {
+          "id": "template_ids_activation_nudge",
+          "label": "Set BREVO_TEMPLATE_ID_ACTIVATION_NUDGE + paste template in Brevo",
+          "status": "shipped",
+          "owner": "You",
+          "artifact": "docs/LIFECYCLE_ACTIVATION_NUDGE.md"
+        },
+        {
+          "id": "daily_cron",
+          "label": "Schedule lifecycle-daily-cron (activation nudge cohort deployed)",
+          "status": "shipped",
+          "owner": "Oasis Supabase",
+          "notes": "pg_cron job lifecycle-daily-cron active at 14:00 UTC"
+        },
+        {
+          "id": "signup_app",
+          "label": "Ensure Oasis signup creates users row (webhook fires)",
+          "status": "shipped",
+          "owner": "Oasis app"
+        },
+        {
+          "id": "phase2_migration",
+          "label": "Apply Phase 2 cohort SQL migration",
+          "status": "shipped",
+          "owner": "Oasis Supabase",
+          "artifact": "supabase/migrations/20260526200000_lifecycle_phase2_cohorts.sql"
+        },
+        {
+          "id": "lifecycle_on_user_plan",
+          "label": "Deploy lifecycle-on-user-plan + user_plans webhook",
+          "status": "shipped",
+          "owner": "Oasis Supabase",
+          "artifact": "supabase/functions/lifecycle-on-user-plan"
+        },
+        {
+          "id": "brevo_templates_phase2",
+          "label": "Brevo templates 59–72 with {{ params.GREETING }} + Edge secrets",
+          "status": "shipped",
+          "owner": "You",
+          "artifact": "docs/BREVO_NAMING.md"
+        },
+        {
+          "id": "spec_manifest",
+          "label": "Keep trigger spec in email_sequences.json + Email Machine UI",
+          "status": "shipped",
+          "owner": "oasis-cs-agent"
+        },
+        {
+          "id": "deprecate_brevo_automation",
+          "label": "Optional: deactivate Oasis Phase 1 Brevo automation",
+          "status": "skipped",
+          "notes": "Brevo automation was never created or enabled",
+          "owner": "Brevo UI"
+        }
+      ],
+      "testing": {
+        "strategy": "Invoke Edge Functions and cron manually; use Supabase test users and cs_outreach_log dedup",
+        "fast_path": "lifecycle-on-signup with fixture payload",
+        "cohort_path": "lifecycle-daily-cron once for nudge/NPS/PMF cohorts",
+        "dev_fallback": "scripts/enroll_brevo_phase1.py (Brevo list + automation)"
+      },
+      "architecture_ascii": "users INSERT → lifecycle-on-signup → Brevo Welcome\ndaily cron → lifecycle-daily-cron → SQL cohorts → lifecycle-send → Brevo templates\ncs_outreach_log dedup on every send"
+    },
+    "company_email_pct": 0.15,
+    "consumer_email_domains": [
+      "gmail.com",
+      "yahoo.com",
+      "outlook.com",
+      "hotmail.com",
+      "hotmail.co.uk",
+      "icloud.com",
+      "protonmail.com",
+      "protonmail.ch",
+      "me.com",
+      "mac.com",
+      "live.com",
+      "live.co.uk",
+      "yahoo.co.uk",
+      "googlemail.com",
+      "msn.com"
+    ],
+    "conversion_config": {
+      "phase_1_emails_min": 4,
+      "phase_1_emails_max": 7,
+      "phase_2_conversion_emails_min": 3,
+      "phase_2_conversion_emails_max": 4,
+      "total_emails_before_perpetual_free_min": 7,
+      "total_emails_before_perpetual_free_max": 11,
+      "perpetual_free_sheet": true,
+      "supabase_status_field": "email_funnel_status",
+      "inactive_delete_notice_months": 6
+    }
+  },
+  "routing_rules": [
+    {
+      "id": "ph_week_brevo_primary",
+      "label": "PH week: Brevo peak sends",
+      "trigger": "launch_week mode",
+      "sequences": [
+        "welcome",
+        "activation_nudge",
+        "nps_day3"
+      ],
+      "provider_id": "brevo",
+      "notes": "Scenario planner accounts for PH signup spikes on Brevo (reserve CS agent daily budget)."
+    },
+    {
+      "id": "fallback_pool",
+      "label": "Fallback pool",
+      "trigger": "Any primary provider (Brevo, EmailOctopus, Resend) > 80% cap",
+      "sequences": [
+        "*"
+      ],
+      "provider_id": "fallback_pool",
+      "notes": "Fallback pool — used when Brevo, EmailOctopus, or Resend hits cap. Route to Loops, Resend, OmniSend, or MailerLite by headroom. Migrate users to next phase OR upgrade tier when pool aggregate > 80%."
+    },
+    {
+      "id": "brevo_automation_prune_to_phase2",
+      "label": "Brevo automation prune → Phase 2",
+      "trigger": "user received 4–7 Phase 1 emails AND Brevo automation entrants > 1,600",
+      "sequences": [
+        "welcome",
+        "activation_nudge",
+        "activation_cs_calendar",
+        "nps_day3",
+        "pmf_day10"
+      ],
+      "provider_id": null,
+      "notes": "Move to Phase 2 paid or conversion track."
+    },
+    {
+      "id": "paid_hubspot_sync",
+      "label": "Paid → HubSpot",
+      "trigger": "paid_subscribers >= 1",
+      "sequences": [
+        "upgrade_thank_you"
+      ],
+      "provider_id": "hubspot",
+      "notes": "Phase 3 terminal path for paid."
+    },
+    {
+      "id": "company_email_hubspot_sync",
+      "label": "Company email → HubSpot",
+      "trigger": "company_domain on signup",
+      "sequences": [
+        "enterprise_founder",
+        "enterprise_expansion"
+      ],
+      "provider_id": "hubspot",
+      "notes": "Immediate HubSpot sync."
+    },
+    {
+      "id": "phase_3_perpetual_free",
+      "label": "Phase 3 perpetual free",
+      "trigger": "7–11 lifecycle emails without upgrade",
+      "sequences": [
+        "at_risk_nurture",
+        "dead_resurrection",
+        "return_reinforcement"
+      ],
+      "provider_id": null,
+      "notes": "Google sheet + Supabase email_funnel_status; 6mo inactive → delete."
+    },
+    {
+      "id": "fallback_pool_ops",
+      "label": "Fallback triggered — ops response",
+      "trigger": "fallback_pool rule active",
+      "sequences": [
+        "*"
+      ],
+      "provider_id": null,
+      "notes": "Migrate users to next funnel phase OR pay to expand the constrained primary provider tier."
+    },
+    {
+      "id": "loops_marketing_fallback",
+      "label": "Loops — marketing / product-help fallback",
+      "trigger": "Lifecycle fallback pool active; Loops has headroom",
+      "sequences": [
+        "welcome",
+        "activation_nudge",
+        "nps_day3",
+        "pmf_day10"
+      ],
+      "provider_id": "loops",
+      "notes": "Exclude legal_notice and incident_notice. Powered by Loops footer on free tier."
+    },
+    {
+      "id": "operational_ses_primary",
+      "label": "Operational — SES primary",
+      "trigger": "legal_notice or incident_notice broadcast",
+      "sequences": [
+        "legal_notice",
+        "incident_notice"
+      ],
+      "provider_id": "ses",
+      "notes": "Full-list blasts when production_pending=false on ses provider."
+    },
+    {
+      "id": "operational_resend_failover",
+      "label": "Operational — Resend backup (SES not ready)",
+      "trigger": "ses.production_pending=true OR SES sandbox blocks bulk",
+      "sequences": [
+        "legal_notice",
+        "incident_notice"
+      ],
+      "provider_id": "resend",
+      "notes": "Resend Pro ($20/mo · 50k/mo · no daily cap). send_operational.py uses this path until SES production. Not free-tier 100/day."
+    }
+  ],
+  "scenario_presets": [
+    {
+      "id": "pre_ph",
+      "label": "Pre-PH",
+      "new_users_per_day_max": 0,
+      "new_users_per_month_max": 0,
+      "mode": "launch_week",
+      "paid_override": null
+    },
+    {
+      "id": "ph_low",
+      "label": "PH low",
+      "new_users_per_day_max": 67,
+      "new_users_per_month_max": 200,
+      "mode": "launch_week",
+      "paid_override": null
+    },
+    {
+      "id": "ph_medium",
+      "label": "PH medium",
+      "new_users_per_day_max": 200,
+      "new_users_per_month_max": 600,
+      "mode": "launch_week",
+      "paid_override": null
+    },
+    {
+      "id": "ph_high",
+      "label": "PH high",
+      "new_users_per_day_max": 667,
+      "new_users_per_month_max": 2000,
+      "mode": "launch_week",
+      "paid_override": null
+    },
+    {
+      "id": "q4_target",
+      "label": "Q4 target",
+      "new_users_per_day_max": 4,
+      "new_users_per_month_max": 120,
+      "mode": "steady_month",
+      "paid_override": 500
+    }
+  ],
+  "capacity_cliffs": [
+    {
+      "id": "brevo_automation_2000",
+      "provider_id": "brevo",
+      "trigger": "Brevo automation entrants > 1,600 (80% of 2,000)",
+      "action": "Prune users with 4–7 Phase 1 emails; route overflow to fallback pool (Loops, Resend) or Phase 2"
+    },
+    {
+      "id": "fallback_pool_aggregate",
+      "provider_id": "fallback_pool",
+      "trigger": "Pool aggregate contacts > 1,400 (80% of 1,750)",
+      "action": "Route to fallback member with most headroom (prefer Loops for marketing sequences); evaluate phase migration or provider upgrade"
+    },
+    {
+      "id": "ses_sandbox",
+      "provider_id": "ses",
+      "trigger": "ses.production_pending=true",
+      "action": "Route legal/incident to Resend Pro backup (send_operational.py); request SES production for long-term primary"
+    },
+    {
+      "id": "loops_fallback_cap",
+      "provider_id": "loops",
+      "trigger": "Loops contacts > 800 (80% of 1,000)",
+      "action": "Use MailerLite or Resend for marketing fallback overflow"
+    },
+    {
+      "id": "resend_paid_daily",
+      "provider_id": "resend",
+      "trigger": "Paid lifecycle daily > 80 on Resend (interim Mailgun replacement)",
+      "action": "Route to fallback pool (Brevo or Loops member)"
+    },
+    {
+      "id": "emailoctopus_2500",
+      "provider_id": "emailoctopus",
+      "trigger": "EmailOctopus contacts > 2,000",
+      "action": "Fallback pool; cap at 3–4 conversion emails/user; accelerate Phase 3 transfer"
+    },
+    {
+      "id": "hubspot_send_budget",
+      "provider_id": "hubspot",
+      "trigger": "Marketing sends > 1,600/mo",
+      "action": "Prioritize paid + B2B sends"
+    },
+    {
+      "id": "brevo_launch_peak",
+      "provider_id": "brevo",
+      "trigger": "Brevo peak > 240/day (80% of 300)",
+      "action": "Route Phase 1 overflow to fallback pool (Loops, Resend); defer non-urgent sends to next day"
+    },
+    {
+      "id": "brevo_agent",
+      "provider_id": "brevo",
+      "trigger": "Agent + marketing > 250/day",
+      "action": "Separate agent sub-account"
+    }
+  ],
+  "sequences": [
+    {
+      "id": "ph_teaser",
+      "name": "PH teaser (waitlist)",
+      "phase": "1-adam",
+      "funnel": "acquisition",
+      "buckets": [
+        "new",
+        "waitlist"
+      ],
+      "trigger_summary": "Waitlist contact before Product Hunt launch",
+      "trigger_when": "May 26, 2026 — day before PH launch",
+      "trigger_implementation": "Brevo list: Oasis waitlist (Tally w8V8GA)",
+      "provider_id": "brevo",
+      "provider_overflow_id": null,
+      "deployed_via": "brevo",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "ph_teaser_waitlist",
+      "free_tier_runway": "Reusable template for future launches (Windows, Linux, mobile, etc.)",
+      "dashboard_metrics": [
+        "total_users",
+        "activation_24h_pct"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-teaser-waitlist.html",
+        "path": "/emails/ph_teaser.html",
+        "subject": "Tomorrow on Product Hunt (+ a launch-day surprise)",
+        "preheader": "Privacy-first AI browser. Something special for genuine launch-day feedback.",
+        "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis PH Teaser",
+        "plain_text_source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-teaser-plain-text.txt"
+      },
+      "funnel_phase": "ph_interim",
+      "touches": [
+        {
+          "touch_id": "ph_teaser_d0",
+          "ordinal": 1,
+          "name": "PH teaser (waitlist)",
+          "day_offset": 0,
+          "trigger_when": "Day before PH launch",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "none"
+          },
+          "dedup_trigger_name": "ph_teaser_waitlist",
+          "counts_toward_phase_budget": false
+        }
+      ]
+    },
+    {
+      "id": "ph_launch",
+      "name": "PH launch (waitlist)",
+      "phase": "1-adam",
+      "funnel": "acquisition",
+      "buckets": [
+        "new",
+        "waitlist"
+      ],
+      "trigger_summary": "Product Hunt launch day — waitlist + new signups",
+      "trigger_when": "May 27, 2026 — when PH listing is live",
+      "trigger_implementation": "Manual send once PH listing live; Brevo waitlist segment",
+      "provider_id": "brevo",
+      "provider_overflow_id": null,
+      "deployed_via": "brevo",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "ph_launch_waitlist",
+      "free_tier_runway": "Reusable for future product launches and platform expansions",
+      "dashboard_metrics": [
+        "total_users",
+        "activation_24h_pct"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-launch-waitlist.html",
+        "path": "/emails/ph_launch.html",
+        "subject": "We're live on Product Hunt: 6 months of Zen, on us",
+        "preheader": "Leave genuine feedback on our launch page. Reply with a screenshot to claim 1M tokens/day.",
+        "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis PH Launch",
+        "plain_text_source": "brevo-oasis-emails/ph-waitlist/brevo-oasis-ph-launch-plain-text.txt"
+      },
+      "funnel_phase": "ph_interim",
+      "touches": [
+        {
+          "touch_id": "ph_launch_d0",
+          "ordinal": 1,
+          "name": "PH launch (waitlist)",
+          "day_offset": 0,
+          "trigger_when": "PH launch day",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "none"
+          },
+          "dedup_trigger_name": "ph_launch_waitlist",
+          "counts_toward_phase_budget": false
+        }
+      ]
+    },
+    {
+      "id": "welcome",
+      "name": "Welcome",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": [
+        "new"
+      ],
+      "trigger_summary": "Account created — welcome + orient to onboarding (import from prior browser, first AI command)",
+      "trigger_when": "Immediately on signup",
+      "trigger_implementation": "Supabase Edge: lifecycle-on-signup → welcome_email (see docs/LIFECYCLE_WELCOME.md)",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "welcome_email",
+      "free_tier_runway": "Brevo primary · 300/day · 2k automation entrants; fallback pool on cap",
+      "dashboard_metrics": [
+        "activation_24h_pct",
+        "flow_NURR",
+        "time_to_first_hours"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-welcome.html",
+        "path": "/emails/welcome.html",
+        "subject": "Welcome to Oasis",
+        "preheader": "Docs, Slack, and support links to get started.",
+        "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis Welcome",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-welcome-plain-text.txt"
+      },
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "welcome_d0",
+          "ordinal": 1,
+          "name": "Welcome",
+          "day_offset": 0,
+          "trigger_when": "Immediately on signup — welcome + browser import onboarding steps",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "welcome_email",
+          "counts_toward_phase_budget": true
+        }
+      ]
+    },
+    {
+      "id": "nps_day3",
+      "name": "NPS",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": [
+        "new"
+      ],
+      "trigger_summary": "NPS survey after a few days with the product",
+      "trigger_when": "3 days after signup",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → nps_day3 (see docs/LIFECYCLE_NPS_DAY3.md)",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "nps_day3",
+      "free_tier_runway": "Until daily signups > 300/day (~9k/mo send cap)",
+      "dashboard_metrics": [
+        "feedback_submission_rate_pct"
+      ],
+      "dashboard_anchors": [],
+      "corporate_goals": [
+        "dau"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3.html",
+        "path": "/emails/nps_day3.html",
+        "subject": "Quick question: how likely are you to recommend Oasis?",
+        "preheader": "Tap Yes, No, or Maybe — then rate 0–10 on the next page.",
+        "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis NPS",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-nps-day3-plain-text.txt"
+      },
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "nps_day3_d3",
+          "ordinal": 4,
+          "name": "NPS",
+          "day_offset": 3,
+          "trigger_when": "3 days after signup",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "nps_day3",
+          "counts_toward_phase_budget": true
+        }
+      ]
+    },
+    {
+      "id": "pmf_day10",
+      "name": "PMF survey",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": [
+        "new"
+      ],
+      "trigger_summary": "Product-market fit survey",
+      "trigger_when": "10 days after signup",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → pmf_day10 (see docs/LIFECYCLE_PMF_DAY10.md)",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "pmf_day10",
+      "free_tier_runway": "Strategy: Mailgun; shipped on Brevo",
+      "dashboard_metrics": [
+        "feedback_submission_rate_pct",
+        "latest_wau"
+      ],
+      "dashboard_anchors": [
+        "retention"
+      ],
+      "corporate_goals": [
+        "dau"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10.html",
+        "path": "/emails/pmf_day10.html",
+        "subject": "Quick favor — help us improve Oasis?",
+        "preheader": "Your ideas and honest feedback help us make Oasis better for you.",
+        "from_name": "Adam from Oasis",
+        "brevo_template_name": "Oasis PMF",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-pmf-day10-plain-text.txt"
+      },
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "pmf_day10_d10",
+          "ordinal": 5,
+          "name": "PMF survey",
+          "day_offset": 10,
+          "trigger_when": "10 days after signup",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "pmf_day10",
+          "counts_toward_phase_budget": true
+        }
+      ]
+    },
+    {
+      "id": "upgrade_thank_you",
+      "name": "Paid Zen welcome",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": [
+        "paid"
+      ],
+      "trigger_summary": "Stripe Zen plan upgrade",
+      "trigger_when": "Immediately on Zen upgrade / checkout",
+      "trigger_implementation": "Stripe checkout OR Brevo when plan = Zen",
+      "provider_id": "resend",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "upgrade_thank_you",
+      "free_tier_runway": "Strategy: Resend (100/day); shipped on Brevo interim",
+      "dashboard_metrics": [
+        "paid_subscribers",
+        "active_paid_subscribers",
+        "corporate_goals.subscribers.month_target"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs",
+        "margin"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-paid-zen-welcome.html",
+        "path": "/emails/upgrade_thank_you.html",
+        "subject": "Welcome to Oasis Zen",
+        "preheader": "1M tokens per day and priority support are now active.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-paid-zen-welcome-plain-text.txt"
+      },
+      "funnel_phase": "phase_2_paid",
+      "touches": [
+        {
+          "touch_id": "upgrade_thank_you_d0",
+          "ordinal": 1,
+          "name": "Paid Zen welcome",
+          "day_offset": 0,
+          "trigger_when": "Immediately on Zen upgrade",
+          "primary_provider_id": "resend",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "upgrade_thank_you",
+          "counts_toward_phase_budget": false
+        }
+      ]
+    },
+    {
+      "id": "at_risk_nurture",
+      "name": "At-risk nurture",
+      "phase": "1-adam",
+      "funnel": "lifecycle",
+      "buckets": [
+        "at_risk_wau",
+        "at_risk_mau"
+      ],
+      "trigger_summary": "User enters at-risk WAU or at-risk MAU bucket",
+      "trigger_when": "On bucket transition; WAU cohort prioritized over MAU",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → at_risk_nurture_d0–d21 (see docs/LIFECYCLE_PHASE2.md)",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "drip-2-4",
+      "dedup_trigger_name": "at_risk_nurture",
+      "free_tier_runway": "2,500 contacts · 10k sends/mo; overflow to MailerLite at 500 cap",
+      "dashboard_metrics": [
+        "bucket_at_risk_wau",
+        "bucket_at_risk_mau",
+        "flow_iWAURR",
+        "flow_iMAURR",
+        "flow_MAU_Loss_Rate"
+      ],
+      "dashboard_anchors": [
+        "dau-model"
+      ],
+      "corporate_goals": [
+        "dau"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0.html",
+        "path": "/emails/at_risk_nurture_d0.html",
+        "subject": "Quick check-in: how is Oasis going?",
+        "preheader": "Making sure nothing is broken on your side — honest feedback welcome.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0-plain-text.txt",
+        "deploy_provider": "emailoctopus"
+      },
+      "funnel_phase": "phase_2_conversion",
+      "touches": [
+        {
+          "touch_id": "at_risk_nurture_d0",
+          "ordinal": 1,
+          "name": "At-risk nurture — touch 1",
+          "day_offset": 0,
+          "trigger_when": "On bucket transition to at-risk WAU/MAU",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "at_risk_nurture_d0",
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0.html",
+            "path": "/emails/at_risk_nurture_d0.html",
+            "subject": "Quick check-in: how is Oasis going?",
+            "preheader": "Making sure nothing is broken on your side — honest feedback welcome.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d0-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
+        },
+        {
+          "touch_id": "at_risk_nurture_d7",
+          "ordinal": 2,
+          "name": "At-risk nurture — touch 2",
+          "day_offset": 7,
+          "trigger_when": "7 days after touch 1 (max one per 7 days)",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "at_risk_nurture_d7",
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d7.html",
+            "path": "/emails/at_risk_nurture_d7.html",
+            "subject": "Checking in on your Oasis experience",
+            "preheader": "What is working, what is not — your honest take helps us improve.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d7-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
+        },
+        {
+          "touch_id": "at_risk_nurture_d14",
+          "ordinal": 3,
+          "name": "At-risk nurture — touch 3",
+          "day_offset": 14,
+          "trigger_when": "14 days after touch 1",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "at_risk_nurture_d14",
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d14.html",
+            "path": "/emails/at_risk_nurture_d14.html",
+            "subject": "Honest feedback would help us improve Oasis",
+            "preheader": "No pressure to return — I want to understand what would make Oasis better for you.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d14-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
+        },
+        {
+          "touch_id": "at_risk_nurture_d21",
+          "ordinal": 4,
+          "name": "At-risk nurture — touch 4",
+          "day_offset": 21,
+          "trigger_when": "21 days after touch 1",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "at_risk_nurture_d21",
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d21.html",
+            "path": "/emails/at_risk_nurture_d21.html",
+            "subject": "Last check-in for a while",
+            "preheader": "If you have two minutes of honest feedback, it would mean a lot.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-at-risk-nurture-d21-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
+        }
+      ]
+    },
+    {
+      "id": "activation_nudge",
+      "name": "Activation nudge",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": [
+        "new"
+      ],
+      "trigger_summary": "Day 1 encouragement — import from prior browser + try the assistant (no llm_usage yet)",
+      "trigger_when": "24h after signup if zero llm_usage rows; casual tips to get more from Oasis",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → activation_nudge_24h (see docs/LIFECYCLE_ACTIVATION_NUDGE.md)",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "activation_nudge_24h",
+      "free_tier_runway": "EmailOctopus funnel pool; PH interim overflow to Brevo",
+      "dashboard_metrics": [
+        "activation_24h_pct",
+        "flow_NURR",
+        "flow_1-NURR"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge.html",
+        "path": "/emails/activation_nudge_d1.html",
+        "subject": "A few ways to get more from Oasis",
+        "preheader": "Import, ask the assistant, train it — 1,000 tokens per training.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
+        "deploy_provider": "brevo"
+      },
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "activation_nudge_d1",
+          "ordinal": 2,
+          "name": "Activation nudge",
+          "day_offset": 1,
+          "trigger_when": "24h after signup if zero llm_usage — nudge import from Chrome, Safari, Brave, or Edge",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "activation_nudge_24h",
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge.html",
+            "path": "/emails/activation_nudge_d1.html",
+            "subject": "A few ways to get more from Oasis",
+            "preheader": "Import, ask the assistant, train it — 1,000 tokens per training.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-nudge-plain-text.txt",
+            "deploy_provider": "brevo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "activation_cs_calendar",
+      "name": "Activation CS outreach (calendar)",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": [
+        "new"
+      ],
+      "trigger_summary": "Low engagement after activation nudge — founder/CS personal outreach; mention training assistant (+1,000 tokens)",
+      "trigger_when": "48–72h post-signup if still no llm_usage, no feedback_events training, or low engagement",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → activation_cs_calendar (see docs/LIFECYCLE_ACTIVATION_CS_CALENDAR.md)",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "activation_cs_calendar",
+      "free_tier_runway": "Counts toward Phase 1 budget (4–7 emails); calendar link for founder/CS call",
+      "dashboard_metrics": [
+        "activation_24h_pct",
+        "flow_NURR",
+        "flow_1-NURR"
+      ],
+      "dashboard_anchors": [
+        "activation"
+      ],
+      "corporate_goals": [
+        "dau",
+        "subs"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar.html",
+        "path": "/emails/activation_cs_calendar_d3.html",
+        "subject": "Need help getting started with Oasis?",
+        "preheader": "Book time with me — train the assistant for 1,000 bonus tokens.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar-plain-text.txt",
+        "deploy_provider": "brevo"
+      },
+      "funnel_phase": "phase_1_activation",
+      "touches": [
+        {
+          "touch_id": "activation_cs_calendar_d3",
+          "ordinal": 3,
+          "name": "Activation CS outreach (calendar)",
+          "day_offset": 3,
+          "trigger_when": "48–72h post-signup if still no llm_usage or training (feedback_events); nudge training assistant for 1,000-token reward",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "activation_cs_calendar",
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar.html",
+            "path": "/emails/activation_cs_calendar_d3.html",
+            "subject": "Need help getting started with Oasis?",
+            "preheader": "Book time with me — train the assistant for 1,000 bonus tokens.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-activation-cs-calendar-plain-text.txt",
+            "deploy_provider": "brevo"
+          }
+        }
+      ]
+    },
+    {
+      "id": "limit_hitter_upgrade",
+      "name": "Limit-hitter upgrade",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": [
+        "limit_hitter"
+      ],
+      "trigger_summary": "Onboarded + activated user hits daily token cap — upgrade inflection",
+      "trigger_when": "First limit hit; optional D7 reminder if still free",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → limit_hitter_upgrade (+ d7)",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time-plus-d7",
+      "dedup_trigger_name": "limit_hitter_upgrade",
+      "free_tier_runway": "Brevo primary; strong upgrade signal before Phase 2 fork",
+      "dashboard_metrics": [
+        "limit_hitter_conversion_pct",
+        "token_limit_hit_rate_pct",
+        "paid_subscribers"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs",
+        "margin"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade.html",
+        "path": "/emails/limit_hitter_upgrade_d0.html",
+        "subject": "You hit your daily limit — training can add bonus tokens",
+        "preheader": "Anonymous or personalized training in Oasis. Learn how it works.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-plain-text.txt",
+        "deploy_provider": "brevo"
+      },
+      "touches": [
+        {
+          "touch_id": "limit_hitter_upgrade_d0",
+          "ordinal": 1,
+          "name": "Limit-hitter upgrade",
+          "day_offset": 0,
+          "trigger_when": "First daily token cap hit (onboarded + activated user)",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "limit_hitter_upgrade",
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade.html",
+            "path": "/emails/limit_hitter_upgrade_d0.html",
+            "subject": "You hit your daily limit — training can add bonus tokens",
+            "preheader": "Anonymous or personalized training in Oasis. Learn how it works.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-plain-text.txt",
+            "deploy_provider": "brevo"
+          }
+        },
+        {
+          "touch_id": "limit_hitter_upgrade_d7",
+          "ordinal": 2,
+          "name": "Limit-hitter D7 reminder",
+          "day_offset": 7,
+          "trigger_when": "7 days after first limit hit if still free",
+          "primary_provider_id": "brevo",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "limit_hitter_upgrade_d7",
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-d7.html",
+            "path": "/emails/limit_hitter_upgrade_d7.html",
+            "subject": "Still on the free plan after your limit?",
+            "preheader": "Training can add bonus tokens; Zen gives 1M/day if you need more now.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-limit-hitter-upgrade-d7-plain-text.txt",
+            "deploy_provider": "brevo"
+          }
+        }
+      ],
+      "funnel_phase": "phase_1_activation",
+      "inflection": {
+        "type": "upgrade_or_perpetual_free",
+        "on_send_evaluate": [
+          "phase_2_paid",
+          "phase_2_conversion",
+          "perpetual_free"
+        ]
+      }
+    },
+    {
+      "id": "dead_resurrection",
+      "name": "Dead resurrection",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": [
+        "dead"
+      ],
+      "trigger_summary": "User in dead bucket, eligible for win-back",
+      "trigger_when": "Day 0 + day 14 of campaign; cap 20 new users/month when contacts tight",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → dead_resurrection_d0 (cap 20/mo) + d14",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "campaign-2-touch",
+      "dedup_trigger_name": "dead_resurrection",
+      "free_tier_runway": "Cap 20 new users/mo when contacts tight; EmailOctopus 2,500 contact headroom",
+      "dashboard_metrics": [
+        "bucket_dead",
+        "flow_Resurrection_Rate",
+        "flow_MAU_Loss_Rate"
+      ],
+      "dashboard_anchors": [
+        "dau-model"
+      ],
+      "corporate_goals": [
+        "dau"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0.html",
+        "path": "/emails/dead_resurrection_d0.html",
+        "subject": "Checking in — has Oasis been working for you?",
+        "preheader": "If you left because something was not good enough, I would like to hear what happened.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0-plain-text.txt",
+        "deploy_provider": "emailoctopus"
+      },
+      "funnel_phase": "phase_2_conversion",
+      "touches": [
+        {
+          "touch_id": "dead_resurrection_d0",
+          "ordinal": 1,
+          "name": "Dead resurrection — touch 1",
+          "day_offset": 0,
+          "trigger_when": "Day 0 of dead bucket campaign",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "dead_resurrection_d0",
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0.html",
+            "path": "/emails/dead_resurrection_d0.html",
+            "subject": "Checking in — has Oasis been working for you?",
+            "preheader": "If you left because something was not good enough, I would like to hear what happened.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d0-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
+        },
+        {
+          "touch_id": "dead_resurrection_d14",
+          "ordinal": 2,
+          "name": "Dead resurrection — touch 2",
+          "day_offset": 14,
+          "trigger_when": "Day 14 follow-up",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "dead_resurrection_d14",
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d14.html",
+            "path": "/emails/dead_resurrection_d14.html",
+            "subject": "One last check-in from me",
+            "preheader": "A minute of honest feedback helps us build a better product.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-dead-resurrection-d14-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
+        }
+      ]
+    },
+    {
+      "id": "return_reinforcement",
+      "name": "Return reinforcement",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": [
+        "reactivated",
+        "resurrected"
+      ],
+      "trigger_summary": "User re-enters after absence",
+      "trigger_when": "First day in reactivated or resurrected bucket",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → return_reinforcement",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "return_reinforcement",
+      "free_tier_runway": "Shares EmailOctopus contact cap with nurture/resurrection",
+      "dashboard_metrics": [
+        "flow_RURR",
+        "flow_SURR",
+        "flow_1-RURR",
+        "flow_1-SURR"
+      ],
+      "dashboard_anchors": [
+        "dau-model"
+      ],
+      "corporate_goals": [
+        "dau"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement.html",
+        "path": "/emails/return_reinforcement_d0.html",
+        "subject": "Glad you are back — how is it going?",
+        "preheader": "Checking in to make sure things are running smoothly after your break.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement-plain-text.txt",
+        "deploy_provider": "emailoctopus"
+      },
+      "funnel_phase": "phase_2_conversion",
+      "touches": [
+        {
+          "touch_id": "return_reinforcement_d0",
+          "ordinal": 1,
+          "name": "Return reinforcement",
+          "day_offset": 0,
+          "trigger_when": "First day in reactivated or resurrected bucket",
+          "primary_provider_id": "emailoctopus",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "return_reinforcement",
+          "counts_toward_phase_budget": true,
+          "preview": {
+            "source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement.html",
+            "path": "/emails/return_reinforcement_d0.html",
+            "subject": "Glad you are back — how is it going?",
+            "preheader": "Checking in to make sure things are running smoothly after your break.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/conversion/brevo-oasis-return-reinforcement-plain-text.txt",
+            "deploy_provider": "emailoctopus"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cancelled_winback",
+      "name": "Cancelled sub win-back",
+      "phase": "1-new",
+      "funnel": "lifecycle",
+      "buckets": [
+        "cancelled_paid"
+      ],
+      "trigger_summary": "Paid subscription cancelled (not renewing)",
+      "trigger_when": "On user_plans.is_active=false; D14 follow-up",
+      "trigger_implementation": "Supabase Edge: lifecycle-on-user-plan (cancel) + cron d14",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time-plus-d14",
+      "dedup_trigger_name": "cancelled_winback",
+      "free_tier_runway": "Resend 100/day interim (replaces Mailgun)",
+      "dashboard_metrics": [
+        "cancelled_paid_subscribers",
+        "active_paid_subscribers",
+        "paid_subscribers"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0.html",
+        "path": "/emails/cancelled_winback_d0.html",
+        "subject": "Sorry to see you cancel Oasis Zen",
+        "preheader": "You can keep using Oasis free or reactivate Zen anytime.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0-plain-text.txt",
+        "deploy_provider": "resend"
+      },
+      "funnel_phase": "phase_2_paid",
+      "touches": [
+        {
+          "touch_id": "cancelled_winback_d0",
+          "ordinal": 1,
+          "name": "Cancelled sub win-back",
+          "day_offset": 0,
+          "trigger_when": "On user_plans.is_active=false",
+          "primary_provider_id": "resend",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "cancelled_winback",
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0.html",
+            "path": "/emails/cancelled_winback_d0.html",
+            "subject": "Sorry to see you cancel Oasis Zen",
+            "preheader": "You can keep using Oasis free or reactivate Zen anytime.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d0-plain-text.txt",
+            "deploy_provider": "resend"
+          }
+        },
+        {
+          "touch_id": "cancelled_winback_d14",
+          "ordinal": 2,
+          "name": "Cancelled sub D14 follow-up",
+          "day_offset": 14,
+          "trigger_when": "14 days after cancellation if not re-subscribed",
+          "primary_provider_id": "resend",
+          "fallback": {
+            "type": "fallback_pool"
+          },
+          "dedup_trigger_name": "cancelled_winback_d14",
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d14.html",
+            "path": "/emails/cancelled_winback_d14.html",
+            "subject": "Reconsider Oasis Zen?",
+            "preheader": "1M tokens per day — reply if price or features was the blocker.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/lifecycle/brevo-oasis-cancelled-winback-d14-plain-text.txt",
+            "deploy_provider": "resend"
+          }
+        }
+      ]
+    },
+    {
+      "id": "enterprise_founder",
+      "name": "Enterprise founder outreach",
+      "phase": "1-new",
+      "funnel": "enterprise",
+      "buckets": [
+        "company_domain"
+      ],
+      "trigger_summary": "Company-email user with sustained engagement (founder track)",
+      "trigger_when": "Day 55 post-signup (lifecycle_day 55–56)",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → enterprise_founder (Brevo interim)",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "enterprise_founder",
+      "free_tier_runway": "HubSpot 2,000/mo scoped to company-email cohort only",
+      "dashboard_metrics": [
+        "paid_subscribers",
+        "total_users"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder.html",
+        "path": "/emails/enterprise_founder_d55.html",
+        "subject": "How is Oasis working for you?",
+        "preheader": "I'd love your honest feedback on your workflow and the product.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder-plain-text.txt",
+        "deploy_provider": "hubspot"
+      },
+      "funnel_phase": "phase_2_paid",
+      "touches": [
+        {
+          "touch_id": "enterprise_founder_d55",
+          "ordinal": 1,
+          "name": "Enterprise founder outreach",
+          "day_offset": 55,
+          "trigger_when": "Day 55 post-signup, company domain, session_count >= 8",
+          "primary_provider_id": "hubspot",
+          "fallback": {
+            "type": "none"
+          },
+          "dedup_trigger_name": "enterprise_founder",
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder.html",
+            "path": "/emails/enterprise_founder_d55.html",
+            "subject": "How is Oasis working for you?",
+            "preheader": "I'd love your honest feedback on your workflow and the product.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder-plain-text.txt",
+            "deploy_provider": "hubspot"
+          }
+        }
+      ]
+    },
+    {
+      "id": "enterprise_expansion",
+      "name": "Enterprise expansion",
+      "phase": "1-new",
+      "funnel": "enterprise",
+      "buckets": [
+        "company_domain"
+      ],
+      "trigger_summary": "Company-email power user — B2B expansion pitch",
+      "trigger_when": "Day 85 post-signup (lifecycle_day 85–86)",
+      "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → enterprise_expansion (Brevo interim)",
+      "provider_id": "brevo",
+      "provider_overflow_id": "fallback_pool",
+      "deployed_via": "supabase_edge",
+      "implementation_status": "shipped",
+      "cadence": "one-time",
+      "dedup_trigger_name": "enterprise_expansion",
+      "free_tier_runway": "HubSpot 2,000/mo — 2 touches max per qualified company user",
+      "dashboard_metrics": [
+        "paid_subscribers",
+        "total_users"
+      ],
+      "dashboard_anchors": [
+        "monetization"
+      ],
+      "corporate_goals": [
+        "subs"
+      ],
+      "preview": {
+        "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion.html",
+        "path": "/emails/enterprise_expansion_d85.html",
+        "subject": "Quick check-in: your Oasis experience",
+        "preheader": "Share feedback or book a few minutes on my calendar.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion-plain-text.txt",
+        "deploy_provider": "hubspot"
+      },
+      "funnel_phase": "phase_2_paid",
+      "touches": [
+        {
+          "touch_id": "enterprise_expansion_d85",
+          "ordinal": 1,
+          "name": "Enterprise expansion",
+          "day_offset": 85,
+          "trigger_when": "Day 85 post-signup, company domain, session_count >= 10",
+          "primary_provider_id": "hubspot",
+          "fallback": {
+            "type": "none"
+          },
+          "dedup_trigger_name": "enterprise_expansion",
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion.html",
+            "path": "/emails/enterprise_expansion_d85.html",
+            "subject": "Quick check-in: your Oasis experience",
+            "preheader": "Share feedback or book a few minutes on my calendar.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion-plain-text.txt",
+            "deploy_provider": "hubspot"
+          }
+        }
+      ]
+    },
+    {
+      "id": "legal_notice",
+      "name": "Legal / policy notice",
+      "phase": "operational",
+      "funnel": "operational",
+      "buckets": [
+        "operational_all"
+      ],
+      "trigger_summary": "Manual broadcast when terms, privacy, or legal policy changes",
+      "trigger_when": "One-off per policy revision (engineer-initiated)",
+      "trigger_implementation": "scripts/send_operational.py --template legal --dedup-key legal_{slug}_{date}",
+      "provider_id": "ses",
+      "provider_overflow_id": "operational_pool",
+      "implementation_status": "needs_implementation",
+      "cadence": "one-time-broadcast",
+      "dedup_trigger_name": "legal_notice",
+      "free_tier_runway": "SES primary; sandbox 200/day until production access",
+      "dashboard_metrics": [
+        "total_users"
+      ],
+      "dashboard_anchors": [],
+      "corporate_goals": [],
+      "preview": {
+        "source": "brevo-oasis-emails/operational/brevo-oasis-legal-notice.html",
+        "path": "/emails/legal_notice.html",
+        "subject": "We've updated our Privacy Policy",
+        "preheader": "Please review the changes effective on the date below.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/operational/brevo-oasis-legal-notice-plain-text.txt",
+        "deploy_provider": "ses"
+      },
+      "funnel_phase": "operational",
+      "counts_toward_phase_budget": false,
+      "touches": [
+        {
+          "touch_id": "legal_notice_broadcast",
+          "ordinal": 1,
+          "name": "Legal / policy notice",
+          "day_offset": 0,
+          "trigger_when": "Manual — per policy revision",
+          "primary_provider_id": "ses",
+          "fallback": {
+            "type": "operational_pool"
+          },
+          "dedup_trigger_name": "legal_notice",
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/operational/brevo-oasis-legal-notice.html",
+            "path": "/emails/legal_notice.html",
+            "subject": "We've updated our Privacy Policy",
+            "preheader": "Please review the changes effective on the date below.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/operational/brevo-oasis-legal-notice-plain-text.txt",
+            "deploy_provider": "ses"
+          }
+        }
+      ]
+    },
+    {
+      "id": "incident_notice",
+      "name": "Incident / outage notice",
+      "phase": "operational",
+      "funnel": "operational",
+      "buckets": [
+        "operational_all"
+      ],
+      "trigger_summary": "Manual broadcast on P0–P2 service incident or outage",
+      "trigger_when": "Engineer-initiated when status page updated",
+      "trigger_implementation": "scripts/send_operational.py --template incident --dedup-key incident_{id}",
+      "provider_id": "ses",
+      "provider_overflow_id": "operational_pool",
+      "implementation_status": "needs_implementation",
+      "cadence": "one-time-broadcast",
+      "dedup_trigger_name": "incident_notice",
+      "free_tier_runway": "Prefer status page + email; do not use nurture ESPs",
+      "dashboard_metrics": [
+        "total_users"
+      ],
+      "dashboard_anchors": [],
+      "corporate_goals": [],
+      "preview": {
+        "source": "brevo-oasis-emails/operational/brevo-oasis-incident-notice.html",
+        "path": "/emails/incident_notice.html",
+        "subject": "Oasis service update",
+        "preheader": "We're aware of an issue affecting Oasis — here's what we know.",
+        "from_name": "Adam from Oasis",
+        "plain_text_source": "brevo-oasis-emails/operational/brevo-oasis-incident-notice-plain-text.txt",
+        "deploy_provider": "ses"
+      },
+      "funnel_phase": "operational",
+      "counts_toward_phase_budget": false,
+      "touches": [
+        {
+          "touch_id": "incident_notice_broadcast",
+          "ordinal": 1,
+          "name": "Incident / outage notice",
+          "day_offset": 0,
+          "trigger_when": "Manual on P0–P2 incident",
+          "primary_provider_id": "ses",
+          "fallback": {
+            "type": "operational_pool"
+          },
+          "dedup_trigger_name": "incident_notice",
+          "counts_toward_phase_budget": false,
+          "preview": {
+            "source": "brevo-oasis-emails/operational/brevo-oasis-incident-notice.html",
+            "path": "/emails/incident_notice.html",
+            "subject": "Oasis service update",
+            "preheader": "We're aware of an issue affecting Oasis — here's what we know.",
+            "from_name": "Adam from Oasis",
+            "plain_text_source": "brevo-oasis-emails/operational/brevo-oasis-incident-notice-plain-text.txt",
+            "deploy_provider": "ses"
+          }
+        }
+      ]
+    }
+  ],
+  "pseudo_buckets": [
+    {
+      "key": "operational_all",
+      "label": "All active users (operational)",
+      "definition": "users.status = active with valid email — synced for SES operational blasts (not nurture)"
+    },
+    {
+      "key": "waitlist",
+      "label": "Waitlist / acquisition",
+      "definition": "Pre-signup or launch-funnel contacts entering as new users (PH and future launches)"
+    },
+    {
+      "key": "paid",
+      "label": "Paid (Stripe)",
+      "definition": "Active Zen / $20/mo user_plans row from 2026-05-24 onward"
+    },
+    {
+      "key": "limit_hitter",
+      "label": "Limit hitters",
+      "definition": "Free users who hit daily token cap (cross-bucket monetization segment)"
+    },
+    {
+      "key": "cancelled_paid",
+      "label": "Cancelled paid",
+      "definition": "user_plans.is_active=false"
+    },
+    {
+      "key": "company_domain",
+      "label": "Company email (B2B)",
+      "definition": "Email domain not in launch_config.consumer_email_domains — HubSpot sync + enterprise sequences"
+    },
+    {
+      "key": "perpetual_free",
+      "label": "Perpetual free",
+      "definition": "Phase 3 terminal — 7–11 lifecycle emails (4–7 Phase 1 + 3–4 Phase 2) with no upgrade; Google sheet + Supabase email_funnel_status; 6mo inactive → delete"
+    }
+  ],
+  "funnel_phases": [
+    {
+      "id": "phase_1_activation",
+      "label": "Phase 1 — Welcome / onboarding / activation",
+      "primary_provider_id": "brevo",
+      "sequences": [
+        "welcome",
+        "activation_nudge",
+        "activation_cs_calendar",
+        "nps_day3",
+        "pmf_day10",
+        "limit_hitter_upgrade"
+      ],
+      "activation_goals": [
+        "Welcome — orient new user to Oasis",
+        "Complete onboarding — import data from prior browser (Chrome, Safari, Brave, Edge, Firefox)",
+        "Run first AI command (llm_usage row)",
+        "Train AI assistant at least once (feedback_events; earns 1,000 tokens)",
+        "Continue nurture on Brevo while automation capacity allows"
+      ],
+      "phase_2_readiness_milestones": [
+        {
+          "id": "welcome_sent",
+          "type": "email",
+          "sequence_id": "welcome",
+          "dedup_trigger_name": "welcome_email",
+          "label": "Welcome email sent"
+        },
+        {
+          "id": "activation_nudge_sent",
+          "type": "email",
+          "sequence_id": "activation_nudge",
+          "dedup_trigger_name": "activation_nudge_24h",
+          "label": "Activation nudge sent"
+        },
+        {
+          "id": "activation_cs_sent",
+          "type": "email",
+          "sequence_id": "activation_cs_calendar",
+          "dedup_trigger_name": "activation_cs_calendar",
+          "label": "CS calendar email sent"
+        },
+        {
+          "id": "first_ai_prompt",
+          "type": "product",
+          "source_table": "llm_usage",
+          "label": "First AI prompt sent"
+        },
+        {
+          "id": "daily_limit_hit",
+          "type": "product",
+          "source_table": "llm_daily_usage",
+          "label": "Daily token limit hit ≥1"
+        },
+        {
+          "id": "training_done",
+          "type": "product",
+          "source_table": "feedback_events",
+          "label": "AI assistant trained ≥1 (earns 1,000 tokens)"
+        },
+        {
+          "id": "nps_sent",
+          "type": "email",
+          "sequence_id": "nps_day3",
+          "dedup_trigger_name": "nps_day3",
+          "label": "NPS email sent (D3)"
+        },
+        {
+          "id": "pmf_sent",
+          "type": "email",
+          "sequence_id": "pmf_day10",
+          "dedup_trigger_name": "pmf_day10",
+          "label": "PMF email sent (D10)"
+        }
+      ],
+      "readiness_model": "Graduated readiness — more milestones = riper for Phase 2. Training (feedback_events) signals deep unique-feature adoption beyond a first prompt. No single milestone triggers Phase 2 alone.",
+      "prune_override": "When Brevo nears 2,000 automation entrants: prune users who received most Phase 1 emails and sufficient days on list, even if product milestones are incomplete, to free automation slots for new signups.",
+      "exit_triggers": [
+        "User upgrades (Stripe) → Phase 2 paid immediately",
+        "Graduated readiness — most milestones met (especially limit hit, training, core emails) → Phase 2 fork evaluation",
+        "Brevo automation entrants ≥1,600 — prune users with most Phase 1 emails + sufficient days, even if milestones incomplete"
+      ],
+      "kpis": [
+        {
+          "metric": "token_limit_hit_rate_pct",
+          "label": "% new users who hit daily limit"
+        },
+        {
+          "metric": "time_to_first_hours",
+          "label": "Speed to first limit hit / first prompt"
+        },
+        {
+          "metric": "limit_hitter_conversion_pct",
+          "label": "Limit hitters who upgrade"
+        },
+        {
+          "metric": "activation_24h_pct",
+          "label": "First AI command within 24h"
+        },
+        {
+          "metric": "feedback_submission_rate_pct",
+          "label": "% users who trained AI assistant"
+        },
+        {
+          "metric": "median_hours_to_first",
+          "label": "Median hours to first training / feedback",
+          "anchor": "feedback"
+        }
+      ],
+      "nurture_model": "Stay on Brevo while daily and automation headroom exist; track readiness milestones — do not cap nurture artificially at 4–7 if user has not reached strong readiness.",
+      "emails_per_user_min": 4,
+      "emails_per_user_max": 7,
+      "exit": "Phase 1 ends on upgrade, graduated readiness (most milestones), or Brevo automation prune — not a fixed email count or single milestone.",
+      "notes": "Recommend Brevo Starter ($29/mo) for PH launch; free tier = 300/day · 2k automation entrants. Overflow → Loops, Resend, OmniSend.",
+      "fallback_pool": true
+    },
+    {
+      "id": "phase_2_paid",
+      "label": "Phase 2 — Upgraded",
+      "primary_provider_ids": [
+        "resend",
+        "hubspot"
+      ],
+      "sequences": [
+        "upgrade_thank_you",
+        "cancelled_winback",
+        "enterprise_founder",
+        "enterprise_expansion"
+      ],
+      "trigger": "Stripe upgrade or company email on signup",
+      "notes": "Resend interim (100/day · 3k/mo, replaces Mailgun) + HubSpot CRM (1M contacts).",
+      "fallback_pool": true
+    },
+    {
+      "id": "phase_2_conversion",
+      "label": "Phase 2 — Not upgraded",
+      "primary_provider_id": "emailoctopus",
+      "sequences": [
+        "at_risk_nurture",
+        "dead_resurrection",
+        "return_reinforcement"
+      ],
+      "emails_per_user_min": 3,
+      "emails_per_user_max": 4,
+      "exit": "Phase 3 perpetual free after 3–4 emails (7–11 total with Phase 1)",
+      "notes": "EmailOctopus 2,500 contacts · 10k/mo. Upgrade during conversion → Phase 2 paid.",
+      "fallback_pool": true
+    },
+    {
+      "id": "operational",
+      "label": "Operational — legal & incident",
+      "primary_provider_id": "ses",
+      "sequences": [
+        "legal_notice",
+        "incident_notice"
+      ],
+      "trigger": "Manual engineer broadcast — not lifecycle automation",
+      "notes": "All active users via operational sync. SES primary when production-ready; Resend Pro backup until then. Not nurture.",
+      "operational_pool": true
+    },
+    {
+      "id": "phase_3_terminal",
+      "label": "Phase 3 — Terminal",
+      "paths": [
+        {
+          "id": "paid",
+          "destination": "hubspot",
+          "notes": "Paid user remains in HubSpot CRM"
+        },
+        {
+          "id": "perpetual_free",
+          "destination": "google_sheet",
+          "notes": "Supabase status update; 6mo inactive → account removed"
+        }
+      ],
+      "notes": "No further lifecycle email. Paid = HubSpot. Free = sheet + Supabase flag."
+    }
+  ],
+  "cadence_touch_counts": {
+    "one-time": 1,
+    "one-time-broadcast": 1,
+    "drip-2-4": 4,
+    "one-time-plus-d7": 2,
+    "campaign-2-touch": 2,
+    "one-time-plus-d14": 2
+  },
+  "fallback_pool": {
+    "provider_ids": [
+      "mailerlite",
+      "omnisend",
+      "loops",
+      "resend"
+    ],
+    "model": "redundant_parallel",
+    "notes": "Lifecycle overflow only — never legal/incident (use operational_pool: SES → Resend Pro). Route to Loops, Resend free tier, OmniSend, or MailerLite by headroom.",
+    "member_limits": {
+      "mailerlite": {
+        "contacts": 500,
+        "emails_per_month": 12000
+      },
+      "omnisend": {
+        "contacts": 250,
+        "emails_per_month": 500
+      },
+      "loops": {
+        "contacts": 1000,
+        "emails_per_month": 4000
+      },
+      "resend": {
+        "emails_per_month": 3000,
+        "emails_per_day": 100
+      }
+    },
+    "aggregate_free_limits": {
+      "contacts": 1750,
+      "sends_per_month": 19500,
+      "sends_per_day": 100
+    }
+  },
+  "operational_pool": {
+    "provider_ids": [
+      "ses",
+      "resend"
+    ],
+    "model": "priority_failover",
+    "primary_provider_id": "ses",
+    "failover_provider_id": "resend",
+    "notes": "Legal, privacy, outage only. SES primary when production-approved. Until then: Resend Pro ($20/mo · 50k/mo · no daily cap) — enough for full active userbase for years at current scale.",
+    "member_limits": {
+      "ses": {
+        "emails_per_day": 200,
+        "sandbox": true,
+        "production_pending": true
+      },
+      "resend": {
+        "tier": "pro",
+        "price_usd_monthly": 20,
+        "emails_per_month": 50000,
+        "emails_per_day": null,
+        "notes": "Operational backup only on Pro — not free-tier 100/day"
+      }
+    },
+    "aggregate_limits": {
+      "ses_sandbox_sends_per_day": 200,
+      "resend_pro_sends_per_month": 50000,
+      "production_pending": true
+    }
+  },
+  "scenario_presets_operational": [
+    {
+      "id": "full_blast_current",
+      "label": "Full userbase blast (current scale)",
+      "audience": "total_users",
+      "notes": "At ~122 users, one Resend blast fits in daily cap. At 500+ users, plan multi-day sends or SES failover."
+    }
+  ]
+}
