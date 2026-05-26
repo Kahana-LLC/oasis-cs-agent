@@ -15,7 +15,7 @@
   "functions": {
     "api/**/*.py": {
       "maxDuration": 60,
-      "excludeFiles": "{.venv/**,**/__pycache__/**,public/**,reporting/sql_export.json}"
+      "excludeFiles": "{.venv/**,**/__pycache__/**,public/emails/**,public/baseline_snapshot.json,reporting/sql_export.json}"
     }
   }
 }
