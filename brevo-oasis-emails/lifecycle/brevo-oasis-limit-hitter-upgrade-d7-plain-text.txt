@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 A few days ago you hit your daily token limit. Your cap resets daily, but you may be hitting it again.
 Anonymous or personalized training can add bonus tokens when your feedback qualifies.

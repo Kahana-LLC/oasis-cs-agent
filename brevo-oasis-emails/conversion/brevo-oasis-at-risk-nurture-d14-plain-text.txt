@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 It has been about two weeks since you were last active in Oasis.
 If Oasis is not fitting your workflow, I want to understand why — bugs, confusion, missing features, or something else.

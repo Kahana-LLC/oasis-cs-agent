@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 I wanted to check in — we have not seen you in Oasis for a day or two.
 Is everything running smoothly? If something felt off, confusing, or missing, I would really like to know.

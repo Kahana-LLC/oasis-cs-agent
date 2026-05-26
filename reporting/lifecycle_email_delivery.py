@@ -16,7 +16,7 @@ from reporting.lifecycle_email_sends import (
     _pct,
     _users_with_email_triggers,
     load_new_user_window_days,
-    load_phase1_triggers,
+    load_supabase_lifecycle_triggers,
 )
 
 MANIFEST_PATH = Path(__file__).resolve().parents[1] / "public" / "email_sequences.json"
@@ -27,6 +27,18 @@ TRIGGER_RPC: dict[str, str] = {
     "activation_cs_calendar": "lifecycle_cohort_activation_cs_calendar",
     "nps_day3": "lifecycle_cohort_nps_day3",
     "pmf_day10": "lifecycle_cohort_pmf_day10",
+    "limit_hitter_upgrade": "lifecycle_cohort_limit_hitter_upgrade",
+    "limit_hitter_upgrade_d7": "lifecycle_cohort_limit_hitter_upgrade_d7",
+    "at_risk_nurture_d0": "lifecycle_cohort_at_risk_nurture_d0",
+    "at_risk_nurture_d7": "lifecycle_cohort_at_risk_nurture_d7",
+    "at_risk_nurture_d14": "lifecycle_cohort_at_risk_nurture_d14",
+    "at_risk_nurture_d21": "lifecycle_cohort_at_risk_nurture_d21",
+    "dead_resurrection_d0": "lifecycle_cohort_dead_resurrection_d0",
+    "dead_resurrection_d14": "lifecycle_cohort_dead_resurrection_d14",
+    "return_reinforcement": "lifecycle_cohort_return_reinforcement",
+    "enterprise_founder": "lifecycle_cohort_enterprise_founder",
+    "enterprise_expansion": "lifecycle_cohort_enterprise_expansion",
+    "cancelled_winback_d14": "lifecycle_cohort_cancelled_winback_d14",
 }
 
 
@@ -228,7 +240,7 @@ def compute_lifecycle_email_delivery(
     today: date | None = None,
     window_days: int | None = None,
 ) -> dict[str, Any]:
-    """Eligible vs sent vs missed-overdue per Phase 1 trigger."""
+    """Eligible vs sent vs missed-overdue per Supabase Edge lifecycle trigger."""
     today = today or date.today()
     outreach_log = outreach_log or []
     cfg = load_lifecycle_reporting_config()
@@ -289,34 +301,40 @@ def compute_lifecycle_email_delivery(
 
     triggers_out: list[dict[str, Any]] = []
     any_capped = False
-    for t in load_phase1_triggers():
+    for t in load_supabase_lifecycle_triggers():
         name = str(t.get("dedup_trigger_name") or "")
         ss = send_stats.get(name, {})
         en = eligible_now_map.get(name, {})
         if en.get("eligible_now_capped"):
             any_capped = True
         missed = missed_map.get(name, 0)
+        monitoring_note = None
+        if name not in missed_map and name not in TRIGGER_RPC:
+            monitoring_note = "missed_overdue not computed for this trigger; use cs_outreach_log + dry-run cron"
+        elif name not in missed_map and name in TRIGGER_RPC:
+            monitoring_note = "missed_overdue uses eligible_now RPC only (no signup-window heuristic)"
         sent_win = ss.get("sent_in_window", 0)
         denom = sent_win + missed
-        triggers_out.append(
-            {
-                "dedup_trigger_name": name,
-                "sequence_id": t.get("sequence_id"),
-                "label": t.get("brevo_template") or name,
-                "channel": t.get("channel"),
-                "when": t.get("when"),
-                "eligible_now": en.get("eligible_now"),
-                "eligible_now_capped": en.get("eligible_now_capped", False),
-                "rpc_error": en.get("rpc_error"),
-                "sent_all_time": ss.get("sent_all_time", 0),
-                "sent_in_window": sent_win,
-                "sent_last_24h": ss.get("sent_last_24h", 0),
-                "sent_last_7d": ss.get("sent_last_7d", 0),
-                "last_sent_at": ss.get("last_sent_at"),
-                "missed_overdue": missed,
-                "delivery_rate_pct": _pct(sent_win, denom) if denom > 0 else None,
-            }
-        )
+        row: dict[str, Any] = {
+            "dedup_trigger_name": name,
+            "sequence_id": t.get("sequence_id"),
+            "label": t.get("brevo_template") or name,
+            "channel": t.get("channel"),
+            "when": t.get("when"),
+            "eligible_now": en.get("eligible_now"),
+            "eligible_now_capped": en.get("eligible_now_capped", False),
+            "rpc_error": en.get("rpc_error"),
+            "sent_all_time": ss.get("sent_all_time", 0),
+            "sent_in_window": sent_win,
+            "sent_last_24h": ss.get("sent_last_24h", 0),
+            "sent_last_7d": ss.get("sent_last_7d", 0),
+            "last_sent_at": ss.get("last_sent_at"),
+            "missed_overdue": missed,
+            "delivery_rate_pct": _pct(sent_win, denom) if denom > 0 else None,
+        }
+        if monitoring_note:
+            row["monitoring_note"] = monitoring_note
+        triggers_out.append(row)
 
     missed_total = sum(missed_map.values())
     cron_triggers = [t for t in triggers_out if t.get("channel") == "cron"]

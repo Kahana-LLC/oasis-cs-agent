@@ -366,6 +366,39 @@
       return `<div class="delta-toggle"><span class="section-cap" style="margin:0">Compare:</span>${buttons}${hint}</div>`;
     }
 
+    function renderLaunchQa(data) {
+      const deliveryN = data?.lifecycle_email_delivery?.triggers?.length;
+      const triggerN = deliveryN || 17;
+      const qaDoc =
+        "https://github.com/AdamKershner/oasis-analytics/blob/main/docs/LIFECYCLE_QA_PRE_LAUNCH.md";
+      const isLive = String(lastSourceLabel || "").includes("live");
+      return `<section id="launch-qa">
+        <h2>Launch QA (pre–Product Hunt)</h2>
+        <p class="section-cap">
+          <strong>${triggerN} lifecycle emails</strong> shipped on Oasis Supabase Edge + Brevo (Phase 1 signup + Phase 2 monetization/conversion).
+          Legal/incident notices = ad hoc only.
+          <a href="/email-machine#supabase-lifecycle">Email Machine →</a> ·
+          <a href="${qaDoc}">QA handbook (GitHub) →</a>
+        </p>
+        <div class="banner" style="border-color:#2a5c4a;background:#102820;color:#6bcba8">
+          <strong>Verify before PH:</strong>
+          <ul class="limitations" style="margin:0.5rem 0 0">
+            <li>Dashboard API: ${isLive ? "✓ live (Supabase)" : "⚠ static snapshot — set SUPABASE_URL + SUPABASE_KEY on Vercel"}</li>
+            <li>Webhooks: <span class="code">users</span> → lifecycle-on-signup · <span class="code">user_plans</span> → lifecycle-on-user-plan</li>
+            <li>Cron: lifecycle-daily-cron @ 14:00 UTC</li>
+            <li>Brevo templates 54–72 use <span class="code">{{ params.GREETING }}</span></li>
+          </ul>
+        </div>
+        <p class="section-cap">
+          <a href="#lifecycle-email-delivery">Delivery health</a> ·
+          <a href="#lifecycle-email-sends">Send coverage</a> ·
+          <a href="#dau-model">DAU buckets</a> ·
+          <a href="#email-bucket-impact">Email × buckets</a> ·
+          <a href="/email-machine#qa-pre-launch">Trigger test matrix</a>
+        </p>
+      </section>`;
+    }
+
     function renderCorporateGoals(cg) {
       if (!cg || !cg.subscribers) return "";
       const subs = cg.subscribers || {};
@@ -930,6 +963,7 @@
           <a href="/email-machine">Email machine</a>
         </nav>
         <p class="section-cap" style="margin-top:-0.5rem">
+          <a href="#launch-qa">Launch QA</a> ·
           <a href="#dau-model">DAU buckets</a> ·
           <a href="#lifecycle-email-delivery">Delivery health</a> ·
           <a href="#lifecycle-email-sends">Sends</a> ·
@@ -940,6 +974,7 @@
         <p class="data-source ${String(sourceLabel).includes("live") ? "live" : ""}">Last updated: ${data.generated_at || "—"} · Source: ${sourceLabel}</p>
         <div class="banner">Early-stage sample — treat percentages as directional, not statistically stable. Reload the page for latest Supabase metrics.</div>
         ${deltaToggleHtml()}
+        ${renderLaunchQa(data)}
         ${renderCorporateGoals(corporateGoals)}
         ${renderKeyInsights(insights)}
         <details>

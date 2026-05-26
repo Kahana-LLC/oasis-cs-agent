@@ -549,8 +549,12 @@
         ? `https://github.com/AdamKershner/oasis-analytics/blob/main/${plan.welcome_runbook}`
         : "";
       const isShipped = plan.status === "shipped";
+      const qaHandbook = plan.qa_handbook
+        ? `https://github.com/AdamKershner/oasis-analytics/blob/main/${plan.qa_handbook}`
+        : "https://github.com/AdamKershner/oasis-analytics/blob/main/docs/LIFECYCLE_QA_PRE_LAUNCH.md";
+      const triggerCount = (plan.triggers || []).length;
       const shippedBanner = isShipped
-        ? `<div class="banner banner-live"><strong>Phase 1 shipped.</strong> Five lifecycle emails on Supabase Edge + Brevo templates (welcome webhook + daily cron). Brevo <span class="code">Oasis Phase 1</span> automation was never enabled.</div>`
+        ? `<div class="banner banner-live"><strong>Phase 1 + Phase 2 shipped.</strong> ${triggerCount || 17} lifecycle emails on Supabase Edge + Brevo templates (signup + plan webhooks + daily cron @ 14:00 UTC). Legal/incident = ad hoc scripts only. <a href="${qaHandbook}">Pre-PH QA handbook →</a></div>`
         : "";
       const currentEmail =
         plan.current_email && plan.current_email !== "complete"
@@ -581,20 +585,33 @@
           })
           .join("");
         deliverySummary = `<h3>Delivery health (eligible vs missed)</h3>
-          <p class="section-cap"><a href="/#lifecycle-email-delivery">Dashboard →</a> · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/LIFECYCLE_PH_LAUNCH_MONITORING.md">PH launch runbook →</a></p>
+          <p class="section-cap"><a href="/#lifecycle-email-delivery">Dashboard →</a> · <a href="${qaHandbook}">Pre-PH QA handbook →</a> · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/LIFECYCLE_PH_LAUNCH_MONITORING.md">PH launch runbook →</a></p>
           <table class="lifecycle-trigger-table"><thead><tr><th>Email</th><th>Due now</th><th>Sent</th><th>Missed</th><th>Delivery %</th></tr></thead><tbody>${drows}</tbody></table>`;
       }
       const triggerRows = (plan.triggers || [])
         .map(
-          (t) =>
-            `<tr>
+          (t) => {
+            const qa =
+              t.qa_test_command
+                ? `<span class="code">${escapeHtml(t.qa_test_command)}</span>`
+                : t.channel === "event"
+                  ? `<span class="code">lifecycle-send</span>`
+                  : `<span class="code">lifecycle-daily-cron</span>`;
+            return `<tr>
               <td>${t.implementation_status ? lifecycleChecklistBadge(t.implementation_status) : ""} <span class="code">${escapeHtml(t.dedup_trigger_name)}</span></td>
-              <td>${escapeHtml(t.brevo_template)}</td>
-              <td><span class="routing-pill">${escapeHtml(t.channel)}</span></td>
-              <td>${escapeHtml(t.when)}</td>
-              <td>${escapeHtml(t.condition)}</td>
-              <td>${t.local_script ? `<span class="code">${escapeHtml(t.local_script)}</span>` : "—"}</td>
-            </tr>`
+              <td>${escapeHtml(t.brevo_template || "")}</td>
+              <td><span class="routing-pill">${escapeHtml(t.channel || "")}</span></td>
+              <td>${escapeHtml(t.when || "")}</td>
+              <td>${escapeHtml(t.condition || "")}</td>
+              <td>${qa}</td>
+            </tr>`;
+          }
+        )
+        .join("");
+      const qaMatrixRows = (plan.triggers || [])
+        .map(
+          (t) =>
+            `<tr><td><span class="code">${escapeHtml(t.dedup_trigger_name)}</span></td><td>${escapeHtml(t.channel || "")}</td><td>${escapeHtml(t.qa_test_command || "see handbook")}</td></tr>`
         )
         .join("");
       const fnCards = (plan.edge_functions || [])
@@ -638,11 +655,19 @@
         <pre class="funnel-flow-ascii">${escapeHtml(plan.architecture_ascii || "")}</pre>
         <h3>Edge Functions</h3>
         <div class="lifecycle-fn-grid">${fnCards}</div>
-        <h3>Phase 1 triggers</h3>
+        <h3>Supabase Edge triggers (shipped)</h3>
         <table class="lifecycle-trigger-table">
-          <thead><tr><th>Trigger</th><th>Brevo template</th><th>Channel</th><th>When</th><th>Condition</th><th>Local test</th></tr></thead>
+          <thead><tr><th>Trigger</th><th>Brevo template</th><th>Channel</th><th>When</th><th>Condition</th><th>QA test</th></tr></thead>
           <tbody>${triggerRows}</tbody>
         </table>
+        <section id="qa-pre-launch">
+          <h3>Pre–Product Hunt QA</h3>
+          <p class="section-cap">Full pass/fail matrix, curls, SQL, and sign-off: <a href="${qaHandbook}">LIFECYCLE_QA_PRE_LAUNCH.md</a> · <a href="/#launch-qa">Dashboard launch QA →</a></p>
+          <table class="lifecycle-trigger-table">
+            <thead><tr><th>Trigger</th><th>Channel</th><th>Test hint</th></tr></thead>
+            <tbody>${qaMatrixRows}</tbody>
+          </table>
+        </section>
         <h3>Secrets (Oasis Supabase)</h3>
         <ul class="launch-plan-why">${secrets}</ul>
         <h3>Implementation checklist</h3>
@@ -2107,7 +2132,7 @@ dedup                 — cs_outreach_log via dedup_trigger_name (see PLAN.md)`)
         <section id="sequences">
           <h2>Email inventory</h2>
           <p class="section-cap">One row per email touch — primary provider and fallback routing when primary hits cap. Filter by funnel phase, provider, or routing. <strong>${implStats.shipped} of ${implStats.total} sequences shipped</strong> · ${implStats.pending} need implementation.</p>
-          ${emailData?.launch_config?.supabase_lifecycle_email?.status === "shipped" ? `<div class="banner banner-live"><strong>Phase 1 (Supabase Edge):</strong> 5 lifecycle emails live — welcome, activation nudge, CS calendar, NPS, PMF. <a href="#supabase-lifecycle">Plan &amp; send stats →</a> · <a href="/#lifecycle-email-sends">Dashboard send coverage →</a></div>` : ""}
+          ${emailData?.launch_config?.supabase_lifecycle_email?.status === "shipped" ? `<div class="banner banner-live"><strong>Supabase Edge (Phase 1 + 2):</strong> ${(emailData.launch_config.supabase_lifecycle_email.triggers || []).length || 17} lifecycle emails shipped on Oasis Supabase + Brevo. <a href="#supabase-lifecycle">Triggers &amp; stats →</a> · <a href="#qa-pre-launch">Pre-PH QA →</a> · <a href="/#launch-qa">Dashboard QA →</a></div>` : ""}
           ${renderFilters()}
           ${renderEmailInventory()}
         </section>

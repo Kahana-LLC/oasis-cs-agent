@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 Good to see you back in Oasis — checking in on how things are going.
 Anything rough, confusing, or broken? What would make Oasis better for you?

@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 It has been about a week since you were last active in Oasis.
 How has your experience been? What is working, what is not?

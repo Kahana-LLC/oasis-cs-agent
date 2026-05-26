@@ -1,5 +1,5 @@
 /**
- * POST { "trigger_name": welcome_email | activation_nudge_24h | activation_cs_calendar | nps_day3 | pmf_day10, ... }
+ * POST { "trigger_name": <any shipped lifecycle trigger>, "user_id" | "email", ... }
  *
  * Auth: Authorization: Bearer <service_role key>
  */
@@ -16,6 +16,13 @@ import {
 } from "../_shared/activation_nudge.ts";
 import { sendNpsDay3Email, NPS_DAY3_TRIGGER, envTemplateIdNpsDay3 } from "../_shared/nps_day3.ts";
 import { sendPmfDay10Email, PMF_DAY10_TRIGGER, envTemplateIdPmfDay10 } from "../_shared/pmf_day10.ts";
+import {
+  PHASE2_CRON_TRIGGERS,
+  cancelledWinback,
+  CANCELLED_WINBACK_TRIGGER,
+  upgradeThankYou,
+  UPGRADE_THANK_YOU_TRIGGER,
+} from "../_shared/phase2_emails.ts";
 import { sendWelcomeEmail, WELCOME_TRIGGER, envSender, envTemplateIdWelcome } from "../_shared/welcome.ts";
 import { loadUser } from "../_shared/users.ts";
 
@@ -24,13 +31,20 @@ const cors = {
   "Access-Control-Allow-Headers": "authorization, content-type",
 };
 
+const PHASE2_BY_TRIGGER = new Map(
+  PHASE2_CRON_TRIGGERS.map((t) => [t.trigger, t]),
+);
+PHASE2_BY_TRIGGER.set(UPGRADE_THANK_YOU_TRIGGER, upgradeThankYou);
+PHASE2_BY_TRIGGER.set(CANCELLED_WINBACK_TRIGGER, cancelledWinback);
+
 const IMPLEMENTED = [
   WELCOME_TRIGGER,
   ACTIVATION_NUDGE_TRIGGER,
   ACTIVATION_CS_CALENDAR_TRIGGER,
   NPS_DAY3_TRIGGER,
   PMF_DAY10_TRIGGER,
-] as const;
+  ...PHASE2_BY_TRIGGER.keys(),
+];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -68,7 +82,7 @@ Deno.serve(async (req) => {
   }
 
   const triggerName = String(body.trigger_name ?? "");
-  if (!IMPLEMENTED.includes(triggerName as (typeof IMPLEMENTED)[number])) {
+  if (!IMPLEMENTED.includes(triggerName)) {
     return new Response(
       JSON.stringify({
         error: "not_implemented",
@@ -148,13 +162,28 @@ Deno.serve(async (req) => {
         dryRun,
         force,
       });
-    } else {
+    } else if (triggerName === PMF_DAY10_TRIGGER) {
       result = await sendPmfDay10Email({
         user,
         supabaseUrl,
         serviceKey,
         brevoApiKey: brevoKey,
         templateId: envTemplateIdPmfDay10(),
+        sender,
+        dryRun,
+        force,
+      });
+    } else {
+      const phase2 = PHASE2_BY_TRIGGER.get(triggerName);
+      if (!phase2) {
+        throw new Error(`Phase 2 trigger not configured: ${triggerName}`);
+      }
+      result = await phase2.send({
+        user,
+        supabaseUrl,
+        serviceKey,
+        brevoApiKey: brevoKey,
+        templateId: phase2.envTemplateId(),
         sender,
         dryRun,
         force,

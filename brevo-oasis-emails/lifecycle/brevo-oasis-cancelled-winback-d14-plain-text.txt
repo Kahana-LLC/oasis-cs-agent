@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 Follow-up after cancellation.
 Reactivate: https://billing.stripe.com/p/login/bIYg16d6l3FqelieUU

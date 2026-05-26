@@ -1,0 +1,19 @@
+# Link to Oasis app project before deploy:
+#   supabase login
+#   supabase link --project-ref <YOUR_PROJECT_REF>
+#
+# Secrets (Dashboard or CLI):
+#   supabase secrets set BREVO_API_KEY=... BREVO_TEMPLATE_ID_WELCOME=54 \
+#     LIFECYCLE_SENDER_EMAIL=... LIFECYCLE_SENDER_NAME="Adam from Oasis"
+
+[functions.lifecycle-send]
+verify_jwt = false
+
+[functions.lifecycle-on-signup]
+verify_jwt = false
+
+[functions.lifecycle-daily-cron]
+verify_jwt = false
+
+[functions.lifecycle-on-user-plan]
+verify_jwt = false

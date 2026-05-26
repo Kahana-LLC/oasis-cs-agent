@@ -23,11 +23,39 @@ def _load_manifest() -> dict[str, Any]:
     return json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
-def load_phase1_triggers() -> list[dict[str, Any]]:
-    """Trigger rows from launch_config.supabase_lifecycle_email."""
+def load_supabase_lifecycle_triggers() -> list[dict[str, Any]]:
+    """All shipped Supabase Edge triggers from launch_config.supabase_lifecycle_email."""
     data = _load_manifest()
     plan = (data.get("launch_config") or {}).get("supabase_lifecycle_email") or {}
-    return list(plan.get("triggers") or [])
+    triggers = list(plan.get("triggers") or [])
+    if triggers:
+        return triggers
+    sequences = data.get("sequences") or []
+    built: list[dict[str, Any]] = []
+    for seq in sequences:
+        if seq.get("deployed_via") != "supabase_edge":
+            continue
+        if seq.get("implementation_status") != "shipped":
+            continue
+        for touch in seq.get("touches") or []:
+            name = touch.get("dedup_trigger_name")
+            if not name:
+                continue
+            built.append(
+                {
+                    "dedup_trigger_name": name,
+                    "sequence_id": seq.get("id"),
+                    "brevo_template": touch.get("brevo_template") or seq.get("name"),
+                    "channel": touch.get("channel") or "cron",
+                    "implementation_status": "shipped",
+                }
+            )
+    return built
+
+
+def load_phase1_triggers() -> list[dict[str, Any]]:
+    """Backward-compatible alias for load_supabase_lifecycle_triggers."""
+    return load_supabase_lifecycle_triggers()
 
 
 def load_new_user_window_days() -> int:
@@ -100,7 +128,7 @@ def compute_lifecycle_email_sends(
     today = today or date.today()
     outreach_log = outreach_log or []
     window_days = window_days if window_days is not None else load_new_user_window_days()
-    triggers = load_phase1_triggers()
+    triggers = load_supabase_lifecycle_triggers()
 
     cohort_ids = _cohort_user_ids(users_df, today=today, window_days=window_days)
     cohort_set = set(cohort_ids)

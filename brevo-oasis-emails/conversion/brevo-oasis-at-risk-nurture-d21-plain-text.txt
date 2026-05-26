@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 This is my last scheduled check-in for a while.
 How has Oasis been for you? Is there anything we should fix or build?

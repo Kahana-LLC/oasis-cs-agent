@@ -1,6 +1,6 @@
 # Daily lifecycle cron (`lifecycle-daily-cron`)
 
-One scheduled job sends **activation nudge**, **activation CS calendar**, **NPS day 3**, and **PMF day 10**. Welcome stays on the `users` INSERT webhook.
+One scheduled job sends **Phase 1** (activation nudge, CS calendar, NPS, PMF) and **Phase 2** (limit-hitter, at-risk, dead, return, enterprise, cancelled D14). Welcome stays on `users` INSERT; upgrade/cancel stay on `user_plans` webhook. See [`LIFECYCLE_PHASE2.md`](LIFECYCLE_PHASE2.md).
 
 **Project:** `wvclepquxxczgrukfqyr`  
 **Function URL:** `https://wvclepquxxczgrukfqyr.supabase.co/functions/v1/lifecycle-daily-cron`

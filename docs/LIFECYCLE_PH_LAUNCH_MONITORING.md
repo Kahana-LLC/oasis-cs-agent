@@ -1,5 +1,7 @@
 # Product Hunt launch — lifecycle email monitoring
 
+**Pre-launch QA (day before PH):** [`LIFECYCLE_QA_PRE_LAUNCH.md`](LIFECYCLE_QA_PRE_LAUNCH.md) — full pass/fail matrix for another engineer.
+
 Runbook for PH week: verify sends, read the analytics dashboard, and fix gaps.
 
 **Dashboard:** [oasis-analytics](https://oasis-analytics.vercel.app/) — sections **Email delivery health**, **Phase 1 lifecycle sends**, **DAU model**, **Email exposure × DAU buckets**.

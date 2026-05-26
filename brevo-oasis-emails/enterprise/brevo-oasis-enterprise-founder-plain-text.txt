@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 You have been getting real use out of Oasis, and I wanted to check in personally.
 I would love to hear how it fits your day-to-day workflow, what is working, and what we could do better. Honest feedback is how we improve the product. If a quick chat would help, grab time on my calendar.

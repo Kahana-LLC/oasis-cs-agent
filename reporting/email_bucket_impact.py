@@ -13,7 +13,7 @@ from reporting.lifecycle_email_sends import (
     _pct,
     _users_with_email_triggers,
     load_new_user_window_days,
-    load_phase1_triggers,
+    load_supabase_lifecycle_triggers,
 )
 
 
@@ -55,7 +55,7 @@ def compute_email_bucket_impact(
     email_by_trigger = _users_with_email_triggers(outreach_log)
 
     emails: list[dict[str, Any]] = []
-    for t in load_phase1_triggers():
+    for t in load_supabase_lifecycle_triggers():
         trigger = str(t.get("dedup_trigger_name") or "")
         exposed = email_by_trigger.get(trigger, set()) & cohort_set
         not_exposed = cohort_set - exposed
@@ -75,7 +75,7 @@ def compute_email_bucket_impact(
         )
 
     any_exposed: set[str] = set()
-    for t in load_phase1_triggers():
+    for t in load_supabase_lifecycle_triggers():
         trigger = str(t.get("dedup_trigger_name") or "")
         any_exposed |= email_by_trigger.get(trigger, set()) & cohort_set
     any_not = cohort_set - any_exposed

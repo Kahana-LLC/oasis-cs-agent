@@ -30,26 +30,34 @@ import {
   cohortActivationNudge24h,
   cohortNpsDay3,
   cohortPmfDay10,
+  callLifecycleCohortRpc,
 } from "../_shared/cohort.ts";
+import { PHASE2_CRON_TRIGGERS } from "../_shared/phase2_emails.ts";
 import { envSender } from "../_shared/welcome.ts";
+import type { LifecycleUser } from "../_shared/users.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, content-type",
 };
 
-const DEFAULT_TRIGGERS = [
+const PHASE1_TRIGGERS = [
   ACTIVATION_NUDGE_TRIGGER,
   ACTIVATION_CS_CALENDAR_TRIGGER,
   NPS_DAY3_TRIGGER,
   PMF_DAY10_TRIGGER,
 ];
 
+const DEFAULT_TRIGGERS = [
+  ...PHASE1_TRIGGERS,
+  ...PHASE2_CRON_TRIGGERS.map((t) => t.trigger),
+];
+
 async function runTriggerBatch(
   triggerName: string,
-  cohort: Awaited<ReturnType<typeof cohortActivationNudge24h>>,
+  cohort: LifecycleUser[],
   sendFn: (opts: {
-    user: (typeof cohort)[0];
+    user: LifecycleUser;
     supabaseUrl: string;
     serviceKey: string;
     brevoApiKey: string;
@@ -173,6 +181,37 @@ Deno.serve(async (req) => {
           sendPmfDay10Email,
           { ...runOpts, templateId: envTemplateIdPmfDay10() },
         ),
+      );
+    }
+
+    for (const phase2 of PHASE2_CRON_TRIGGERS) {
+      if (!triggers.includes(phase2.trigger)) continue;
+      const cohortLimit = phase2.trigger === "dead_resurrection_d0"
+        ? Math.min(limit, 20)
+        : limit;
+      let templateId: number;
+      try {
+        templateId = phase2.envTemplateId();
+      } catch (e) {
+        (summary.results as unknown[]).push({
+          trigger_name: phase2.trigger,
+          skipped: true,
+          reason: "missing_template_env",
+          error: String(e),
+        });
+        continue;
+      }
+      const cohort = await callLifecycleCohortRpc(
+        phase2.rpc,
+        supabaseUrl,
+        serviceKey,
+        cohortLimit,
+      );
+      (summary.results as unknown[]).push(
+        await runTriggerBatch(phase2.trigger, cohort, phase2.send, {
+          ...runOpts,
+          templateId,
+        }),
       );
     }
 

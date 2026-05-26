@@ -1,7 +1,7 @@
 Adam Kershner
 Founder, Oasis
 
-Hi {{ contact.FIRSTNAME }},
+{{ params.GREETING }}
 
 It has been 30+ days since you used Oasis — checking in, not pushing you back.
 If you left because something was not good enough, I would like to hear what happened.
