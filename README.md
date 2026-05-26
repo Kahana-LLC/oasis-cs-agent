@@ -2,6 +2,8 @@
 
 Baseline activation, retention, monetization, and feedback metrics for Oasis.
 
+**Repositories:** Canonical code lives on [AdamKershner/oasis-analytics](https://github.com/AdamKershner/oasis-analytics) (Vercel deploy). [Kahana-LLC/oasis-cs-agent](https://github.com/Kahana-LLC/oasis-cs-agent) mirrors `main` — push both after changes; see **[docs/DUAL_REPO_SYNC.md](docs/DUAL_REPO_SYNC.md)**.
+
 ## Quick start (local)
 
 ```bash

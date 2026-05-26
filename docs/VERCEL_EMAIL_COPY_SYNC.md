@@ -41,7 +41,9 @@ ls -la public/emails/*.html | wc -l   # expect ~23
 git add brevo-oasis-emails/ public/email_sequences.json public/emails/ reporting/email_sequences.json
 git status
 
-git push analytics main   # or your Vercel-connected remote
+git push analytics main   # canonical + Vercel
+git push origin main      # Kahana-LLC mirror (must match analytics)
+# Or: ./scripts/push_both_remotes.sh
 ```
 
 Vercel **Build Command** (already in `vercel.json`): `python3 reporting/build_static_site.py` · **Output:** `public/`
