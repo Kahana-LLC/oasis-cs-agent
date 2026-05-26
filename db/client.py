@@ -72,3 +72,32 @@ def paginate_table(table: str, filters: dict[str, Any] | None = None) -> list[di
         start += _PAGE_SIZE
 
     return rows
+
+
+def call_rpc(
+    function_name: str,
+    params: dict[str, Any] | None = None,
+    *,
+    limit: int = 500,
+) -> list[dict[str, Any]]:
+    """Invoke a Postgres RPC via PostgREST (e.g. lifecycle cohort functions)."""
+    client = get_http_client()
+    key = _api_key()
+    body = dict(params or {})
+    if "p_limit" not in body:
+        body["p_limit"] = limit
+    resp = client.post(
+        f"{_base_url()}/rpc/{quote(function_name, safe='')}",
+        headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        },
+        json=body,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if not isinstance(data, list):
+        raise RuntimeError(f"Unexpected RPC response for {function_name}: {type(data)}")
+    return data

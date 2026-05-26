@@ -253,6 +253,97 @@ def _lifecycle_readiness_insights(snapshot: dict[str, Any]) -> list[dict[str, An
     return items
 
 
+def _lifecycle_delivery_insights(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    """Missed sends, cron staleness, RPC cap warnings."""
+    items: list[dict[str, Any]] = []
+    delivery = snapshot.get("lifecycle_email_delivery") or {}
+    if not delivery.get("outreach_log_available"):
+        return items
+
+    cfg = {}
+    try:
+        import json
+        from pathlib import Path
+
+        manifest = Path(__file__).resolve().parents[1] / "public" / "email_sequences.json"
+        if manifest.exists():
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            cfg = (data.get("launch_config") or {}).get("lifecycle_reporting") or {}
+    except Exception:
+        pass
+
+    thresholds = cfg.get("delivery_insight_thresholds") or {}
+    welcome_min = float(thresholds.get("welcome_min_pct") or 95)
+    cron_stale_hours = int(thresholds.get("cron_stale_hours") or 26)
+
+    if delivery.get("any_eligible_now_capped"):
+        _add_item(
+            items,
+            severity="high",
+            title="Lifecycle cohort may be truncated at 500 users",
+            detail=(
+                "At least one trigger shows exactly 500 users due now — daily cron "
+                "only processes 500 per trigger. Raise cron limit or run twice during PH spikes."
+            ),
+            lever="Increase lifecycle-daily-cron limit in pg_cron body; see LIFECYCLE_PH_LAUNCH_MONITORING.md",
+            metrics=[],
+            anchor="lifecycle-email-delivery",
+        )
+
+    missed_total = delivery.get("missed_total") or 0
+    if missed_total > 0:
+        by_t = delivery.get("missed_by_trigger") or {}
+        parts = [f"{k}: {v}" for k, v in by_t.items() if v]
+        _add_item(
+            items,
+            severity="high",
+            title="Lifecycle emails missed (overdue, not in cs_outreach_log)",
+            detail=(
+                f"{missed_total} user(s) in the signup window should have received "
+                f"emails but have no log row: {'; '.join(parts)}."
+            ),
+            lever="Check lifecycle-on-signup webhook, pg_cron job_run_details, and Brevo delivery.",
+            metrics=[],
+            anchor="lifecycle-email-delivery",
+        )
+
+    triggers = delivery.get("triggers") or []
+    welcome = next((t for t in triggers if t.get("dedup_trigger_name") == "welcome_email"), {})
+    welcome_rate = welcome.get("delivery_rate_pct")
+    if welcome_rate is not None and welcome_rate < welcome_min:
+        _add_item(
+            items,
+            severity="high",
+            title="Welcome email delivery below target",
+            detail=(
+                f"Welcome delivery rate is {welcome_rate}% in the last "
+                f"{delivery.get('new_user_window_days', 30)}-day signup window "
+                f"(target {welcome_min}%)."
+            ),
+            lever="Verify users INSERT webhook → lifecycle-on-signup and Brevo template 54.",
+            metrics=[],
+            anchor="lifecycle-email-delivery",
+        )
+
+    cron_sent_24h = delivery.get("cron_sent_last_24h") or 0
+    cron_eligible = delivery.get("cron_eligible_now") or 0
+    if cron_eligible > 0 and cron_sent_24h == 0:
+        _add_item(
+            items,
+            severity="high",
+            title="Daily lifecycle cron may not have run recently",
+            detail=(
+                f"{cron_eligible} users are due for cron emails now but zero cron "
+                f"sends logged in the last 24h (stale threshold {cron_stale_hours}h)."
+            ),
+            lever="Check pg_cron lifecycle-daily-cron job_run_details and Edge function logs.",
+            metrics=[],
+            anchor="lifecycle-email-delivery",
+        )
+
+    return items
+
+
 def generate_key_insights(
     snapshot: dict[str, Any],
     deltas: dict[str, Any],
@@ -274,6 +365,7 @@ def generate_key_insights(
     )
     items.extend(_email_provider_capacity_insights(snapshot))
     items.extend(_lifecycle_readiness_insights(snapshot))
+    items.extend(_lifecycle_delivery_insights(snapshot))
     d_dead = _delta_metric(deltas, period, "bucket_dead")
     d_at_wau = _delta_metric(deltas, period, "bucket_at_risk_wau")
     d_at_mau = _delta_metric(deltas, period, "bucket_at_risk_mau")

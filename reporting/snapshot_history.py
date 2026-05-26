@@ -63,6 +63,19 @@ def extract_compact_metrics(snapshot: dict[str, Any]) -> dict[str, Any]:
     for rate_key, pct in flow_pct.items():
         metrics[f"flow_{rate_key}"] = pct
 
+    delivery = snapshot.get("lifecycle_email_delivery") or {}
+    metrics["lifecycle_missed_total"] = delivery.get("missed_total")
+    missed_by = delivery.get("missed_by_trigger") or {}
+    for key in (
+        "welcome_email",
+        "activation_nudge_24h",
+        "activation_cs_calendar",
+        "nps_day3",
+        "pmf_day10",
+    ):
+        short = key.replace("_email", "").replace("activation_", "")
+        metrics[f"lifecycle_missed_{short}"] = missed_by.get(key)
+
     return metrics
 
 

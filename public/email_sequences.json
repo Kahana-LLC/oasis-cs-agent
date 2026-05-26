@@ -625,7 +625,12 @@
       "role_after_edge_deploy": "dev_fallback_enroll_and_contact_sync"
     },
     "lifecycle_reporting": {
-      "new_user_window_days": 30
+      "new_user_window_days": 30,
+      "welcome_miss_hours": 2,
+      "delivery_insight_thresholds": {
+        "welcome_min_pct": 95,
+        "cron_stale_hours": 26
+      }
     },
     "supabase_lifecycle_email": {
       "status": "shipped",

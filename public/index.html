@@ -590,6 +590,93 @@
       </section>`;
     }
 
+    function renderLifecycleEmailDelivery(delivery) {
+      if (!delivery || !delivery.triggers) {
+        return `<section id="lifecycle-email-delivery">
+          <h2>Email delivery health</h2>
+          <p class="section-cap">Requires live Supabase (<span class="code">cs_outreach_log</span> + cohort RPCs).</p>
+        </section>`;
+      }
+      const windowDays = delivery.new_user_window_days ?? 30;
+      const capped = delivery.any_eligible_now_capped
+        ? `<div class="banner banner-warn">At least one &quot;due now&quot; count hit the 500-user RPC cap — cron may be leaving users unsent during PH spikes. <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/LIFECYCLE_PH_LAUNCH_MONITORING.md">PH launch runbook →</a></div>`
+        : "";
+      const rows = (delivery.triggers || [])
+        .map((t) => {
+          const missed = t.missed_overdue ?? 0;
+          const rowCls = missed > 0 ? ' style="background:rgba(220,80,80,0.08)"' : "";
+          const due = t.eligible_now != null ? t.eligible_now + (t.eligible_now_capped ? " (cap?)" : "") : "—";
+          const rate = t.delivery_rate_pct != null ? t.delivery_rate_pct + "%" : "—";
+          const last = t.last_sent_at ? escapeHtml(String(t.last_sent_at).slice(0, 19)) : "—";
+          return `<tr${rowCls}>
+            <td>${escapeHtml(t.label || t.dedup_trigger_name)}</td>
+            <td>${due}</td>
+            <td>${t.sent_in_window ?? 0}</td>
+            <td><strong>${missed}</strong></td>
+            <td>${rate}</td>
+            <td>${last}</td>
+          </tr>`;
+        })
+        .join("");
+      return `<section id="lifecycle-email-delivery">
+        <h2>Email delivery health</h2>
+        <p class="section-cap">Signup cohort: last ${windowDays} days · <span class="code">eligible_now</span> = production RPC (same as cron) · <span class="code">missed overdue</span> = past send window, no <span class="code">cs_outreach_log</span> row · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/LIFECYCLE_PH_LAUNCH_MONITORING.md">PH launch monitoring →</a></p>
+        ${capped}
+        <div class="metrics">
+          ${metric("Cohort signups", delivery.cohort_users ?? "—")}
+          ${metric("Total missed (overdue)", delivery.missed_total ?? 0)}
+          ${metric("Cron sends (24h)", delivery.cron_sent_last_24h ?? "—")}
+          ${metric("Due now (cron)", delivery.cron_eligible_now ?? "—")}
+        </div>
+        <div class="readiness-matrix-wrap">
+          <table class="readiness-matrix">
+            <thead><tr><th>Email</th><th>Due now</th><th>Sent (window)</th><th>Missed overdue</th><th>Delivery %</th><th>Last send</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </section>`;
+    }
+
+    function renderEmailBucketImpact(impact) {
+      if (!impact || !impact.by_trigger) {
+        return `<section id="email-bucket-impact">
+          <h2>Email exposure × DAU buckets</h2>
+          <p class="section-cap">Load live snapshot for V1 exposure comparison.</p>
+        </section>`;
+      }
+      const flow = impact.population_flow_rates_pct || {};
+      const flowLine = ["NURR", "CURR", "iWAURR", "Resurrection_Rate"]
+        .filter((k) => flow[k] != null)
+        .map((k) => `${k} ${flow[k]}%`)
+        .join(" · ");
+      const any = impact.any_lifecycle_email || {};
+      const triggerBlocks = (impact.by_trigger || [])
+        .slice(0, 5)
+        .map((t) => {
+          const curE = t.current_pct_exposed;
+          const curN = t.current_pct_not_exposed;
+          return `<tr>
+            <td>${escapeHtml(t.label)}</td>
+            <td>${t.exposed?.users ?? 0}</td>
+            <td>${curE != null ? curE + "%" : "—"}</td>
+            <td>${t.not_exposed?.users ?? 0}</td>
+            <td>${curN != null ? curN + "%" : "—"}</td>
+          </tr>`;
+        })
+        .join("");
+      return `<section id="email-bucket-impact">
+        <h2>Email exposure × DAU buckets (V1)</h2>
+        <p class="section-cap">${escapeHtml(impact.methodology || "")} · Cohort: ${impact.cohort_users ?? "—"} signups (last ${impact.new_user_window_days ?? 30}d). Compare with <a href="#dau-model">DAU flow rates</a>${flowLine ? `: ${escapeHtml(flowLine)}` : ""}.</p>
+        <div class="chart-box"><h3>% in Current bucket today — any lifecycle email received vs not</h3><canvas id="email-impact-current-chart"></canvas></div>
+        <div class="readiness-matrix-wrap">
+          <table class="readiness-matrix">
+            <thead><tr><th>Email</th><th>Exposed n</th><th>% Current</th><th>Not exposed n</th><th>% Current</th></tr></thead>
+            <tbody>${triggerBlocks}</tbody>
+          </table>
+        </div>
+      </section>`;
+    }
+
     function renderEmailProviderCapacity(capacity) {
       const providers = capacity?.providers || [];
       if (!providers.length) {
@@ -842,6 +929,12 @@
           <a href="/" aria-current="page">Dashboard</a>
           <a href="/email-machine">Email machine</a>
         </nav>
+        <p class="section-cap" style="margin-top:-0.5rem">
+          <a href="#dau-model">DAU buckets</a> ·
+          <a href="#lifecycle-email-delivery">Delivery health</a> ·
+          <a href="#lifecycle-email-sends">Sends</a> ·
+          <a href="#email-bucket-impact">Email × buckets</a>
+        </p>
         <h1>Oasis Baseline Report</h1>
         <p class="caption">Snapshot ${data.snapshot_date || "—"} · ${data.total_users || 0} users (${data.active_users || 0} active)</p>
         <p class="data-source ${String(sourceLabel).includes("live") ? "live" : ""}">Last updated: ${data.generated_at || "—"} · Source: ${sourceLabel}</p>
@@ -872,7 +965,7 @@
 
         <section id="dau-model">
           <h2>Daily Active Users Model</h2>
-          <p class="section-cap">As of ${dau.as_of || data.snapshot_date || "—"} · engagement = session or llm_usage · flow rates = ${dau.flow_window_days || 7}-day avg daily transitions</p>
+          <p class="section-cap">As of ${dau.as_of || data.snapshot_date || "—"} · engagement = session or llm_usage · flow rates = ${dau.flow_window_days || 7}-day avg daily transitions · Refreshes each page load · <a href="#email-bucket-impact">Email exposure by bucket →</a></p>
           <div class="metrics">
             ${metric("DAU", dauTotals.dau ?? "—", { metricKey: "dau", tooltip: getTooltip("dau") })}
             ${metric("WAU", dauTotals.wau ?? "—", { metricKey: "wau", tooltip: getTooltip("wau") })}
@@ -896,6 +989,8 @@
 
         ${renderLifecycleReadiness(lr)}
         ${renderLifecycleEmailSends(data.lifecycle_email_sends || {})}
+        ${renderLifecycleEmailDelivery(data.lifecycle_email_delivery || {})}
+        ${renderEmailBucketImpact(data.email_bucket_impact || {})}
 
         <section id="activation">
           <h2>Activation</h2>
@@ -998,6 +1093,16 @@
         const sLabels = sendTriggers.map((t) => t.label || t.dedup_trigger_name);
         const sValues = sendTriggers.map((t) => t.pct_of_cohort ?? 0);
         horizontalBarChart("lifecycle-sends-chart", sLabels, sValues, "% of cohort");
+      }
+      const impact = data.email_bucket_impact || {};
+      const anyImp = impact.any_lifecycle_email;
+      if (anyImp?.exposed?.pct) {
+        barChart(
+          "email-impact-current-chart",
+          ["Exposed", "Not exposed"],
+          [anyImp.exposed.pct.current ?? 0, anyImp.not_exposed.pct.current ?? 0],
+          "% in Current bucket today"
+        );
       }
       if (Object.keys(rates).length) {
         barChart(nextId(), Object.keys(rates), Object.values(rates), "Activation %");

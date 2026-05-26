@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .client import paginate_table
+from .client import call_rpc, paginate_table
 from models.db import (
     User,
     Session,
@@ -66,3 +66,8 @@ def fetch_user_plans() -> list[UserPlan]:
 def fetch_cs_outreach_log() -> list[dict]:
     """All lifecycle / CS agent send dedup rows."""
     return _paginate("cs_outreach_log")
+
+
+def fetch_lifecycle_cohort_rpc(rpc_name: str, *, limit: int = 500) -> list[dict]:
+    """Current eligible users for a lifecycle trigger (same RPCs as Edge cron)."""
+    return call_rpc(rpc_name, {"p_limit": limit}, limit=limit)

@@ -42,11 +42,20 @@ def build_snapshot(today: date | None = None) -> BaselineSnapshot:
 
     outreach_log: list[dict] = []
     outreach_log_available = False
+    rpc_fetcher = None
     try:
         outreach_log = fetch_cs_outreach_log()
         outreach_log_available = True
     except Exception as exc:
         log.warning("cs_outreach_log fetch skipped: %s", exc)
+
+    if outreach_log_available:
+        try:
+            from db.fetch import fetch_lifecycle_cohort_rpc
+
+            rpc_fetcher = fetch_lifecycle_cohort_rpc
+        except Exception as exc:
+            log.warning("lifecycle cohort RPC fetcher unavailable: %s", exc)
 
     log.info(
         "counts: users=%d sessions=%d usage=%d daily=%d feedback=%d payments=%d outreach=%d",
@@ -71,6 +80,7 @@ def build_snapshot(today: date | None = None) -> BaselineSnapshot:
         user_plans=user_plans,
         outreach_log=outreach_log,
         outreach_log_available=outreach_log_available,
+        rpc_fetcher=rpc_fetcher,
         today=today,
     )
 

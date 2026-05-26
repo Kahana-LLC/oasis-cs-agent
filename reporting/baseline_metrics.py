@@ -56,6 +56,8 @@ class BaselineSnapshot:
     email_provider_capacity: dict[str, Any] = field(default_factory=dict)
     lifecycle_readiness: dict[str, Any] = field(default_factory=dict)
     lifecycle_email_sends: dict[str, Any] = field(default_factory=dict)
+    lifecycle_email_delivery: dict[str, Any] = field(default_factory=dict)
+    email_bucket_impact: dict[str, Any] = field(default_factory=dict)
     validation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -71,6 +73,7 @@ def _users_df(users: list[User]) -> pd.DataFrame:
         [
             {
                 "user_id": str(u.user_id),
+                "email": u.email or "",
                 "created_at": u.created_at,
                 "signup_date": u.created_at.date(),
                 "plan_id": u.plan_id or "Free",
@@ -701,6 +704,7 @@ def compute_baseline_snapshot(
     user_plans: list[UserPlan],
     outreach_log: list[dict[str, Any]] | None = None,
     outreach_log_available: bool = False,
+    rpc_fetcher: Any | None = None,
     today: date | None = None,
 ) -> BaselineSnapshot:
     today = today or date.today()
@@ -723,6 +727,8 @@ def compute_baseline_snapshot(
     dau_model = compute_dau_model(users_df, activity, today)
     from reporting.lifecycle_readiness import compute_lifecycle_readiness_by_bucket
     from reporting.lifecycle_email_sends import compute_lifecycle_email_sends
+    from reporting.lifecycle_email_delivery import compute_lifecycle_email_delivery
+    from reporting.email_bucket_impact import compute_email_bucket_impact
 
     outreach_log = outreach_log or []
 
@@ -743,6 +749,23 @@ def compute_baseline_snapshot(
         activity_df=activity,
         outreach_log=outreach_log,
         outreach_log_available=outreach_log_available,
+        today=today,
+    )
+    feedback_user_ids = {str(f.user_id) for f in feedback if f.user_id}
+    lifecycle_email_delivery = compute_lifecycle_email_delivery(
+        users_df=users_df,
+        usage_df=usage_df,
+        feedback_user_ids=feedback_user_ids,
+        outreach_log=outreach_log,
+        outreach_log_available=outreach_log_available,
+        rpc_fetcher=rpc_fetcher,
+        today=today,
+    )
+    email_bucket_impact = compute_email_bucket_impact(
+        users_df=users_df,
+        activity_df=activity,
+        outreach_log=outreach_log,
+        dau_model=dau_model,
         today=today,
     )
     launch_kpis = compute_launch_kpis(
@@ -792,5 +815,7 @@ def compute_baseline_snapshot(
         launch_kpis=launch_kpis,
         lifecycle_readiness=lifecycle_readiness,
         lifecycle_email_sends=lifecycle_email_sends,
+        lifecycle_email_delivery=lifecycle_email_delivery,
+        email_bucket_impact=email_bucket_impact,
         validation=validation,
     )

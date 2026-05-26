@@ -46,6 +46,8 @@ Writes `baseline_snapshot.json` and updates the optional Cursor canvas. Then rer
 | `launch_kpis.py` | Product Hunt launch KPI scorecard + usage cost forecast |
 | `lifecycle_readiness.py` | Phase 1 milestone coverage by DAU bucket |
 | `lifecycle_email_sends.py` | Phase 1 send counts per trigger (`cs_outreach_log`) for recent signups |
+| `lifecycle_email_delivery.py` | Eligible vs sent vs missed-overdue (RPC + Python rules) |
+| `email_bucket_impact.py` | V1 DAU bucket mix: exposed vs not exposed to each email |
 | `build_snapshot.py` | Rebuild from `sql_export.json` (no `.env`) |
 
 ## DAU model section
@@ -54,7 +56,7 @@ The Vercel dashboard and snapshot JSON include **`dau_model`**: seven user bucke
 
 ## Lifecycle readiness by bucket
 
-Snapshot keys **`lifecycle_readiness`** and **`lifecycle_email_sends`** (`lifecycle_readiness.py`, `lifecycle_email_sends.py`): cross-tab of Phase 1 milestones × DAU bucket, plus per-trigger send coverage for active signups in the last N days (default 30) from **`cs_outreach_log`**. Fetched on each `/api/snapshot` call via `db/fetch.fetch_cs_outreach_log()`. Rendered on the main dashboard at `#lifecycle-readiness` and `#lifecycle-email-sends`.
+Snapshot keys **`lifecycle_readiness`**, **`lifecycle_email_sends`**, **`lifecycle_email_delivery`**, and **`email_bucket_impact`**: cross-tab of Phase 1 milestones × DAU bucket; send coverage; delivery gaps (eligible / missed); V1 email exposure vs bucket mix. Fetched on each `/api/snapshot` via `cs_outreach_log` and lifecycle cohort RPCs. Dashboard: `#lifecycle-readiness`, `#lifecycle-email-sends`, `#lifecycle-email-delivery`, `#email-bucket-impact`. PH runbook: [`docs/LIFECYCLE_PH_LAUNCH_MONITORING.md`](../docs/LIFECYCLE_PH_LAUNCH_MONITORING.md).
 
 ## Launch KPIs section
 

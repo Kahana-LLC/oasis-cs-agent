@@ -570,6 +570,20 @@
           <p class="section-cap">Active signups last ${sends.new_user_window_days ?? 30} days · <a href="/#lifecycle-email-sends">Open on dashboard →</a></p>
           <table class="lifecycle-trigger-table"><thead><tr><th>Email</th><th>Sent</th><th>% of cohort (${cohort.users ?? 0})</th></tr></thead><tbody>${rows}</tbody></table>`;
       }
+      const delivery = snapshotData?.lifecycle_email_delivery;
+      let deliverySummary = "";
+      if (delivery?.triggers?.length) {
+        const drows = delivery.triggers
+          .map((t) => {
+            const missed = t.missed_overdue ?? 0;
+            const style = missed > 0 ? ' style="background:rgba(220,80,80,0.08)"' : "";
+            return `<tr${style}><td>${escapeHtml(t.label)}</td><td>${t.eligible_now ?? "—"}</td><td>${t.sent_in_window ?? 0}</td><td><strong>${missed}</strong></td><td>${t.delivery_rate_pct != null ? t.delivery_rate_pct + "%" : "—"}</td></tr>`;
+          })
+          .join("");
+        deliverySummary = `<h3>Delivery health (eligible vs missed)</h3>
+          <p class="section-cap"><a href="/#lifecycle-email-delivery">Dashboard →</a> · <a href="https://github.com/AdamKershner/oasis-analytics/blob/main/docs/LIFECYCLE_PH_LAUNCH_MONITORING.md">PH launch runbook →</a></p>
+          <table class="lifecycle-trigger-table"><thead><tr><th>Email</th><th>Due now</th><th>Sent</th><th>Missed</th><th>Delivery %</th></tr></thead><tbody>${drows}</tbody></table>`;
+      }
       const triggerRows = (plan.triggers || [])
         .map(
           (t) =>
@@ -620,6 +634,7 @@
         ${currentEmail}
         <div class="banner banner-info"><strong>Deploy target:</strong> ${escapeHtml(plan.deploy_project || "Oasis Supabase")} · <strong>ESP:</strong> ${escapeHtml(plan.esp_id || "brevo")} templates · <strong>Dedup:</strong> <span class="code">${escapeHtml(plan.dedup_table || "cs_outreach_log")}</span> · Full spec: <a href="${docUrl}" target="_blank" rel="noopener noreferrer">SUPABASE_LIFECYCLE_EMAIL_PLAN.md</a>${welcomeDoc ? ` · <a href="${welcomeDoc}">Welcome (step 1)</a>` : ""}</div>
         ${sendsSummary}
+        ${deliverySummary}
         <pre class="funnel-flow-ascii">${escapeHtml(plan.architecture_ascii || "")}</pre>
         <h3>Edge Functions</h3>
         <div class="lifecycle-fn-grid">${fnCards}</div>
