@@ -53,8 +53,8 @@
 | `dead_resurrection_d0.html`, `d14.html` | dead resurrection | `conversion/brevo-oasis-dead-resurrection-*.html` |
 | `return_reinforcement_d0.html` | return reinforcement | `conversion/brevo-oasis-return-reinforcement.html` |
 | `cancelled_winback_d0.html`, `d14.html` | cancelled win-back | `lifecycle/brevo-oasis-cancelled-winback-*.html` |
-| `enterprise_founder_d55.html` | enterprise founder | `enterprise/brevo-oasis-enterprise-founder.html` |
-| `enterprise_expansion_d85.html` | enterprise expansion | `enterprise/brevo-oasis-enterprise-expansion.html` |
+| `enterprise_founder_d7.html` | enterprise founder | `enterprise/brevo-oasis-enterprise-founder.html` |
+| `enterprise_expansion_d14.html` | enterprise expansion | `enterprise/brevo-oasis-enterprise-expansion.html` |
 | `legal_notice.html` | legal notice | `operational/brevo-oasis-legal-notice.html` |
 | `incident_notice.html` | incident notice | `operational/brevo-oasis-incident-notice.html` |
 

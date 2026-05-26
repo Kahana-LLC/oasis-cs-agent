@@ -58,7 +58,7 @@ Vercel **Build Command** (already in `vercel.json`): `python3 reporting/build_st
 | Launch QA strip | [/#launch-qa](https://oasis-analytics.vercel.app/#launch-qa) | Phase 1+2 copy |
 | Email Machine | [/email-machine](https://oasis-analytics.vercel.app/email-machine) | 19 Edge triggers |
 | Preview: Paid Zen | Open `upgrade_thank_you` preview | Celebratory header, 1M tokens, **Book time with me** → OnceHub (not Open Oasis) |
-| Preview: Enterprise | `enterprise_founder_d55`, `enterprise_expansion_d85` | New feedback copy |
+| Preview: Enterprise | `enterprise_founder_d7`, `enterprise_expansion_d14` | New feedback copy |
 | Preview: At-risk / Dead | Sample D0/D14 | No “haven’t seen you” / days-since |
 | API triggers | `curl -sS https://oasis-analytics.vercel.app/api/snapshot \| jq '.lifecycle_email_delivery.triggers \| length'` | **19** |
 

@@ -10,12 +10,12 @@ Backend segmentation still uses `company_domain`; that is not surfaced in the em
 
 | Touch | HubSpot / Brevo name | Day | HTML | Plain text |
 |-------|----------------------|-----|------|------------|
-| Founder | Oasis Enterprise Founder | D55 | [`brevo-oasis-enterprise-founder.html`](brevo-oasis-enterprise-founder.html) | [`brevo-oasis-enterprise-founder-plain-text.txt`](brevo-oasis-enterprise-founder-plain-text.txt) |
-| Expansion | Oasis Enterprise Expansion | D85 | [`brevo-oasis-enterprise-expansion.html`](brevo-oasis-enterprise-expansion.html) | [`brevo-oasis-enterprise-expansion-plain-text.txt`](brevo-oasis-enterprise-expansion-plain-text.txt) |
+| Founder | Oasis Enterprise Founder | D7 | [`brevo-oasis-enterprise-founder.html`](brevo-oasis-enterprise-founder.html) | [`brevo-oasis-enterprise-founder-plain-text.txt`](brevo-oasis-enterprise-founder-plain-text.txt) |
+| Expansion | Oasis Enterprise Expansion | D14 | [`brevo-oasis-enterprise-expansion.html`](brevo-oasis-enterprise-expansion.html) | [`brevo-oasis-enterprise-expansion-plain-text.txt`](brevo-oasis-enterprise-expansion-plain-text.txt) |
 
 ## Campaign copy
 
-### D55 — Founder (Brevo #71)
+### D7 — Founder (Brevo #71)
 
 | Field | Value |
 |-------|--------|
@@ -26,7 +26,7 @@ Backend segmentation still uses `company_domain`; that is not surfaced in the em
 | Secondary | **Book time** → https://go.oncehub.com/AdamKershner (text link) |
 | Footer | You're receiving this because you use Oasis. |
 
-### D85 — Expansion (Brevo #72)
+### D14 — Expansion (Brevo #72)
 
 | Field | Value |
 |-------|--------|
@@ -52,4 +52,6 @@ python3 reporting/build_static_site.py
 3. Set subject and preheader from the table above.
 4. Test send before enabling workflows.
 
-Previews: `/emails/enterprise_founder_d55.html`, `/emails/enterprise_expansion_d85.html` on [Email Machine](https://oasis-analytics.vercel.app/email-machine).
+Previews: `/emails/enterprise_founder_d7.html`, `/emails/enterprise_expansion_d14.html` on [Email Machine](https://oasis-analytics.vercel.app/email-machine).
+
+**Cohort (Supabase):** company email; lifecycle day 7–8 + ≥2 sessions (founder), day 14–15 + ≥4 sessions (expansion); daily cron 14:00 UTC.

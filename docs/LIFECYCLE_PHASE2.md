@@ -47,7 +47,7 @@ Extends Phase 1 with monetization, conversion, and enterprise emails. Same archi
 - **At-risk nurture:** DAU bucket `at_risk_wau` / `at_risk_mau` via `lifecycle_user_bucket()`; follow-ups 7/14/21 days after D0 send.
 - **Dead resurrection:** bucket `dead`; D0 capped at 20 new users per calendar month; no resurrection email in prior 30 days.
 - **Return reinforcement:** bucket transition into `reactivated` or `resurrected` (today vs yesterday).
-- **Enterprise:** company email (non-consumer domain); lifecycle day 55–56 + ≥8 sessions, or 85–86 + ≥10 sessions.
+- **Enterprise:** company email (non-consumer domain); lifecycle day 7–8 + ≥2 sessions (founder), or 14–15 + ≥4 sessions (expansion).
 
 ---
 

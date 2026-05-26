@@ -91,17 +91,17 @@ TOUCH_PREVIEWS: dict[str, tuple[str, str, str, str]] = {
         "Reconsider Oasis Zen?",
         "1M tokens per day — reply if price or features was the blocker.",
     ),
-    "enterprise_founder_d55": (
+    "enterprise_founder_d7": (
         "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder.html",
         "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder-plain-text.txt",
-        "How is Oasis working for you?",
-        "I'd love your honest feedback on your workflow and the product.",
+        "What would make Oasis indispensable to you?",
+        "We are problem solvers — your input drives what we build and fix next.",
     ),
-    "enterprise_expansion_d85": (
+    "enterprise_expansion_d14": (
         "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion.html",
         "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion-plain-text.txt",
-        "Quick check-in: your Oasis experience",
-        "Share feedback or book a few minutes on my calendar.",
+        "What should Oasis become next?",
+        "Even a short reply helps us ship features and fixes faster.",
     ),
 }
 

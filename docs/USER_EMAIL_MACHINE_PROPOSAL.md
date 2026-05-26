@@ -283,8 +283,8 @@ Adam’s five sequences are **Phase 1 — approved draft**. Five additional sequ
 | 7 | **Limit-hitter upgrade** | Brevo (fallback pool) | Free users who hit token cap | `users_hit_limit` + not in `paid_subscribers` | One-time + D7 reminder | **500 subs** · `limit_hitter_conversion_pct` |
 | 8 | **Dead resurrection** | EmailOctopus (Phase 2 conversion) | Dead bucket non-upgraders | `bucket=dead` | 2-touch | Counts toward 3–4 Phase 2 emails |
 | 9 | **Return reinforcement** | EmailOctopus (Phase 2 conversion) | Reactivated / resurrected | First day in bucket | One-time | RURR · SURR · prevent 1-RURR / 1-SURR |
-| 11 | **Enterprise founder** | HubSpot | Company email · session_count ≥ 8 | Day 55 post-signup | One-time | B2B pipeline |
-| 12 | **Enterprise expansion** | HubSpot | Company email · session_count ≥ 10 | Day 85 post-signup | One-time | B2B pipeline |
+| 11 | **Enterprise founder** | HubSpot / Brevo | Company email · session_count ≥ 2 | Day 7 post-signup | One-time | Early product feedback |
+| 12 | **Enterprise expansion** | HubSpot / Brevo | Company email · session_count ≥ 4 | Day 14 post-signup | One-time | Second feedback touch |
 
 | 10 | **Cancelled sub win-back** | Mailgun (overflow: Brevo) | `cancelled_paid_subscribers` | `user_plans.is_active=false` | One-time + D14 | **500 subs** · retention |
 

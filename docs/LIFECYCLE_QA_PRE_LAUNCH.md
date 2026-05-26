@@ -101,8 +101,8 @@ Use a **dedicated test user** email you control (must exist in `users`). Replace
 | `dead_resurrection_d0` | 68 | Cap **20 new/month** |
 | `dead_resurrection_d14` | 69 | 14d after D0 |
 | `return_reinforcement` | 70 | Bucket transition to reactivated/resurrected |
-| `enterprise_founder` | 71 | Company email, day 55–56, ≥8 sessions |
-| `enterprise_expansion` | 72 | Company email, day 85–86, ≥10 sessions |
+| `enterprise_founder` | 71 | Company email, day 7–8, ≥2 sessions |
+| `enterprise_expansion` | 72 | Company email, day 14–15, ≥4 sessions |
 | `cancelled_winback_d14` | 63 | 14d after `cancelled_winback` |
 
 Dry-run each with `triggers: ["<name>"]` in [cron curl](#helper-daily-cron).
@@ -211,7 +211,7 @@ List IDs: `.venv/bin/python scripts/list_brevo_smtp_templates.py`
 |------------|--------|
 | **500 RPC cap** | Each cron trigger processes max 500 eligible users/run; dashboard shows warning if capped |
 | **Dead D0 cap** | Max 20 new `dead_resurrection_d0` per calendar month |
-| **Enterprise windows** | Only users on lifecycle days 55–56 or 85–86 with company email |
+| **Enterprise windows** | Only users on lifecycle days 7–8 or 14–15 with company email |
 | **Phase 2 `missed_overdue`** | Dashboard `missed_overdue` is fully computed for Phase 1 triggers only; Phase 2 relies on `eligible_now` RPC + manual log checks |
 | **Zero cohort** | Dry-run with `cohort_size: 0` is OK if no users match rules today |
 | **Vercel ≠ execution** | Webhooks/cron run on **Oasis Supabase**, not Vercel |

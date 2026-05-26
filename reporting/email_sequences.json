@@ -895,7 +895,7 @@
           "env_template_id": "BREVO_TEMPLATE_ID_ENTERPRISE_FOUNDER",
           "implementation_status": "shipped",
           "channel": "cron",
-          "when": "lifecycle day 55–56, company email, ≥8 sessions",
+          "when": "lifecycle day 7–8, company email, ≥2 sessions",
           "qa_test_command": "lifecycle-daily-cron dry_run triggers enterprise_founder",
           "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
         },
@@ -906,7 +906,7 @@
           "env_template_id": "BREVO_TEMPLATE_ID_ENTERPRISE_EXPANSION",
           "implementation_status": "shipped",
           "channel": "cron",
-          "when": "lifecycle day 85–86, company email, ≥10 sessions",
+          "when": "lifecycle day 14–15, company email, ≥4 sessions",
           "qa_test_command": "lifecycle-daily-cron dry_run triggers enterprise_expansion",
           "edge_functions": ["lifecycle-daily-cron", "lifecycle-send"]
         },
@@ -2201,8 +2201,8 @@
       "buckets": [
         "company_domain"
       ],
-      "trigger_summary": "Company-email user with sustained engagement (founder track)",
-      "trigger_when": "Day 55 post-signup (lifecycle_day 55–56)",
+      "trigger_summary": "Company-email user — early founder feedback (day 7)",
+      "trigger_when": "Day 7 post-signup (lifecycle_day 7–8)",
       "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → enterprise_founder (Brevo interim)",
       "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
@@ -2223,7 +2223,7 @@
       ],
       "preview": {
         "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder.html",
-        "path": "/emails/enterprise_founder_d55.html",
+        "path": "/emails/enterprise_founder_d7.html",
         "subject": "What would make Oasis indispensable to you?",
         "preheader": "We are problem solvers — your input drives what we build and fix next.",
         "from_name": "Adam from Oasis",
@@ -2233,11 +2233,11 @@
       "funnel_phase": "phase_2_paid",
       "touches": [
         {
-          "touch_id": "enterprise_founder_d55",
+          "touch_id": "enterprise_founder_d7",
           "ordinal": 1,
           "name": "Enterprise founder outreach",
-          "day_offset": 55,
-          "trigger_when": "Day 55 post-signup, company domain, session_count >= 8",
+          "day_offset": 7,
+          "trigger_when": "Day 7 post-signup, company domain, session_count >= 2",
           "primary_provider_id": "hubspot",
           "fallback": {
             "type": "none"
@@ -2246,7 +2246,7 @@
           "counts_toward_phase_budget": false,
           "preview": {
             "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-founder.html",
-            "path": "/emails/enterprise_founder_d55.html",
+            "path": "/emails/enterprise_founder_d7.html",
             "subject": "What would make Oasis indispensable to you?",
             "preheader": "We are problem solvers — your input drives what we build and fix next.",
             "from_name": "Adam from Oasis",
@@ -2264,8 +2264,8 @@
       "buckets": [
         "company_domain"
       ],
-      "trigger_summary": "Company-email power user — B2B expansion pitch",
-      "trigger_when": "Day 85 post-signup (lifecycle_day 85–86)",
+      "trigger_summary": "Company-email user — second feedback touch (day 14)",
+      "trigger_when": "Day 14 post-signup (lifecycle_day 14–15)",
       "trigger_implementation": "Supabase Edge: lifecycle-daily-cron → enterprise_expansion (Brevo interim)",
       "provider_id": "brevo",
       "provider_overflow_id": "fallback_pool",
@@ -2286,7 +2286,7 @@
       ],
       "preview": {
         "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion.html",
-        "path": "/emails/enterprise_expansion_d85.html",
+        "path": "/emails/enterprise_expansion_d14.html",
         "subject": "What should Oasis become next?",
         "preheader": "Even a short reply helps us ship features and fixes faster.",
         "from_name": "Adam from Oasis",
@@ -2296,11 +2296,11 @@
       "funnel_phase": "phase_2_paid",
       "touches": [
         {
-          "touch_id": "enterprise_expansion_d85",
+          "touch_id": "enterprise_expansion_d14",
           "ordinal": 1,
           "name": "Enterprise expansion",
-          "day_offset": 85,
-          "trigger_when": "Day 85 post-signup, company domain, session_count >= 10",
+          "day_offset": 14,
+          "trigger_when": "Day 14 post-signup, company domain, session_count >= 4",
           "primary_provider_id": "hubspot",
           "fallback": {
             "type": "none"
@@ -2309,7 +2309,7 @@
           "counts_toward_phase_budget": false,
           "preview": {
             "source": "brevo-oasis-emails/enterprise/brevo-oasis-enterprise-expansion.html",
-            "path": "/emails/enterprise_expansion_d85.html",
+            "path": "/emails/enterprise_expansion_d14.html",
             "subject": "What should Oasis become next?",
             "preheader": "Even a short reply helps us ship features and fixes faster.",
             "from_name": "Adam from Oasis",
